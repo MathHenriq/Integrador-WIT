@@ -13,6 +13,8 @@
 //   RESEND_API_KEY   - chave da Resend. Ausente => função vira no-op.
 //   EMAIL_REMETENTE  - ex: "Núcleo WIT <projetos@seudominio.com.br>"
 //   EMAIL_COPIA_WIT  - opcional, recebe cópia de toda reserva.
+//
+// Chamada: POST { "protocolo": "WIT-XXXXXX" }
 // =====================================================================
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4'
@@ -50,42 +52,38 @@ function dataExtensa(iso: string) {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
-  let token: string
   let protocolo: string
   try {
     const corpo = await req.json()
-    token = String(corpo.token ?? '')
     protocolo = String(corpo.protocolo ?? '')
   } catch {
     return responder({ enviado: false, motivo: 'requisicao_invalida' })
   }
 
-  if (!token || !protocolo) return responder({ enviado: false, motivo: 'requisicao_invalida' })
+  if (!protocolo) return responder({ enviado: false, motivo: 'requisicao_invalida' })
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   )
 
-  // A service role ignora o RLS, então o token precisa ser conferido aqui
-  // à mão: só envia e-mail de uma reserva de uma escola cujo link quem
-  // chamou realmente possui.
+  // O protocolo é a credencial da reserva (mesma regra do cancelamento).
+  // Mesmo que alguém adivinhasse um, a função só envia para o endereço
+  // gravado na própria reserva — não dá para redirecionar o e-mail.
   const { data: reserva } = await supabase
     .from('reservas')
-    .select('protocolo, nome_professor, email_contato, status, data_aula, horarios(dia_semana, hora_inicio, hora_fim, escolas(nome, token_professor, token_coordenacao))')
-    .eq('protocolo', protocolo)
+    .select('protocolo, nome_professor, turma, email_contato, status, data_aula, aula_livre, aulas(titulo), horarios(dia_semana, hora_inicio, hora_fim, escolas(nome))')
+    .eq('protocolo', protocolo.trim().toUpperCase())
     .maybeSingle()
 
   const horario = reserva?.horarios as
-    | { dia_semana: number; hora_inicio: string; hora_fim: string; escolas: { nome: string; token_professor: string; token_coordenacao: string } }
+    | { dia_semana: number; hora_inicio: string; hora_fim: string; escolas: { nome: string } }
     | undefined
 
   if (!reserva || !horario) return responder({ enviado: false, motivo: 'reserva_nao_encontrada' })
 
   const escola = horario.escolas
-  if (token !== escola.token_professor && token !== escola.token_coordenacao) {
-    return responder({ enviado: false, motivo: 'token_invalido' }, 403)
-  }
+  const aula = (reserva.aulas as { titulo: string } | null)?.titulo ?? reserva.aula_livre ?? 'Aula'
 
   const chaveResend = Deno.env.get('RESEND_API_KEY')
   const remetente = Deno.env.get('EMAIL_REMETENTE')
@@ -109,11 +107,12 @@ Deno.serve(async (req) => {
         <tr><td style="padding:4px 16px 4px 0;color:#57534e">Protocolo</td><td style="padding:4px 0"><strong>${reserva.protocolo}</strong></td></tr>
         <tr><td style="padding:4px 16px 4px 0;color:#57534e">Escola</td><td style="padding:4px 0">${escola.nome}</td></tr>
         <tr><td style="padding:4px 16px 4px 0;color:#57534e">Aula</td><td style="padding:4px 0">${quando}</td></tr>
-        <tr><td style="padding:4px 16px 4px 0;color:#57534e">Professor(a)</td><td style="padding:4px 0">${reserva.nome_professor}</td></tr>
+        <tr><td style="padding:4px 16px 4px 0;color:#57534e">Atividade</td><td style="padding:4px 0">${aula}</td></tr>
+        <tr><td style="padding:4px 16px 4px 0;color:#57534e">Professor(a)</td><td style="padding:4px 0">${reserva.nome_professor}${reserva.turma ? ` &middot; ${reserva.turma}` : ''}</td></tr>
       </table>
       <p style="margin:20px 0 0;color:#57534e;font-size:14px">
-        Esta reserva vale apenas para a data acima. Para cancelar, procure a coordenação da escola
-        informando o protocolo.
+        Esta reserva vale apenas para a data acima. Para consultar ou cancelar, use o protocolo na
+        página "Minha reserva" do site.
       </p>
     </div>`
 

@@ -10,9 +10,9 @@ export const DIAS_SEMANA = [
   'Sábado',
 ] as const
 
-export const DIAS_SIGLA = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'] as const
+export const DIAS_SIGLA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'] as const
 
-const MESES = [
+export const MESES = [
   'janeiro',
   'fevereiro',
   'março',
@@ -26,6 +26,8 @@ const MESES = [
   'novembro',
   'dezembro',
 ] as const
+
+export const ANOS_ESCOLARES = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const
 
 export function nomeDia(dia: number) {
   return DIAS_SEMANA[dia] ?? '—'
@@ -90,44 +92,39 @@ export function diaEMes(iso: DataIso) {
   return `${data.getDate()} de ${MESES[data.getMonth()]}`
 }
 
-/** "Agosto de 2026" */
-export function rotuloMes(mes: Date) {
-  const nome = MESES[mes.getMonth()]
-  return `${nome[0].toUpperCase()}${nome.slice(1)} de ${mes.getFullYear()}`
+export function somarDias(iso: DataIso, dias: number): DataIso {
+  const data = paraData(iso)
+  data.setDate(data.getDate() + dias)
+  return paraIso(data)
 }
 
-export function primeiroDiaDoMes(mes: Date) {
-  return new Date(mes.getFullYear(), mes.getMonth(), 1)
+/** Domingo da semana que contém a data. */
+export function inicioDaSemana(iso: DataIso): DataIso {
+  const data = paraData(iso)
+  data.setDate(data.getDate() - data.getDay())
+  return paraIso(data)
 }
 
-export function ultimoDiaDoMes(mes: Date) {
-  return new Date(mes.getFullYear(), mes.getMonth() + 1, 0)
+/** Os sete dias da semana que começa em `inicio`. */
+export function diasDaSemana(inicio: DataIso): DataIso[] {
+  return Array.from({ length: 7 }, (_, i) => somarDias(inicio, i))
 }
 
-export function somarMeses(mes: Date, quantidade: number) {
-  return new Date(mes.getFullYear(), mes.getMonth() + quantidade, 1)
-}
+/** "17 a 23 de agosto de 2026" — encurta quando cruza mês ou ano. */
+export function rotuloSemana(inicio: DataIso) {
+  const fim = somarDias(inicio, 6)
+  const a = paraData(inicio)
+  const b = paraData(fim)
 
-/** Compara só ano+mês, ignorando o dia. */
-export function mesEhAnteriorA(a: Date, b: Date) {
-  return a.getFullYear() * 12 + a.getMonth() < b.getFullYear() * 12 + b.getMonth()
-}
-
-/**
- * As 42 células da grade do mês (6 semanas), começando no domingo.
- * `null` nas posições que pertencem a outro mês.
- */
-export function celulasDoMes(mes: Date): (DataIso | null)[] {
-  const primeiro = primeiroDiaDoMes(mes)
-  const total = ultimoDiaDoMes(mes).getDate()
-  const celulas: (DataIso | null)[] = Array(primeiro.getDay()).fill(null)
-
-  for (let dia = 1; dia <= total; dia++) {
-    celulas.push(paraIso(new Date(mes.getFullYear(), mes.getMonth(), dia)))
+  if (a.getMonth() === b.getMonth()) {
+    return `${a.getDate()} a ${b.getDate()} de ${MESES[a.getMonth()]} de ${a.getFullYear()}`
   }
-  while (celulas.length % 7 !== 0) celulas.push(null)
-
-  return celulas
+  if (a.getFullYear() === b.getFullYear()) {
+    return `${a.getDate()} de ${MESES[a.getMonth()]} a ${b.getDate()} de ${
+      MESES[b.getMonth()]
+    } de ${a.getFullYear()}`
+  }
+  return `${dataCurta(inicio)} a ${dataCurta(fim)}`
 }
 
 // ---------------------------------------------------------------------
@@ -135,9 +132,9 @@ export function celulasDoMes(mes: Date): (DataIso | null)[] {
 // ---------------------------------------------------------------------
 
 export const ROTULO_STATUS_HORARIO: Record<StatusHorario, string> = {
-  vago: 'Vago',
-  parcial: 'Parcialmente ocupado',
-  cheio: 'Reservado',
+  vago: 'Sala livre',
+  parcial: 'Parcialmente ocupada',
+  cheio: 'Reservada',
 }
 
 export const ROTULO_STATUS_RESERVA: Record<StatusReserva, string> = {
@@ -147,4 +144,14 @@ export const ROTULO_STATUS_RESERVA: Record<StatusReserva, string> = {
 
 export function emailValido(valor: string) {
   return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(valor)
+}
+
+/** "6º ao 9º ano" a partir de [6,7,8,9]; lista solta quando há buracos. */
+export function rotuloAnos(anos: number[]) {
+  if (!anos || anos.length === 0) return 'Todos os anos'
+  const ordenados = [...anos].sort((a, b) => a - b)
+  const sequencial = ordenados.every((n, i) => i === 0 || n === ordenados[i - 1] + 1)
+  if (ordenados.length === 1) return `${ordenados[0]}º ano`
+  if (sequencial) return `${ordenados[0]}º ao ${ordenados[ordenados.length - 1]}º ano`
+  return ordenados.map((n) => `${n}º`).join(', ') + ' ano'
 }
