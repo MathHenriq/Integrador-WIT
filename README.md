@@ -72,7 +72,13 @@ select set_config('integrador.senha_admin', 'troque-esta-senha', false);
 ```
 
 Para trocar a senha depois, edite essa linha e rode o arquivo de novo — pode rodar quantas
-vezes quiser, os dados já cadastrados não se perdem.
+vezes quiser, os dados já cadastrados não se perdem. Ou rode só isto no SQL Editor:
+
+```sql
+delete from public.admin_tokens where descricao = 'Núcleo WIT';
+insert into public.admin_tokens (senha_hash, descricao)
+values (extensions.crypt('SUA-SENHA-AQUI', extensions.gen_salt('bf')), 'Núcleo WIT');
+```
 
 Quem preferir a CLI: `supabase db push` faz o mesmo.
 
