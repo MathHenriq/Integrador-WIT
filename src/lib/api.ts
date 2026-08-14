@@ -2,9 +2,10 @@ import { emailHabilitado, supabase } from './supabase'
 import type {
   Acesso,
   Comprovante,
+  DataIso,
   EscolaAdmin,
-  Horario,
   HorarioAdmin,
+  Ocorrencia,
   Reserva,
   ReservaAdmin,
 } from './tipos'
@@ -35,23 +36,47 @@ async function chamar<T>(funcao: string, argumentos: Record<string, unknown>): P
 // ---------------------------------------------------------------------
 
 /** Retorna null quando o link não corresponde a nenhuma escola. */
-export function acessarEscola(token: string) {
-  return chamar<Acesso | null>('acessar_escola', { p_token: token })
+export async function acessarEscola(token: string) {
+  const acesso = await chamar<Acesso | null>('acessar_escola', { p_token: token })
+  if (!acesso) return null
+  return {
+    ...acesso,
+    hoje: soData(acesso.hoje),
+    limite_agendamento: soData(acesso.limite_agendamento),
+  }
 }
 
-export function listarHorarios(token: string) {
-  return chamar<Horario[]>('listar_horarios', { p_token: token })
+/**
+ * O calendário casa ocorrência com célula por igualdade exata de string,
+ * então uma data que chegue como "2026-08-19T00:00:00Z" faria a grade
+ * aparecer vazia sem erro nenhum. Normalizar aqui mantém esse acoplamento
+ * num lugar só.
+ */
+function soData(valor: string): DataIso {
+  return valor.slice(0, 10)
+}
+
+/** Aulas concretas do período: o molde semanal expandido em datas. */
+export async function listarOcorrencias(token: string, inicio: DataIso, fim: DataIso) {
+  const ocorrencias = await chamar<Ocorrencia[]>('listar_ocorrencias', {
+    p_token: token,
+    p_inicio: inicio,
+    p_fim: fim,
+  })
+  return ocorrencias.map((o) => ({ ...o, data_aula: soData(o.data_aula) }))
 }
 
 export async function criarReserva(
   token: string,
   horarioId: string,
+  dataAula: DataIso,
   nomeProfessor: string,
   emailContato: string | null,
 ) {
   const comprovante = await chamar<Comprovante>('criar_reserva', {
     p_token: token,
     p_horario_id: horarioId,
+    p_data_aula: dataAula,
     p_nome_professor: nomeProfessor,
     p_email_contato: emailContato,
   })
@@ -64,15 +89,16 @@ export async function criarReserva(
       .catch((erro) => console.warn('Falha ao enviar e-mail de confirmação', erro))
   }
 
-  return comprovante
+  return { ...comprovante, data_aula: soData(comprovante.data_aula) }
 }
 
 // ---------------------------------------------------------------------
 // Coordenação
 // ---------------------------------------------------------------------
 
-export function listarReservas(token: string) {
-  return chamar<Reserva[]>('listar_reservas', { p_token: token })
+export async function listarReservas(token: string) {
+  const reservas = await chamar<Reserva[]>('listar_reservas', { p_token: token })
+  return reservas.map((r) => ({ ...r, data_aula: soData(r.data_aula) }))
 }
 
 export function cancelarReserva(token: string, reservaId: string, canceladoPor: string | null) {
@@ -153,14 +179,14 @@ export function adminCriarHorario(
 export function adminAtualizarHorario(
   adminToken: string,
   horarioId: string,
-  capacidade: number,
-  ocupacaoWit: number,
+  dados: { capacidade?: number | null; ocupacaoWit?: number | null; ativo?: boolean | null },
 ) {
   return chamar<unknown>('admin_atualizar_horario', {
     p_admin_token: adminToken,
     p_horario_id: horarioId,
-    p_capacidade: capacidade,
-    p_ocupacao_wit: ocupacaoWit,
+    p_capacidade: dados.capacidade ?? null,
+    p_ocupacao_wit: dados.ocupacaoWit ?? null,
+    p_ativo: dados.ativo ?? null,
   })
 }
 
@@ -171,9 +197,17 @@ export function adminRemoverHorario(adminToken: string, horarioId: string) {
   })
 }
 
-export function adminListarReservas(adminToken: string, escolaId: string | null) {
-  return chamar<ReservaAdmin[]>('admin_listar_reservas', {
+export async function adminListarReservas(
+  adminToken: string,
+  escolaId: string | null,
+  de: DataIso | null = null,
+  ate: DataIso | null = null,
+) {
+  const reservas = await chamar<ReservaAdmin[]>('admin_listar_reservas', {
     p_admin_token: adminToken,
     p_escola_id: escolaId,
+    p_de: de,
+    p_ate: ate,
   })
+  return reservas.map((r) => ({ ...r, data_aula: soData(r.data_aula) }))
 }

@@ -186,6 +186,148 @@ a {
 }
 
 /* ------------------------------------------------------------------ */
+/* Calendário                                                          */
+/* ------------------------------------------------------------------ */
+
+.navegacao-mes {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.navegacao-mes > button {
+  font-size: 20px;
+  line-height: 1;
+  padding: 8px 16px;
+}
+
+.navegacao-mes .mes-atual {
+  flex: 1;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+}
+
+.navegacao-mes .mes-atual strong {
+  font-size: 17px;
+}
+
+.navegacao-mes .mes-atual span {
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+.calendario {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  box-shadow: var(--sombra);
+  padding: 12px;
+}
+
+.calendario-semana,
+.calendario-grade {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.calendario-semana {
+  margin-bottom: 6px;
+}
+
+.calendario-semana span {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--texto-suave);
+  padding: 4px 0;
+}
+
+.calendario .dia,
+.calendario .dia-vazio {
+  aspect-ratio: 1 / 1;
+  min-height: 46px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 2px;
+  background: transparent;
+  color: var(--texto);
+  font-weight: 500;
+}
+
+.calendario .dia .numero {
+  font-size: 15px;
+}
+
+.calendario .dia .marca {
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: var(--texto-suave);
+  text-align: center;
+}
+
+/* Dia sem aula nenhuma: visível para orientação, mas inerte. */
+.calendario .dia.sem-aula {
+  color: var(--texto-suave);
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Tem aula, mas nada livre (reservado ou já passou). */
+.calendario .dia.com-aula {
+  background: var(--superficie-suave);
+  cursor: pointer;
+}
+
+/* Tem pelo menos um horário reservável — o que o professor procura. */
+.calendario .dia.com-aula.livre {
+  background: var(--sucesso-suave);
+  color: var(--sucesso);
+}
+
+.calendario .dia.com-aula.livre .marca {
+  color: var(--sucesso);
+}
+
+/* Já passou: continua clicável (dá para consultar o que houve), mas sai
+   do primeiro plano para não competir com as datas que ainda dão para
+   marcar. */
+.calendario .dia.com-aula.passado {
+  opacity: 0.5;
+}
+
+.calendario .dia.hoje {
+  border-color: var(--acento);
+}
+
+.calendario .dia.selecionado {
+  outline: 2px solid var(--acento);
+  outline-offset: 1px;
+}
+
+.calendario .dia.com-aula:hover:not(:disabled) {
+  filter: brightness(0.96);
+}
+
+@media (prefers-color-scheme: dark) {
+  .calendario .dia.com-aula:hover:not(:disabled) {
+    filter: brightness(1.25);
+  }
+}
+
+.calendario .dia:disabled {
+  opacity: 0.45;
+}
+
+/* ------------------------------------------------------------------ */
 /* Etiquetas                                                           */
 /* ------------------------------------------------------------------ */
 
@@ -508,6 +650,11 @@ th {
 
 tr:last-child td {
   border-bottom: none;
+}
+
+/* Linha de algo que já saiu de cena: aula realizada, horário fora da grade. */
+tr.passado td {
+  opacity: 0.6;
 }
 
 .mono {

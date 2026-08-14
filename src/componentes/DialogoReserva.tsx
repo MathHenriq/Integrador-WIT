@@ -1,19 +1,19 @@
 import { useState } from 'react'
 import { criarReserva } from '../lib/api'
-import { emailValido, faixaHoraria, nomeDia } from '../lib/formato'
+import { dataExtensa, emailValido, faixaHoraria } from '../lib/formato'
 import { emailHabilitado } from '../lib/supabase'
-import type { Comprovante, Horario } from '../lib/tipos'
+import type { Comprovante, Ocorrencia } from '../lib/tipos'
 import { Aviso } from './Aviso'
 import { Modal } from './Modal'
 
 type Props = {
   token: string
-  horario: Horario
+  ocorrencia: Ocorrencia
   aoFechar: () => void
   aoConfirmar: (comprovante: Comprovante) => void
 }
 
-export function DialogoReserva({ token, horario, aoFechar, aoConfirmar }: Props) {
+export function DialogoReserva({ token, ocorrencia, aoFechar, aoConfirmar }: Props) {
   const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
   const [erro, setErro] = useState<string | null>(null)
@@ -34,7 +34,13 @@ export function DialogoReserva({ token, horario, aoFechar, aoConfirmar }: Props)
 
     setEnviando(true)
     try {
-      const comprovante = await criarReserva(token, horario.id, nome.trim(), email.trim() || null)
+      const comprovante = await criarReserva(
+        token,
+        ocorrencia.horario_id,
+        ocorrencia.data_aula,
+        nome.trim(),
+        email.trim() || null,
+      )
       aoConfirmar(comprovante)
     } catch (falha) {
       setErro(falha instanceof Error ? falha.message : 'Não foi possível concluir a reserva.')
@@ -44,8 +50,11 @@ export function DialogoReserva({ token, horario, aoFechar, aoConfirmar }: Props)
 
   return (
     <Modal
-      titulo="Reservar horário"
-      subtitulo={`${nomeDia(horario.dia_semana)}, ${faixaHoraria(horario.hora_inicio, horario.hora_fim)}`}
+      titulo="Reservar aula"
+      subtitulo={`${dataExtensa(ocorrencia.data_aula)} · ${faixaHoraria(
+        ocorrencia.hora_inicio,
+        ocorrencia.hora_fim,
+      )}`}
       aoFechar={aoFechar}
     >
       <form onSubmit={enviar}>
@@ -85,6 +94,10 @@ export function DialogoReserva({ token, horario, aoFechar, aoConfirmar }: Props)
           </p>
         </div>
 
+        <p className="ajuda" style={{ marginTop: -4 }}>
+          A reserva vale só para esta data. Para outras semanas, marque cada uma no calendário.
+        </p>
+
         <div className="acoes-formulario">
           <button type="button" className="secundario" onClick={aoFechar} disabled={enviando}>
             Cancelar
@@ -115,10 +128,10 @@ export function DialogoComprovante({
       <dl className="definicoes">
         <dt>Escola</dt>
         <dd>{comprovante.escola_nome}</dd>
+        <dt>Data</dt>
+        <dd>{dataExtensa(comprovante.data_aula)}</dd>
         <dt>Horário</dt>
-        <dd>
-          {nomeDia(comprovante.dia_semana)}, {faixaHoraria(comprovante.hora_inicio, comprovante.hora_fim)}
-        </dd>
+        <dd>{faixaHoraria(comprovante.hora_inicio, comprovante.hora_fim)}</dd>
         <dt>Professor(a)</dt>
         <dd>{comprovante.nome_professor}</dd>
         {comprovante.email_contato && (

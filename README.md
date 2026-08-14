@@ -6,7 +6,7 @@ turma dele para uma aula dada pelo Núcleo WIT — mas dependia do instrutor ca�
 de porta em porta para descobrir quem toparia.
 
 Este sistema resolve a **descoberta de disponibilidade**: cada escola recebe um link, o
-professor abre, vê os horários vagos e reserva. Sem login, sem senha, sem app.
+professor abre, navega pelo calendário, escolhe a data e reserva. Sem login, sem senha, sem app.
 
 ## Como funciona o acesso
 
@@ -14,7 +14,7 @@ Não existe cadastro de usuário. Cada escola tem **dois links**, gerados no cad
 
 | Link | Quem recebe | O que pode fazer |
 | --- | --- | --- |
-| `/e/<token_professor>` | professores da escola | ver a grade, reservar um horário vago |
+| `/e/<token_professor>` | professores da escola | ver o calendário, reservar uma data |
 | `/e/<token_coordenacao>` | coordenação | tudo do link do professor + histórico completo + cancelar/editar reservas |
 
 O nome do professor é **texto livre, sem validação de identidade**. É um trade-off
@@ -72,6 +72,7 @@ supabase db push
 | `0001_schema.sql` | tabelas, tipos, triggers de status, RLS deny-all |
 | `0002_rpc.sql` | toda a API pública (as funções que o front chama) |
 | `0003_admin_inicial.sql` | cria o primeiro token de administração |
+| `0004_reserva_por_data.sql` | separa molde semanal de reserva datada (calendário) |
 
 Pegue o token de admin depois de aplicar:
 
@@ -98,49 +99,68 @@ E no `.env` do front: `VITE_EMAIL_CONFIRMACAO=true`.
 **Você (admin), em `/admin`:** cadastra a escola, copia os dois links, cadastra os horários
 vagos daquela escola. Os links são entregues à coordenação, que repassa o de professor.
 
-**Professor:** abre o link, vê os horários disponíveis, clica em Reservar, escreve o nome
-(pode incluir a turma: "Ana Ribeiro — 7º ano B"), confirma. Recebe o protocolo.
+**Professor:** abre o link e cai no mês corrente. Os dias em verde têm horário livre; as setas
+levam para os meses seguintes, até um ano à frente. Clica no dia, escolhe o horário, escreve o
+nome (pode incluir a turma: "Ana Ribeiro — 7º ano B") e confirma. Recebe o protocolo.
 
-**Coordenação:** mesmo link-portal, com uma aba de histórico a mais. Cancela quando a
-reserva não se confirma na prática — o horário volta a aparecer como disponível para os
-outros professores, e a reserva fica no histórico marcada como cancelada, com data e autor
-do cancelamento.
+Cada reserva vale **para uma data só**. Quem quer levar a turma toda quarta-feira do mês marca as
+quatro quartas, uma a uma — assim cada data pode ser cancelada ou passada para outro professor sem
+mexer nas demais.
+
+**Coordenação:** mesmo link-portal, com uma aba de histórico a mais, ordenada por data de aula.
+Cancela quando a reserva não se confirma na prática — aquela data volta a aparecer como disponível
+para os outros professores, sem afetar as outras semanas, e a reserva fica no histórico marcada
+como cancelada, com data e autor do cancelamento. Aulas que já aconteceram não podem ser
+canceladas: só apagariam o registro do que rolou.
 
 ## Modelo de dados
 
 ```
 escolas    id, nome, token_professor, token_coordenacao, criado_em
 horarios   id, escola_id, dia_semana, hora_inicio, hora_fim,
-           capacidade, ocupacao_wit, status, criado_em
-reservas   id, horario_id, protocolo, nome_professor, email_contato,
-           status, criado_em, cancelado_em, cancelado_por
+           capacidade, ocupacao_wit, status, ativo, criado_em
+reservas   id, horario_id, data_aula, protocolo, nome_professor,
+           email_contato, status, criado_em, cancelado_em, cancelado_por
 ```
 
-Três desvios do modelo do escopo, todos deliberados:
+**`horarios` é o molde, `reservas` é a ocorrência.** O horário descreve o que se repete toda
+semana ("toda quarta, 14h às 15h30"); a reserva aponta para uma data concreta ("quarta,
+19/08/2026"). Nenhuma tabela guarda a lista de datas: `listar_ocorrencias` expande o molde no
+período pedido, então o calendário anda para frente indefinidamente sem nada ser pré-gerado.
 
+Desvios do modelo do escopo, todos deliberados:
+
+- **`reservas.data_aula`** — o que faz o calendário existir. Sem ela uma reserva ocuparia o
+  slot semanal para sempre, e marcar outra semana ou outro mês seria impossível.
 - **`horarios.ocupacao_wit`** — quantos alunos do Núcleo WIT já estão matriculados naquele
   horário. Sem esse campo o status `parcial` não teria como existir, e ele é justamente o
-  caso que motiva o projeto: 2–3 alunos numa sala de 18–20 ainda vale ser oferecida. O
-  `status` nunca é escrito à mão: é derivado por trigger (`cheio` se há reserva confirmada,
-  senão `parcial` se `ocupacao_wit > 0`, senão `vago`) e horários `parcial` continuam
-  reserváveis.
+  caso que motiva o projeto: 2–3 alunos numa sala de 18–20 ainda vale ser oferecida.
+  Horários `parcial` continuam reserváveis.
+- **`horarios.ativo`** — tira o horário do calendário sem apagar o histórico dele. Remover de
+  vez só é permitido enquanto o horário nunca teve reserva.
 - **`reservas.protocolo`** — o código da confirmação (ver acima).
 - **`reservas.cancelado_em` / `cancelado_por`** — sem isso, "a coordenação pode cancelar"
   viraria uma ação sem rastro no histórico.
 
-Uma trava impede corrida entre dois professores: índice único parcial garante no máximo uma
-reserva `confirmado` por horário. Duas requisições simultâneas para o mesmo horário — a
-segunda recebe "Este horário acabou de ser reservado por outra pessoa".
+O `status` do horário nunca é escrito à mão: um trigger o deriva de `ocupacao_wit` (`parcial`
+se há aluno matriculado, senão `vago`). Estar reservado ou não é propriedade **da data**, não
+do molde, e sai calculado em `listar_ocorrencias`.
 
-### Limitação conhecida: horário é semanal, não datado
+### Travas
 
-Conforme o escopo, `horarios` guarda `dia_semana` + hora, sem data. Na prática isso significa
-que **uma reserva ocupa aquele slot semanal indefinidamente**, até alguém cancelar — não dá
-para reservar "terça 14h da semana que vem" e liberar a terça seguinte. Para o piloto isso
-funciona (o Projeto Integrador costuma ser um combinado de continuidade), mas se a operação
-pedir reserva por data específica, o caminho é adicionar `reservas.data_aula` e trocar o
-índice único para `(horario_id, data_aula)`. Ficou fora daqui para não estourar o escopo da
-Fase 1.
+- Índice único parcial em `(horario_id, data_aula)` para reservas confirmadas: duas
+  requisições simultâneas na mesma data — a segunda recebe "Este horário acabou de ser
+  reservado por outra pessoa". Datas diferentes do mesmo horário não competem entre si.
+- Um trigger recusa reserva cuja data não caia no dia da semana do molde, mesmo que alguém
+  contorne a RPC.
+- Não se reserva no passado, e o horizonte é de 12 meses (`limite_agendamento()`).
+
+### Fuso horário
+
+O banco roda em UTC, mas "hoje" é calculado em `America/Sao_Paulo`. Com `current_date` o dia
+viraria às 21h no horário de Brasília e as aulas do dia seguinte apareceriam cedo demais — e
+as de hoje sumiriam. No front, datas andam como string `AAAA-MM-DD` e nunca passam por
+`new Date(iso)`, que interpretaria a string como UTC e exibiria o dia anterior.
 
 ## Fora do escopo (Fase 2)
 
@@ -152,7 +172,7 @@ hortaliças existe), vitrine de projetos com foto/vídeo, notificações além d
 ```
 src/
   lib/          cliente Supabase, chamadas de API tipadas, formatação
-  componentes/  peças de UI (lista de horários, diálogos, painéis)
+  componentes/  peças de UI (calendário, lista do dia, diálogos, painéis)
   paginas/      Inicio, PortalEscola (/e/:token), Admin (/admin)
 supabase/
   migrations/   schema + RPC + token inicial

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { cancelarReserva, editarReserva } from '../lib/api'
-import { dataHora, emailValido, faixaHoraria, nomeDia } from '../lib/formato'
+import { dataCurta, dataExtensa, dataHora, emailValido, faixaHoraria, nomeDia } from '../lib/formato'
 import type { Reserva } from '../lib/tipos'
 import { Aviso } from './Aviso'
 import { EtiquetaReserva } from './Etiqueta'
@@ -32,7 +32,7 @@ export function PainelCoordenacao({ token, reservas, aoAtualizar }: Props) {
           <thead>
             <tr>
               <th>Protocolo</th>
-              <th>Horário</th>
+              <th>Data da aula</th>
               <th>Professor(a)</th>
               <th>Reservado em</th>
               <th>Situação</th>
@@ -41,13 +41,13 @@ export function PainelCoordenacao({ token, reservas, aoAtualizar }: Props) {
           </thead>
           <tbody>
             {reservas.map((reserva) => (
-              <tr key={reserva.id}>
+              <tr key={reserva.id} className={reserva.ja_aconteceu ? 'passado' : undefined}>
                 <td className="mono">{reserva.protocolo}</td>
                 <td>
-                  {nomeDia(reserva.dia_semana)}
+                  {dataCurta(reserva.data_aula)}
                   <br />
                   <span style={{ color: 'var(--texto-suave)' }}>
-                    {faixaHoraria(reserva.hora_inicio, reserva.hora_fim)}
+                    {nomeDia(reserva.dia_semana)}, {faixaHoraria(reserva.hora_inicio, reserva.hora_fim)}
                   </span>
                 </td>
                 <td>
@@ -68,9 +68,16 @@ export function PainelCoordenacao({ token, reservas, aoAtualizar }: Props) {
                       {reserva.cancelado_por ? ` por ${reserva.cancelado_por}` : ''}
                     </div>
                   )}
+                  {reserva.status === 'confirmado' && reserva.ja_aconteceu && (
+                    <div style={{ color: 'var(--texto-suave)', fontSize: 13, marginTop: 4 }}>
+                      Aula já realizada
+                    </div>
+                  )}
                 </td>
                 <td>
-                  {reserva.status === 'confirmado' && (
+                  {/* Cancelar uma aula que já aconteceu não muda nada no
+                      mundo real — só apagaria o registro do que rolou. */}
+                  {reserva.status === 'confirmado' && !reserva.ja_aconteceu && (
                     <div style={{ display: 'flex', gap: 4 }}>
                       <button type="button" className="discreto" onClick={() => setEditando(reserva)}>
                         Editar
@@ -145,15 +152,15 @@ function DialogoCancelamento({
   return (
     <Modal
       titulo="Cancelar reserva"
-      subtitulo={`${reserva.protocolo} · ${reserva.nome_professor}`}
+      subtitulo={`${dataExtensa(reserva.data_aula)} · ${reserva.nome_professor}`}
       aoFechar={aoFechar}
     >
       <form onSubmit={confirmar}>
         {erro && <Aviso tipo="erro">{erro}</Aviso>}
 
         <p style={{ marginTop: 0, color: 'var(--texto-suave)', fontSize: 14 }}>
-          O horário volta a ficar disponível para outros professores. A reserva continua no histórico
-          como cancelada.
+          Esta data volta a ficar disponível para outros professores. As reservas do mesmo horário em
+          outras semanas não são afetadas. A reserva continua no histórico como cancelada.
         </p>
 
         <div className="campo">

@@ -9,7 +9,7 @@ import {
   adminRenomearEscola,
   adminRenovarTokens,
 } from '../lib/api'
-import { dataHora, faixaHoraria, nomeDia } from '../lib/formato'
+import { dataCurta, dataHora, faixaHoraria, nomeDia } from '../lib/formato'
 import type { EscolaAdmin, ReservaAdmin } from '../lib/tipos'
 
 const CHAVE_TOKEN = 'integrador-wit:admin-token'
@@ -255,7 +255,7 @@ function PainelAdmin({ adminToken, aoSair }: { adminToken: string; aoSair: () =>
               <tr>
                 <th>Protocolo</th>
                 <th>Escola</th>
-                <th>Horário</th>
+                <th>Data da aula</th>
                 <th>Professor(a)</th>
                 <th>Reservado em</th>
                 <th>Situação</th>
@@ -267,10 +267,10 @@ function PainelAdmin({ adminToken, aoSair }: { adminToken: string; aoSair: () =>
                   <td className="mono">{reserva.protocolo}</td>
                   <td>{reserva.escola_nome}</td>
                   <td>
-                    {nomeDia(reserva.dia_semana)}
+                    {dataCurta(reserva.data_aula)}
                     <br />
                     <span style={{ color: 'var(--texto-suave)' }}>
-                      {faixaHoraria(reserva.hora_inicio, reserva.hora_fim)}
+                      {nomeDia(reserva.dia_semana)}, {faixaHoraria(reserva.hora_inicio, reserva.hora_fim)}
                     </span>
                   </td>
                   <td>
@@ -331,8 +331,8 @@ function CartaoEscola({
         <div>
           <h3 style={{ fontSize: 16 }}>{escola.nome}</h3>
           <p style={{ margin: '4px 0 0', color: 'var(--texto-suave)', fontSize: 14 }}>
-            {escola.total_horarios} horário(s) · {escola.horarios_livres} disponível(eis) ·{' '}
-            {escola.reservas_ativas} reservado(s)
+            {escola.horarios_ativos} de {escola.total_horarios} horário(s) na grade ·{' '}
+            {escola.reservas_futuras} reserva(s) futura(s)
           </p>
         </div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>

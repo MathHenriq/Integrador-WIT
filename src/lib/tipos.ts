@@ -2,20 +2,34 @@ export type PapelAcesso = 'professor' | 'coordenacao'
 export type StatusHorario = 'vago' | 'parcial' | 'cheio'
 export type StatusReserva = 'confirmado' | 'cancelado'
 
+/** Data no formato ISO curto, "2026-08-19". Nunca um Date serializado. */
+export type DataIso = string
+
 export type Acesso = {
   escola_id: string
   escola_nome: string
   papel: PapelAcesso
+  /** Hoje no fuso de Brasília, segundo o servidor. */
+  hoje: DataIso
+  /** Última data que aceita reserva. */
+  limite_agendamento: DataIso
 }
 
-export type Horario = {
-  id: string
+/**
+ * Uma aula concreta: o molde semanal (`horario_id`) numa data específica.
+ * É a unidade que o professor reserva.
+ */
+export type Ocorrencia = {
+  horario_id: string
+  data_aula: DataIso
   dia_semana: number
   hora_inicio: string
   hora_fim: string
   capacidade: number
   ocupacao_wit: number
   status: StatusHorario
+  /** Livre, ainda não começou e dentro do horizonte de agendamento. */
+  reservavel: boolean
   reserva_id: string | null
   reserva_protocolo: string | null
   reserva_professor: string | null
@@ -34,9 +48,11 @@ export type Reserva = {
   cancelado_em: string | null
   cancelado_por: string | null
   horario_id: string
+  data_aula: DataIso
   dia_semana: number
   hora_inicio: string
   hora_fim: string
+  ja_aconteceu: boolean
 }
 
 export type Comprovante = {
@@ -45,6 +61,7 @@ export type Comprovante = {
   nome_professor: string
   email_contato: string | null
   criado_em: string
+  data_aula: DataIso
   escola_nome: string
   dia_semana: number
   hora_inicio: string
@@ -58,8 +75,8 @@ export type EscolaAdmin = {
   token_coordenacao: string
   criado_em: string
   total_horarios: number
-  horarios_livres: number
-  reservas_ativas: number
+  horarios_ativos: number
+  reservas_futuras: number
 }
 
 export type HorarioAdmin = {
@@ -70,8 +87,9 @@ export type HorarioAdmin = {
   capacidade: number
   ocupacao_wit: number
   status: StatusHorario
-  reserva_professor: string | null
-  reserva_protocolo: string | null
+  ativo: boolean
+  reservas_futuras: number
+  total_reservas: number
 }
 
 export type ReservaAdmin = {
@@ -85,6 +103,7 @@ export type ReservaAdmin = {
   criado_em: string
   cancelado_em: string | null
   cancelado_por: string | null
+  data_aula: DataIso
   dia_semana: number
   hora_inicio: string
   hora_fim: string

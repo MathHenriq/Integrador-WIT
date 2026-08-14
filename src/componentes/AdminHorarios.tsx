@@ -82,7 +82,28 @@ export function AdminHorarios({ adminToken, escolaId }: Props) {
   async function alterarOcupacao(horario: HorarioAdmin, valor: number) {
     setErro(null)
     try {
-      await adminAtualizarHorario(adminToken, horario.id, horario.capacidade, valor)
+      await adminAtualizarHorario(adminToken, horario.id, { ocupacaoWit: valor })
+      await carregar()
+    } catch (falha) {
+      setErro(falha instanceof Error ? falha.message : 'Não foi possível atualizar o horário.')
+    }
+  }
+
+  async function alternarAtivo(horario: HorarioAdmin) {
+    const rotulo = `${DIAS_SEMANA[horario.dia_semana]} ${faixaHoraria(horario.hora_inicio, horario.hora_fim)}`
+    if (
+      horario.ativo &&
+      horario.reservas_futuras > 0 &&
+      !window.confirm(
+        `${rotulo} tem ${horario.reservas_futuras} reserva(s) futura(s).\n\nDesativar tira o horário do calendário, mas essas reservas continuam valendo. Cancele-as pelo link da coordenação se a aula não vai acontecer.\n\nDesativar mesmo assim?`,
+      )
+    ) {
+      return
+    }
+
+    setErro(null)
+    try {
+      await adminAtualizarHorario(adminToken, horario.id, { ativo: !horario.ativo })
       await carregar()
     } catch (falha) {
       setErro(falha instanceof Error ? falha.message : 'Não foi possível atualizar o horário.')
@@ -166,9 +187,10 @@ export function AdminHorarios({ adminToken, escolaId }: Props) {
           </div>
         </div>
         <p className="ajuda" style={{ marginTop: 8 }}>
-          "Alunos WIT" é quantos alunos já estão matriculados nesse horário. Zero = sala vazia;
-          qualquer número acima disso marca o horário como parcialmente ocupado — ele continua
-          aberto para uma turma parceira.
+          O horário se repete toda semana nesse dia — o professor escolhe em quais datas quer
+          trazer a turma. "Alunos WIT" é quantos alunos já estão matriculados nesse horário: zero =
+          sala vazia; qualquer número acima disso marca como parcialmente ocupado, e o horário
+          continua aberto para uma turma parceira.
         </p>
         <div className="acoes-formulario">
           <button type="submit" disabled={salvando}>
@@ -191,12 +213,13 @@ export function AdminHorarios({ adminToken, escolaId }: Props) {
                 <th>Capacidade</th>
                 <th>Alunos WIT</th>
                 <th>Situação</th>
+                <th>Reservas</th>
                 <th />
               </tr>
             </thead>
             <tbody>
               {horarios.map((horario) => (
-                <tr key={horario.id}>
+                <tr key={horario.id} className={horario.ativo ? undefined : 'passado'}>
                   <td>{DIAS_SEMANA[horario.dia_semana]}</td>
                   <td>{faixaHoraria(horario.hora_inicio, horario.hora_fim)}</td>
                   <td>{horario.capacidade}</td>
@@ -215,17 +238,35 @@ export function AdminHorarios({ adminToken, escolaId }: Props) {
                     />
                   </td>
                   <td>
-                    <EtiquetaHorario status={horario.status} />
-                    {horario.reserva_professor && (
-                      <div style={{ color: 'var(--texto-suave)', fontSize: 13, marginTop: 4 }}>
-                        {horario.reserva_professor} · {horario.reserva_protocolo}
-                      </div>
+                    {horario.ativo ? (
+                      <EtiquetaHorario status={horario.status} />
+                    ) : (
+                      <span className="etiqueta cancelado">Fora da grade</span>
                     )}
                   </td>
                   <td>
-                    <button type="button" className="discreto" onClick={() => void remover(horario)}>
-                      Remover
-                    </button>
+                    {horario.reservas_futuras} futura(s)
+                    <div style={{ color: 'var(--texto-suave)', fontSize: 13 }}>
+                      {horario.total_reservas} no total
+                    </div>
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <button
+                        type="button"
+                        className="discreto"
+                        onClick={() => void alternarAtivo(horario)}
+                      >
+                        {horario.ativo ? 'Desativar' : 'Reativar'}
+                      </button>
+                      {/* Remover apaga o histórico junto; a RPC só deixa
+                          quando o horário nunca teve reserva. */}
+                      {horario.total_reservas === 0 && (
+                        <button type="button" className="discreto" onClick={() => void remover(horario)}>
+                          Remover
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

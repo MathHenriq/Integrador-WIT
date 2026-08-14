@@ -18,6 +18,10 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4'
 
 const DIAS = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado']
+const MESES = [
+  'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+  'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
+]
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -34,6 +38,13 @@ function responder(corpo: Record<string, unknown>, status = 200) {
 
 function horaCurta(hora: string) {
   return String(hora).slice(0, 5)
+}
+
+/** "19 de agosto de 2026" a partir de "2026-08-19", sem passar por Date
+ *  (que interpretaria a string como UTC e voltaria um dia). */
+function dataExtensa(iso: string) {
+  const [ano, mes, dia] = String(iso).slice(0, 10).split('-')
+  return `${Number(dia)} de ${MESES[Number(mes) - 1]} de ${ano}`
 }
 
 Deno.serve(async (req) => {
@@ -61,7 +72,7 @@ Deno.serve(async (req) => {
   // chamou realmente possui.
   const { data: reserva } = await supabase
     .from('reservas')
-    .select('protocolo, nome_professor, email_contato, status, horarios(dia_semana, hora_inicio, hora_fim, escolas(nome, token_professor, token_coordenacao))')
+    .select('protocolo, nome_professor, email_contato, status, data_aula, horarios(dia_semana, hora_inicio, hora_fim, escolas(nome, token_professor, token_coordenacao))')
     .eq('protocolo', protocolo)
     .maybeSingle()
 
@@ -87,7 +98,9 @@ Deno.serve(async (req) => {
 
   if (destinatarios.length === 0) return responder({ enviado: false, motivo: 'sem_destinatario' })
 
-  const quando = `${DIAS[horario.dia_semana]}, das ${horaCurta(horario.hora_inicio)} às ${horaCurta(horario.hora_fim)}`
+  const quando = `${DIAS[horario.dia_semana]}, ${dataExtensa(reserva.data_aula)}, das ${horaCurta(
+    horario.hora_inicio,
+  )} às ${horaCurta(horario.hora_fim)}`
   const html = `
     <div style="font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#1c1917;line-height:1.6">
       <h2 style="margin:0 0 4px">Reserva confirmada</h2>
@@ -95,11 +108,12 @@ Deno.serve(async (req) => {
       <table cellpadding="0" cellspacing="0" style="border-collapse:collapse">
         <tr><td style="padding:4px 16px 4px 0;color:#57534e">Protocolo</td><td style="padding:4px 0"><strong>${reserva.protocolo}</strong></td></tr>
         <tr><td style="padding:4px 16px 4px 0;color:#57534e">Escola</td><td style="padding:4px 0">${escola.nome}</td></tr>
-        <tr><td style="padding:4px 16px 4px 0;color:#57534e">Horário</td><td style="padding:4px 0">${quando}</td></tr>
+        <tr><td style="padding:4px 16px 4px 0;color:#57534e">Aula</td><td style="padding:4px 0">${quando}</td></tr>
         <tr><td style="padding:4px 16px 4px 0;color:#57534e">Professor(a)</td><td style="padding:4px 0">${reserva.nome_professor}</td></tr>
       </table>
       <p style="margin:20px 0 0;color:#57534e;font-size:14px">
-        Para cancelar, procure a coordenação da escola informando o protocolo.
+        Esta reserva vale apenas para a data acima. Para cancelar, procure a coordenação da escola
+        informando o protocolo.
       </p>
     </div>`
 
@@ -113,7 +127,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         from: remetente,
         to: destinatarios,
-        subject: `Reserva confirmada ${reserva.protocolo} — ${escola.nome}`,
+        subject: `Reserva confirmada ${reserva.protocolo} — ${escola.nome}, ${dataExtensa(reserva.data_aula)}`,
         html,
       }),
     })
