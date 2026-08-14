@@ -10,6 +10,41 @@
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
+-- Limpeza inicial
+-- ---------------------------------------------------------------------
+-- Este arquivo pode ser colado no SQL Editor mais de uma vez, inclusive
+-- depois da 0004 já ter rodado. `create or replace` não dá conta disso:
+-- ele falha quando o tipo de retorno mudou, e cria uma sobrecarga
+-- paralela quando a assinatura mudou — duas versões de criar_reserva
+-- deixariam o PostgREST sem saber qual chamar. Derrubar antes de criar
+-- resolve os dois casos.
+--
+-- Como isso recria a API na forma anterior ao calendário, os arquivos
+-- devem ser rodados sempre na ordem e até o fim: a 0004 é quem deixa as
+-- funções na versão final.
+
+drop function if exists public._resolver_token(text);
+drop function if exists public._exigir_escola(text);
+drop function if exists public._exigir_coordenacao(text);
+drop function if exists public._exigir_admin(text);
+drop function if exists public._email_valido(text);
+drop function if exists public.acessar_escola(text);
+drop function if exists public.listar_horarios(text);
+drop function if exists public.criar_reserva(text, uuid, text, text);
+drop function if exists public.listar_reservas(text);
+drop function if exists public.cancelar_reserva(text, uuid, text);
+drop function if exists public.editar_reserva(text, uuid, text, text);
+drop function if exists public.admin_listar_escolas(text);
+drop function if exists public.admin_criar_escola(text, text);
+drop function if exists public.admin_renomear_escola(text, uuid, text);
+drop function if exists public.admin_renovar_tokens(text, uuid);
+drop function if exists public.admin_listar_horarios(text, uuid);
+drop function if exists public.admin_criar_horario(text, uuid, smallint, time, time, smallint, smallint);
+drop function if exists public.admin_atualizar_horario(text, uuid, smallint, smallint);
+drop function if exists public.admin_remover_horario(text, uuid);
+drop function if exists public.admin_listar_reservas(text, uuid);
+
+-- ---------------------------------------------------------------------
 -- Internas (NÃO recebem grant para anon)
 -- ---------------------------------------------------------------------
 

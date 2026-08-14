@@ -61,11 +61,15 @@ npm run dev
 ### Supabase
 
 Crie um projeto **novo** (não reaproveite o do WIT Dungeon — domínio de dados diferente) e
-aplique as migrations em ordem, pelo SQL Editor ou pela CLI:
+aplique as migrations **em ordem, todas elas**, pelo SQL Editor ou pela CLI:
 
 ```bash
 supabase db push
 ```
+
+Os arquivos são idempotentes: rodar de novo, ou rodar os quatro de uma vez sobre um banco que
+já tem parte deles, chega no mesmo estado sem erro e sem duplicar função. O que não vale é
+parar no meio — a `0004` é quem deixa a API na versão final.
 
 | Arquivo | O que faz |
 | --- | --- |
