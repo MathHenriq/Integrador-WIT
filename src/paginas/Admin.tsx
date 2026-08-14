@@ -56,8 +56,8 @@ function EntradaAdmin({
   const [erro, setErro] = useState<string | null>(null)
   const [verificando, setVerificando] = useState(false)
 
-  // Não existe sessão: o token é conferido chamando uma RPC de admin.
-  // Se ela responder, o token vale.
+  // Não existe sessão: a senha é conferida chamando uma RPC de admin.
+  // Se ela responder, a senha vale.
   async function entrar(evento: React.FormEvent) {
     evento.preventDefault()
     setErro(null)
@@ -66,7 +66,7 @@ function EntradaAdmin({
       await adminListarEscolas(token.trim())
       aoEntrar(token.trim())
     } catch (falha) {
-      setErro(falha instanceof Error ? falha.message : 'Não foi possível validar o token.')
+      setErro(falha instanceof Error ? falha.message : 'Não foi possível validar a senha.')
       setVerificando(false)
     }
   }
@@ -85,7 +85,7 @@ function EntradaAdmin({
         <form onSubmit={entrar}>
           {erro && <Aviso tipo="erro">{erro}</Aviso>}
           <div className="campo">
-            <label htmlFor="admin-token">Token de administração</label>
+            <label htmlFor="admin-token">Senha do painel</label>
             <input
               id="admin-token"
               type="password"
@@ -95,7 +95,9 @@ function EntradaAdmin({
               required
             />
             <p className="ajuda">
-              Está na tabela <span className="mono">admin_tokens</span> do Supabase.
+              É a senha que você definiu no topo do arquivo{' '}
+              <span className="mono">supabase/migrations/0001_inicial.sql</span> ao instalar o
+              banco.
             </p>
           </div>
           <div className="acoes-formulario">

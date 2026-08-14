@@ -60,32 +60,21 @@ npm run dev
 
 ### Supabase
 
-Crie um projeto **novo** (não reaproveite o do WIT Dungeon — domínio de dados diferente) e
-aplique as migrations **em ordem, todas elas**, pelo SQL Editor ou pela CLI:
+Crie um projeto **novo** (não reaproveite o do WIT Dungeon — domínio de dados diferente). No
+projeto criado, abra o **SQL Editor** e cole o conteúdo de
+`supabase/migrations/0001_inicial.sql` inteiro.
 
-```bash
-supabase db push
-```
-
-Os arquivos são idempotentes: rodar de novo, ou rodar os quatro de uma vez sobre um banco que
-já tem parte deles, chega no mesmo estado sem erro e sem duplicar função. O que não vale é
-parar no meio — a `0004` é quem deixa a API na versão final.
-
-| Arquivo | O que faz |
-| --- | --- |
-| `0001_schema.sql` | tabelas, tipos, triggers de status, RLS deny-all |
-| `0002_rpc.sql` | toda a API pública (as funções que o front chama) |
-| `0003_admin_inicial.sql` | cria o primeiro token de administração |
-| `0004_reserva_por_data.sql` | separa molde semanal de reserva datada (calendário) |
-
-Pegue o token de admin depois de aplicar:
+É um arquivo só, e a única coisa a editar está na primeira linha dele: a senha que você vai
+usar no painel `/admin`. Ela é guardada com hash bcrypt, não em texto puro.
 
 ```sql
-select token from public.admin_tokens;
+select set_config('integrador.senha_admin', 'troque-esta-senha', false);
 ```
 
-Ele é a senha do `/admin`. Guarde num gerenciador de senhas — não há como recuperá-lo, só
-gerar outro.
+Para trocar a senha depois, edite essa linha e rode o arquivo de novo — pode rodar quantas
+vezes quiser, os dados já cadastrados não se perdem.
+
+Quem preferir a CLI: `supabase db push` faz o mesmo.
 
 ### E-mail (opcional)
 
@@ -100,8 +89,8 @@ E no `.env` do front: `VITE_EMAIL_CONFIRMACAO=true`.
 
 ## Uso
 
-**Você (admin), em `/admin`:** cadastra a escola, copia os dois links, cadastra os horários
-vagos daquela escola. Os links são entregues à coordenação, que repassa o de professor.
+**Você (admin), em `/admin`:** entra com a senha definida na instalação, cadastra a escola,
+copia os dois links, cadastra os horários vagos daquela escola. Os links são entregues à coordenação, que repassa o de professor.
 
 **Professor:** abre o link e cai no mês corrente. Os dias em verde têm horário livre; as setas
 levam para os meses seguintes, até um ano à frente. Clica no dia, escolhe o horário, escreve o
@@ -179,7 +168,7 @@ src/
   componentes/  peças de UI (calendário, lista do dia, diálogos, painéis)
   paginas/      Inicio, PortalEscola (/e/:token), Admin (/admin)
 supabase/
-  migrations/   schema + RPC + token inicial
+  migrations/   0001_inicial.sql — banco inteiro num arquivo
   functions/    Edge Function de e-mail
 ```
 
