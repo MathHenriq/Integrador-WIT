@@ -182,8 +182,13 @@ supabase/
 ## Deploy
 
 `npm run build` gera `dist/`. É uma SPA com rotas no cliente, então o host precisa devolver
-`index.html` para qualquer caminho — o `public/_redirects` já cobre Netlify; na Vercel, um
-`vercel.json` com rewrite `/(.*) -> /index.html`.
+`index.html` para qualquer caminho — sem isso o Vercel responde 404 justamente em `/e/<token>`,
+que é como todo professor entra. O `vercel.json` na raiz já faz esse rewrite (o
+`public/_redirects` cobre o mesmo caso no Netlify).
+
+No painel do Vercel, em Settings > Environment Variables, defina `VITE_SUPABASE_URL` e
+`VITE_SUPABASE_ANON_KEY` (e `VITE_EMAIL_CONFIRMACAO=true`, se for usar e-mail). São lidas no
+build, não em runtime: mudou variável, precisa fazer redeploy para valer.
 
 ## Notas
 
