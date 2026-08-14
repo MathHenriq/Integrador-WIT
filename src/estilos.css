@@ -1,0 +1,555 @@
+:root {
+  --fundo: #f6f5f8;
+  --superficie: #ffffff;
+  --superficie-suave: #f2f0f6;
+  --borda: #e2dfe8;
+  --texto: #1f1b26;
+  --texto-suave: #625b70;
+  --acento: #6d3fd4;
+  --acento-forte: #5a2fbd;
+  --acento-suave: #efe9fc;
+  --sucesso: #17734f;
+  --sucesso-suave: #e2f5ec;
+  --alerta: #8a5300;
+  --alerta-suave: #fdf0d9;
+  --erro: #ad2233;
+  --erro-suave: #fdeaec;
+  --sombra: 0 1px 2px rgba(31, 27, 38, 0.06), 0 8px 24px rgba(31, 27, 38, 0.06);
+  --raio: 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fundo: #141118;
+    --superficie: #1d1924;
+    --superficie-suave: #262031;
+    --borda: #332c40;
+    --texto: #f3f0f7;
+    --texto-suave: #a99fbb;
+    --acento: #b39bf5;
+    --acento-forte: #c9b8ff;
+    --acento-suave: #2c2340;
+    --sucesso: #6ee0ac;
+    --sucesso-suave: #14342a;
+    --alerta: #f0c27a;
+    --alerta-suave: #3a2c17;
+    --erro: #ff9fa8;
+    --erro-suave: #3d1a20;
+    --sombra: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--fundo);
+  color: var(--texto);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.25;
+  margin: 0;
+}
+
+a {
+  color: var(--acento);
+}
+
+/* ------------------------------------------------------------------ */
+/* Layout                                                              */
+/* ------------------------------------------------------------------ */
+
+.pagina {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 32px 20px 80px;
+}
+
+.cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.cabecalho .selo {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--acento);
+  margin-bottom: 6px;
+}
+
+.cabecalho h1 {
+  font-size: 26px;
+  letter-spacing: -0.015em;
+}
+
+.cabecalho p {
+  margin: 6px 0 0;
+  color: var(--texto-suave);
+}
+
+.secao {
+  margin-top: 36px;
+}
+
+.secao > h2 {
+  font-size: 18px;
+  margin-bottom: 4px;
+}
+
+.secao > p.descricao {
+  margin: 0 0 16px;
+  color: var(--texto-suave);
+  font-size: 14px;
+}
+
+.cartao {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  box-shadow: var(--sombra);
+  padding: 20px;
+}
+
+.lista {
+  display: grid;
+  gap: 12px;
+}
+
+.vazio {
+  border: 1px dashed var(--borda);
+  border-radius: var(--raio);
+  padding: 28px 20px;
+  text-align: center;
+  color: var(--texto-suave);
+}
+
+/* ------------------------------------------------------------------ */
+/* Horários                                                            */
+/* ------------------------------------------------------------------ */
+
+.horario {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 16px 18px;
+  box-shadow: var(--sombra);
+}
+
+.horario.reservado {
+  background: var(--superficie-suave);
+  box-shadow: none;
+}
+
+.horario .quando {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.horario .dia {
+  font-weight: 650;
+}
+
+.horario .faixa {
+  color: var(--texto-suave);
+  font-size: 14px;
+}
+
+.horario .detalhe {
+  font-size: 13px;
+  color: var(--texto-suave);
+  margin-top: 4px;
+}
+
+.horario .acoes {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ------------------------------------------------------------------ */
+/* Etiquetas                                                           */
+/* ------------------------------------------------------------------ */
+
+.etiqueta {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 650;
+  padding: 3px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.etiqueta.vago,
+.etiqueta.confirmado {
+  background: var(--sucesso-suave);
+  color: var(--sucesso);
+}
+
+.etiqueta.parcial {
+  background: var(--alerta-suave);
+  color: var(--alerta);
+}
+
+.etiqueta.cheio {
+  background: var(--acento-suave);
+  color: var(--acento);
+}
+
+.etiqueta.cancelado {
+  background: var(--erro-suave);
+  color: var(--erro);
+}
+
+/* ------------------------------------------------------------------ */
+/* Formulários e botões                                                */
+/* ------------------------------------------------------------------ */
+
+label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+label .opcional {
+  font-weight: 400;
+  color: var(--texto-suave);
+}
+
+input,
+select {
+  width: 100%;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 15px;
+  color: var(--texto);
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+}
+
+input:focus-visible,
+select:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: 2px;
+}
+
+.campo {
+  margin-bottom: 16px;
+}
+
+.campo .ajuda {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+.linha-campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+button {
+  font: inherit;
+  font-weight: 600;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  background: var(--acento);
+  color: #fff;
+}
+
+button:hover:not(:disabled) {
+  background: var(--acento-forte);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+button.secundario {
+  background: var(--superficie);
+  color: var(--texto);
+  border-color: var(--borda);
+}
+
+button.secundario:hover:not(:disabled) {
+  background: var(--superficie-suave);
+}
+
+button.perigo {
+  background: transparent;
+  color: var(--erro);
+  border-color: var(--borda);
+}
+
+button.perigo:hover:not(:disabled) {
+  background: var(--erro-suave);
+}
+
+button.discreto {
+  background: transparent;
+  color: var(--acento);
+  border-color: transparent;
+  padding: 6px 8px;
+}
+
+button.discreto:hover:not(:disabled) {
+  background: var(--acento-suave);
+}
+
+@media (prefers-color-scheme: dark) {
+  button:not(.secundario):not(.perigo):not(.discreto) {
+    color: #1a1322;
+  }
+}
+
+.acoes-formulario {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Avisos                                                              */
+/* ------------------------------------------------------------------ */
+
+.aviso {
+  border-radius: var(--raio);
+  padding: 12px 16px;
+  font-size: 14px;
+  margin-bottom: 16px;
+  border: 1px solid transparent;
+}
+
+.aviso.erro {
+  background: var(--erro-suave);
+  color: var(--erro);
+}
+
+.aviso.sucesso {
+  background: var(--sucesso-suave);
+  color: var(--sucesso);
+}
+
+.aviso.info {
+  background: var(--acento-suave);
+  color: var(--acento);
+}
+
+/* ------------------------------------------------------------------ */
+/* Modal                                                               */
+/* ------------------------------------------------------------------ */
+
+.fundo-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 17, 24, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 10;
+}
+
+.modal {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: 16px;
+  padding: 24px;
+  width: 100%;
+  max-width: 460px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal h2 {
+  font-size: 19px;
+  margin-bottom: 4px;
+}
+
+.modal .subtitulo {
+  color: var(--texto-suave);
+  font-size: 14px;
+  margin: 0 0 20px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Comprovante                                                         */
+/* ------------------------------------------------------------------ */
+
+.protocolo {
+  background: var(--acento-suave);
+  color: var(--acento);
+  border-radius: var(--raio);
+  padding: 16px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.protocolo .rotulo {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.protocolo .codigo {
+  font-size: 26px;
+  font-weight: 750;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.05em;
+}
+
+.definicoes {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 16px;
+  font-size: 14px;
+  margin: 0;
+}
+
+.definicoes dt {
+  color: var(--texto-suave);
+}
+
+.definicoes dd {
+  margin: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Abas                                                                */
+/* ------------------------------------------------------------------ */
+
+.abas {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--borda);
+  margin-bottom: 24px;
+}
+
+.abas button {
+  background: transparent;
+  color: var(--texto-suave);
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  padding: 10px 14px;
+}
+
+.abas button:hover:not(:disabled) {
+  background: transparent;
+  color: var(--texto);
+}
+
+.abas button[aria-selected='true'] {
+  color: var(--acento);
+  border-bottom-color: var(--acento);
+}
+
+/* ------------------------------------------------------------------ */
+/* Tabelas (coordenação / admin)                                       */
+/* ------------------------------------------------------------------ */
+
+.rolagem {
+  overflow-x: auto;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  background: var(--superficie);
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 620px;
+  font-size: 14px;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--borda);
+  vertical-align: top;
+}
+
+th {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--texto-suave);
+  background: var(--superficie-suave);
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Links da escola (admin)                                             */
+/* ------------------------------------------------------------------ */
+
+.link-token {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--superficie-suave);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-top: 8px;
+}
+
+.link-token .url {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: var(--texto-suave);
+}
+
+.carregando {
+  color: var(--texto-suave);
+  padding: 32px 0;
+  text-align: center;
+}
+
+@media print {
+  .acoes-formulario,
+  .abas,
+  button {
+    display: none !important;
+  }
+}
