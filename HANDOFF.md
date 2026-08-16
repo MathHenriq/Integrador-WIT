@@ -32,6 +32,11 @@ Existem **duas instalações** do Supabase na conta: uma `connected`, outra `unk
 caiu três vezes numa mesma sessão, sempre com o mesmo padrão — suspeita de que o chat religa a
 instalação sem sessão válida. **Remover a duplicada** deve resolver.
 
+O estado que aparece do lado do Claude é `connected: true, enabledInChat: false`: autenticado na
+conta, desligado *naquele chat*. É um botão por conversa, nas configurações de conector do próprio
+chat — o Claude não liga sozinho. Também não adianta tentar falar com `supabase.co` por HTTP da
+sessão: o proxy de rede devolve 403 no CONNECT.
+
 Atenção: `list_projects` já voltou vazio mesmo com o conector ligado (a org nasceu pela
 integração Vercel↔Supabase). Nesse caso, passar o `project_id` direto funciona.
 
@@ -39,32 +44,17 @@ integração Vercel↔Supabase). Nesse caso, passar o `project_id` direto funcio
 
 ## 2. O que falta construir
 
-Em ordem sugerida. Os quatro primeiros não dependem do banco.
+Os quatro itens de interface saíram em `5f092d7` — cartões por matéria nas realizadas, o motivo
+do Projetos WIT (VR, câmera, controle, IA e Alexa), o Painel WIT como botão no topo à direita e
+o ciclorama do `/reserva` com o vinco parede-piso. Foram conferidos no navegador, nos dois temas
+e em 390px, contra um stub das RPCs. **Falta o que depende do banco:**
 
-### 2.1 Cards por matéria nas "Já realizadas"
-Hoje `/realizadas` é uma linha do tempo. Precisa virar **a mesma estrutura de `/atividades`**: um
-card por matéria, com o motivo da matéria na capa e as aulas realizadas listadas dentro.
-Reaproveitar `.cartao-materia` (já existe no CSS) e `MotivoMateria`.
-
-### 2.2 Motivo do "Projetos WIT"
-`src/componentes/MotivoMateria.tsx` tem um `case 'integrador'` com engrenagem — trocar. O pedido
-foi explícito: **câmera, óculos VR, controle de games, IA e Alexa**. A chave de detecção precisa
-casar com o nome novo (`Projetos WIT`), não com "integrador".
-
-### 2.3 Painel WIT como botão à direita
-Hoje é um link discreto no rodapé (`src/componentes/Layout.tsx`). Deve ser um **botão à direita no
-topo**. Senha continua `WIT` por ora.
-
-### 2.4 Minha reserva — conferir o chroma
-O ciclorama foi refeito com o pool de luz caindo até o piso, mas **não foi visto em tela depois da
-mudança**. Abrir `/reserva` e confirmar que parece estúdio, não fundo verde chapado.
-
-### 2.5 BNCC pré-carregada, agrupada por tema
+### 2.1 BNCC pré-carregada, agrupada por tema
 Hoje a equipe cadastra habilidade a habilidade na aba BNCC. O pedido: **já vir tudo preenchido**,
 em listas separadas por tema, para facilitar professor, equipe e gestão. É uma migration de seed
 grande — vale confirmar o recorte (quais anos/componentes) antes de escrever.
 
-### 2.6 Importador do documento do Canva
+### 2.2 Importador do documento do Canva
 A funcionalidade mais pedida. O PDF exportado do Canva vira um "projeto já realizado"
 automaticamente.
 
