@@ -720,41 +720,53 @@ legend { font-family: var(--fonte-titulo); font-size: 14.5px; font-weight: 600; 
 
 .cartao-materia .capa {
   position: relative;
-  padding: 18px 20px;
+  padding: 54px 16px 14px;
   border-bottom: 1px solid var(--borda-solida);
   overflow: hidden;
-  min-height: 96px;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
+  /* A cor do texto vem inline, decidida pela luminância da matéria:
+     preto sobre lima, branco sobre azul. Ver `textoDaMateria`. */
 }
 
-/* O desenho da matéria ocupa a direita da capa, recortado. */
+/* O desenho encosta no canto de cima e sai um pedaço dele para fora —
+   proposital, para parecer carimbo no canto e não figura centralizada. */
 .cartao-materia .capa .motivo {
   position: absolute;
-  right: -8px;
-  top: 50%;
-  transform: translateY(-50%);
-  height: 128%;
-  width: auto;
+  right: -18px;
+  top: -20px;
+  width: 104px;
+  height: 104px;
   opacity: 0.9;
   pointer-events: none;
 }
 
+/* Projetos WIT não tem um objeto só: os três vão em leque no canto. */
+.cartao-materia .capa .motivo.leque { width: 118px; height: 108px; }
+.motivo.leque > svg { position: absolute; }
+.motivo.leque > .frente { width: 76px; height: 76px; right: 16px; top: 26px; }
+.motivo.leque > .atras { width: 46px; height: 46px; opacity: 0.75; }
+.motivo.leque > .esquerda { left: 2px; top: 6px; }
+.motivo.leque > .direita { right: 4px; top: 0; }
+
 .cartao-materia .capa h3 {
   position: relative;
-  font-size: 20px;
-  color: #fff;
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.4);
+  font-size: 18px;
+  line-height: 1.15;
+  color: inherit;
+  /* Espaço à direita para o título não correr por baixo do desenho. */
+  padding-right: 62px;
 }
 
 .cartao-materia .capa .contagem {
   position: relative;
-  font-size: 13.5px;
-  color: rgba(255, 255, 255, 0.92);
+  font-size: 12.5px;
+  color: inherit;
+  opacity: 0.82;
   font-weight: 600;
   margin-top: 2px;
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.4);
+  padding-right: 62px;
 }
 
 .cartao-materia .corpo {
@@ -1325,7 +1337,9 @@ tr.passado td { opacity: 0.6; }
 .grade-materias {
   display: grid;
   gap: 18px;
-  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  /* Estreito de propósito: o cartão da matéria é uma coluna em pé, não
+     uma faixa deitada. Em 1180px isso dá quatro por linha. */
+  grid-template-columns: repeat(auto-fill, minmax(238px, 1fr));
   align-items: start;
 }
 
@@ -1361,12 +1375,13 @@ tr.passado td { opacity: 0.6; }
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.9);
+  color: inherit;
+  opacity: 0.88;
   margin-bottom: 8px;
 }
 
-.capa-atividade h1 { color: #fff; font-size: clamp(24px, 3.6vw, 32px); text-shadow: 0 1px 10px rgba(0,0,0,0.35); }
-.capa-atividade .tema { color: rgba(255, 255, 255, 0.92); margin-top: 6px; font-size: 16px; }
+.capa-atividade h1 { color: inherit; font-size: clamp(24px, 3.6vw, 32px); text-shadow: 0 1px 10px rgba(0,0,0,0.35); }
+.capa-atividade .tema { color: inherit; opacity: 0.9; margin-top: 6px; font-size: 16px; }
 
 .chamada-final { margin-top: 40px; text-align: center; }
 

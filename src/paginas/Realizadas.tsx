@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Aviso } from '../componentes/Aviso'
-import { MotivoMateria, degradeMateria } from '../componentes/MotivoMateria'
+import { MotivoMateria, degradeMateria, textoDaMateria } from '../componentes/MotivoMateria'
 import { carregarContexto, listarRealizadas } from '../lib/api'
 import { MESES, paraData } from '../lib/formato'
 import type { Materia, Realizada } from '../lib/tipos'
@@ -129,7 +129,13 @@ export function Realizadas() {
             <div className="grade-materias">
               {porMateria.map((materia) => (
                 <article key={materia.chave} className="cartao-materia">
-                  <div className="capa" style={{ background: degradeMateria(materia.cor) }}>
+                  <div
+                    className="capa"
+                    style={{
+                      background: degradeMateria(materia.nome, materia.cor),
+                      color: textoDaMateria(materia.nome, materia.cor),
+                    }}
+                  >
                     <MotivoMateria nome={materia.nome} className="motivo" />
                     <h3>{materia.nome}</h3>
                     <div className="contagem">

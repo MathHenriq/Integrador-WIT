@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Aviso } from '../componentes/Aviso'
-import { MotivoMateria, degradeMateria } from '../componentes/MotivoMateria'
+import { MotivoMateria, degradeMateria, textoDaMateria } from '../componentes/MotivoMateria'
 import { listarAulas, obterAula } from '../lib/api'
 import type { AulaCatalogo, AulaDetalhe } from '../lib/tipos'
 
@@ -69,7 +69,13 @@ export function Atividades() {
           <div className="grade-materias">
             {porMateria.map((materia) => (
               <article key={materia.nome} className="cartao-materia">
-                <div className="capa" style={{ background: degradeMateria(materia.cor) }}>
+                <div
+                  className="capa"
+                  style={{
+                    background: degradeMateria(materia.nome, materia.cor),
+                    color: textoDaMateria(materia.nome, materia.cor),
+                  }}
+                >
                   <MotivoMateria nome={materia.nome} className="motivo" />
                   <h3>{materia.nome}</h3>
                   <div className="contagem">
@@ -152,7 +158,13 @@ export function AtividadeDetalhe() {
         ← Voltar
       </button>
 
-      <header className="capa-atividade" style={{ background: degradeMateria(aula.materia_cor) }}>
+      <header
+        className="capa-atividade"
+        style={{
+          background: degradeMateria(aula.materia_nome, aula.materia_cor),
+          color: textoDaMateria(aula.materia_nome, aula.materia_cor),
+        }}
+      >
         <MotivoMateria nome={aula.materia_nome} className="motivo" />
         <div className="capa-texto">
           {aula.materia_nome && <span className="materia">{aula.materia_nome}</span>}
