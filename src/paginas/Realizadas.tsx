@@ -33,28 +33,38 @@ export function Realizadas() {
       .finally(() => setCarregando(false))
   }, [materiaId])
 
-  // Só oferece filtro de matéria que realmente tem aula realizada: menu
-  // com opção que não leva a lugar nenhum é perda de tempo.
-  const materiasComAula = materias.filter((m) =>
-    itens.length === 0 || materiaId !== null ? true : itens.some((i) => i.materia_nome === m.nome),
-  )
-
-  // Uma caixa por matéria, igual ao catálogo: o professor procura pela
-  // matéria que ele dá, não por data. A ordem dentro da caixa é a que veio
-  // do banco — da aula mais recente para a mais antiga.
+  /**
+   * Uma caixa por matéria, igual ao catálogo: o professor procura pela
+   * matéria que ele dá, não por data.
+   *
+   * As caixas saem da lista de matérias, não das aulas — então a página
+   * tem o que mostrar desde o primeiro dia, quando ainda não aconteceu
+   * nada. Matéria sem aula vira convite; página vazia não convida
+   * ninguém. A ordem dentro da caixa é a que veio do banco, da aula mais
+   * recente para a mais antiga.
+   */
   const porMateria = useMemo(() => {
-    const mapa = new Map<string, { nome: string; cor: string | null; itens: Realizada[] }>()
+    const caixas = materias.map((m) => ({
+      chave: m.id,
+      nome: m.nome,
+      cor: m.cor as string | null,
+      itens: itens.filter((i) => i.materia_nome === m.nome),
+    }))
 
-    for (const item of itens) {
-      const chave = item.materia_nome ?? 'Outras aulas'
-      const atual =
-        mapa.get(chave) ?? { nome: chave, cor: item.materia_cor, itens: [] }
-      atual.itens.push(item)
-      mapa.set(chave, atual)
+    // Aula cuja matéria saiu do cadastro não pode sumir da tela.
+    const orfas = itens.filter((i) => !materias.some((m) => m.nome === i.materia_nome))
+    if (orfas.length > 0) {
+      caixas.push({
+        chave: 'sem-materia',
+        nome: 'Outras aulas',
+        cor: orfas[0].materia_cor,
+        itens: orfas,
+      })
     }
 
-    return [...mapa.values()].sort((a, b) => b.itens.length - a.itens.length)
-  }, [itens])
+    const visiveis = materiaId === null ? caixas : caixas.filter((c) => c.chave === materiaId)
+    return visiveis.sort((a, b) => b.itens.length - a.itens.length)
+  }, [materias, itens, materiaId])
 
   return (
     <main className="conteudo">
@@ -64,7 +74,7 @@ export function Realizadas() {
         ideia para a próxima — e mostra que dá certo.
       </p>
 
-      {materiasComAula.length > 1 && (
+      {materias.length > 1 && (
         <div className="chips" style={{ marginTop: 24 }}>
           <button
             type="button"
@@ -74,7 +84,7 @@ export function Realizadas() {
           >
             Todas
           </button>
-          {materiasComAula.map((m) => (
+          {materias.map((m) => (
             <button
               type="button"
               key={m.id}
@@ -97,7 +107,7 @@ export function Realizadas() {
       <div className="secao" style={{ marginTop: 26 }}>
         {carregando ? (
           <p className="carregando">Carregando…</p>
-        ) : itens.length === 0 ? (
+        ) : porMateria.length === 0 ? (
           <div className="vazio">
             Ainda não há aulas realizadas por aqui.
             <div style={{ marginTop: 16 }}>
@@ -109,23 +119,36 @@ export function Realizadas() {
         ) : (
           <>
             <p style={{ color: 'var(--texto-suave)', marginBottom: 16 }}>
-              {itens.length === 1 ? '1 aula realizada' : `${itens.length} aulas realizadas`}
+              {itens.length === 0
+                ? 'Nenhuma aula realizada ainda — a primeira pode ser a sua.'
+                : itens.length === 1
+                  ? '1 aula realizada'
+                  : `${itens.length} aulas realizadas`}
             </p>
 
             <div className="grade-materias">
               {porMateria.map((materia) => (
-                <article key={materia.nome} className="cartao-materia">
+                <article key={materia.chave} className="cartao-materia">
                   <div className="capa" style={{ background: degradeMateria(materia.cor) }}>
                     <MotivoMateria nome={materia.nome} className="motivo" />
                     <h3>{materia.nome}</h3>
                     <div className="contagem">
-                      {materia.itens.length === 1
-                        ? '1 aula realizada'
-                        : `${materia.itens.length} aulas realizadas`}
+                      {materia.itens.length === 0
+                        ? 'nenhuma aula ainda'
+                        : materia.itens.length === 1
+                          ? '1 aula realizada'
+                          : `${materia.itens.length} aulas realizadas`}
                     </div>
                   </div>
 
                   <div className="corpo">
+                    {materia.itens.length === 0 && (
+                      <div className="convite">
+                        <p>Nenhuma turma passou por aqui com esta matéria ainda.</p>
+                        <Link to="/agendar">seja o primeiro →</Link>
+                      </div>
+                    )}
+
                     {materia.itens.map((item) => (
                       <article key={item.id} className="atividade feita">
                         <span className="quando">{porExtenso(item.data_aula)}</span>
@@ -168,9 +191,11 @@ export function Realizadas() {
                     ))}
                   </div>
 
-                  <div className="rodape">
-                    Toda aula daqui saiu de um professor que trouxe o conteúdo dele.
-                  </div>
+                  {materia.itens.length > 0 && (
+                    <div className="rodape">
+                      Toda aula daqui saiu de um professor que trouxe o conteúdo dele.
+                    </div>
+                  )}
                 </article>
               ))}
             </div>

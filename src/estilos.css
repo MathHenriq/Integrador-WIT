@@ -166,7 +166,7 @@ a:hover { text-decoration: underline; }
      — luz batendo no chão — e o pool de luz alto na parede. Um degradê
      liso, por mais bonito, continua lendo como cor chapada. */
   background:
-    radial-gradient(56rem 32rem at 50% 6%, rgba(200, 255, 222, 0.4), transparent 64%),
+    radial-gradient(56rem 32rem at 50% 6%, rgba(200, 255, 222, 0.26), transparent 64%),
     radial-gradient(32rem 24rem at 12% 24%, rgba(120, 240, 175, 0.13), transparent 70%),
     radial-gradient(32rem 24rem at 88% 24%, rgba(120, 240, 175, 0.13), transparent 70%),
     linear-gradient(
@@ -187,9 +187,15 @@ a:hover { text-decoration: underline; }
     radial-gradient(70rem 18rem at 50% 92%, rgba(190, 255, 215, 0.1), transparent 70%);
 }
 
-/* Vinheta: fecha os cantos como um softbox fecha o enquadramento. */
+/* Os dois softboxes, virados para o meio da tela, e a vinheta por baixo
+   deles. São PNG desfocado de propósito: desenho vetorial de softbox lê
+   como adesivo em cima da foto. Ficam nesta camada, acima da vinheta,
+   senão o escurecimento de canto apagaria justo as duas luzes. */
 .ambiente.chroma::after {
-  background: radial-gradient(ellipse 78% 68% at 50% 42%, transparent 42%, rgba(0, 32, 16, 0.5) 100%);
+  background:
+    url('/softbox-esq.webp') left -4rem top 0.5rem / 42rem 42rem no-repeat,
+    url('/softbox-dir.webp') right -4rem top 0.5rem / 42rem 42rem no-repeat,
+    radial-gradient(ellipse 78% 68% at 50% 42%, transparent 42%, rgba(0, 32, 16, 0.5) 100%);
 }
 
 :root[data-tema='claro'] .ambiente.chroma {
@@ -213,7 +219,10 @@ a:hover { text-decoration: underline; }
 }
 
 :root[data-tema='claro'] .ambiente.chroma::after {
-  background: radial-gradient(ellipse 80% 70% at 50% 42%, transparent 48%, rgba(0, 40, 20, 0.24) 100%);
+  background:
+    url('/softbox-esq.webp') left -4rem top 0.5rem / 42rem 42rem no-repeat,
+    url('/softbox-dir.webp') right -4rem top 0.5rem / 42rem 42rem no-repeat,
+    radial-gradient(ellipse 80% 70% at 50% 42%, transparent 48%, rgba(0, 40, 20, 0.24) 100%);
 }
 
 /* Conteúdo sobre a ambientação */
@@ -822,6 +831,25 @@ a.atividade:hover {
   color: var(--texto-suave);
 }
 
+/* Matéria que ainda não teve aula: a caixa existe assim mesmo, com um
+   convite no lugar da lista. Caixa vazia é honesta; página vazia, não. */
+.cartao-materia .convite {
+  padding: 18px 13px 20px;
+  text-align: center;
+}
+
+.cartao-materia .convite p {
+  color: var(--texto-fraco);
+  font-size: 14.5px;
+  margin-bottom: 8px;
+}
+
+.cartao-materia .convite a {
+  font-family: var(--fonte-titulo);
+  font-weight: 600;
+  font-size: 14.5px;
+}
+
 .cartao-materia .rodape {
   padding: 10px 20px 16px;
   color: var(--texto-fraco);
@@ -1234,7 +1262,6 @@ tr.passado td { opacity: 0.6; }
   text-decoration: none;
 }
 
-.cartao-acao.principal { border-color: var(--verde); }
 .cartao-acao h3 { font-size: 19px; }
 .cartao-acao p { color: var(--texto-suave); font-size: 15px; }
 

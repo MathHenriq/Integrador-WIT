@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { LogoWit } from '../componentes/LogoWit'
-import { carregarContexto, listarAulas, listarRealizadas, vagasDaSemana } from '../lib/api'
+import { listarAulas, listarRealizadas } from '../lib/api'
 import type { AulaCatalogo, Realizada } from '../lib/tipos'
 
 /**
@@ -15,7 +15,6 @@ const ACOES = [
     titulo: 'Agendar uma aula',
     texto: 'Escolha a escola, veja a semana e reserve o horário que couber na sua rotina.',
     acao: 'Ver horários livres',
-    principal: true,
   },
   {
     para: '/realizadas',
@@ -34,25 +33,17 @@ const ACOES = [
 export function Inicio() {
   const [aulas, setAulas] = useState<AulaCatalogo[]>([])
   const [realizadas, setRealizadas] = useState<Realizada[]>([])
-  const [vagas, setVagas] = useState<{ livres: number; total: number } | null>(null)
   const [carregando, setCarregando] = useState(true)
 
   useEffect(() => {
     // A home é a vitrine: se um bloco falhar, ela ainda abre inteira.
-    Promise.allSettled([
-      listarAulas({}),
-      listarRealizadas({ limite: 200 }),
-      carregarContexto().then((ctx) => vagasDaSemana(ctx)),
-    ])
-      .then(([cat, feitas, livres]) => {
+    Promise.allSettled([listarAulas({}), listarRealizadas({ limite: 200 })])
+      .then(([cat, feitas]) => {
         if (cat.status === 'fulfilled') setAulas(cat.value)
         if (feitas.status === 'fulfilled') setRealizadas(feitas.value)
-        if (livres.status === 'fulfilled') setVagas(livres.value)
       })
       .finally(() => setCarregando(false))
   }, [])
-
-  const poucasVagas = vagas !== null && vagas.total > 0 && vagas.livres <= Math.ceil(vagas.total * 0.35)
 
   return (
     <main className="conteudo">
@@ -69,31 +60,6 @@ export function Inicio() {
             <strong>unir o conteúdo da sua matéria ao conhecimento técnico da nossa equipe</strong> —
             no período regular de aula, com você conduzindo junto com o profissional WIT.
           </p>
-
-          <p className="linha-fina" style={{ marginTop: 14 }}>
-            Você traz o conteúdo que já vai trabalhar; nós entramos com a tecnologia que torna ele
-            palpável. O professor de Ciências vai dar astros e planetas? A turma percorre o sistema
-            solar nos óculos VR e fecha com uma pesquisa sobre o que viu.
-          </p>
-
-          {vagas !== null && vagas.total > 0 && (
-            <div className={`chamada-vagas ${poucasVagas ? 'apertado' : ''}`}>
-              <strong>
-                {vagas.livres === 0
-                  ? 'Sem horários livres nesta semana'
-                  : vagas.livres === 1
-                    ? '1 horário livre nesta semana'
-                    : `${vagas.livres} horários livres nesta semana`}
-              </strong>
-              <span>
-                {vagas.livres === 0
-                  ? 'Veja as próximas semanas na agenda.'
-                  : poucasVagas
-                    ? 'Restam poucos — quem marca primeiro escolhe o melhor horário.'
-                    : `de ${vagas.total} no total, somando todas as escolas.`}
-              </span>
-            </div>
-          )}
 
           <div className="abertura-acoes">
             <Link to="/agendar" className="botao grande">
@@ -120,7 +86,7 @@ export function Inicio() {
             <Link
               key={item.para}
               to={item.para}
-              className={`cartao-acao ${item.principal ? 'principal' : ''}`}
+              className="cartao-acao"
             >
               <h3>{item.titulo}</h3>
               <p>{item.texto}</p>
