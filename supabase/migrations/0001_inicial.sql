@@ -4,7 +4,15 @@
 --   Instalação completa do banco. Rode este arquivo inteiro, uma vez.
 --
 --   ÚNICA COISA PARA EDITAR: a senha do painel /admin, logo abaixo.
---   Pode rodar de novo quando quiser — inclusive para trocar a senha.
+--
+--   ATENÇÃO: este é o arquivo de INSTALAÇÃO, e só reexecuta em banco que
+--   ainda não passou pela 0002. A 0002 remove os links por escola, e as
+--   funções de token daqui deixam de compilar sem as colunas que ela
+--   apagou. Da 0002 em diante todos os arquivos reexecutam à vontade.
+--
+--   Para trocar a senha do /admin num banco já instalado, não rode este
+--   arquivo: rode só o `insert ... on conflict` de `admin_tokens` que
+--   está no fim dele.
 --
 -- =====================================================================
 

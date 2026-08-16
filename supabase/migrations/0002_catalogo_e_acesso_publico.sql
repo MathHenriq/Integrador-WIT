@@ -106,6 +106,38 @@ drop function if exists public._exigir_escola(text);
 drop function if exists public._exigir_coordenacao(text);
 drop function if exists public.admin_listar_escolas(text);
 
+-- Migrations posteriores mudam a assinatura de algumas destas funções
+-- (a 0004 acrescenta as fotos). Um `create or replace` não consegue
+-- mudar tipo de retorno, e uma assinatura nova não substitui a antiga:
+-- cria uma SEGUNDA função com o mesmo nome, e aí o PostgREST não sabe
+-- qual chamar. Derrubar por nome, com qualquer assinatura, evita as
+-- duas coisas.
+--
+-- Consequência: se você rodar este arquivo de novo num banco que já
+-- passou pela 0004, rode a 0004 logo em seguida para recuperar o que
+-- ela acrescenta.
+do $$
+declare
+  v_assinatura text;
+begin
+  for v_assinatura in
+    select format('%I.%I(%s)', n.nspname, p.proname, pg_get_function_identity_arguments(p.oid))
+      from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public'
+       and p.proname = any (array[
+         'admin_cancelar_reserva', 'admin_listar_aulas', 'admin_listar_escolas',
+         'admin_listar_reservas', 'admin_registrar_relato', 'admin_remover_aula',
+         'admin_remover_habilidade', 'admin_salvar_aula', 'admin_salvar_habilidade',
+         'admin_salvar_materia', 'agenda_escola', 'agendar', 'cancelar_por_protocolo',
+         'contexto_publico', 'listar_aulas', 'listar_habilidades', 'listar_realizadas',
+         'obter_aula', 'obter_reserva'
+       ])
+  loop
+    execute 'drop function if exists ' || v_assinatura || ' cascade';
+  end loop;
+end $$;
+
 alter table public.escolas drop column if exists token_professor;
 alter table public.escolas drop column if exists token_coordenacao;
 

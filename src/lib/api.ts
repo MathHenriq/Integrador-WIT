@@ -315,3 +315,19 @@ export function adminRegistrarRelato(
     p_fotos: fotos,
   })
 }
+
+/**
+ * Importa a BNCC inteira de uma vez. O site separa código e descrição; o
+ * banco deriva o ano e a matéria a partir do próprio código, que já
+ * carrega os dois (EF06MA01 = 6º ano, Matemática).
+ */
+export function adminImportarHabilidades(senha: string, pares: { codigo: string; descricao: string }[]) {
+  return chamar<{ novas: number; alteradas: number; ignoradas: string[] }>(
+    'admin_importar_habilidades',
+    {
+      p_admin_token: senha,
+      p_codigos: pares.map((p) => p.codigo),
+      p_descricoes: pares.map((p) => p.descricao),
+    },
+  )
+}

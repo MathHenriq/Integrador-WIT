@@ -843,6 +843,24 @@ a.atividade:hover {
   color: var(--texto-suave);
 }
 
+/* Linha de dados soltos no pé de um cartão (anos · duração · nº de
+   habilidades). Sem separador os textos encostam e viram "ano90 min1
+   habilidade" — foi assim que apareceu no painel. */
+.rodape-cartao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  color: var(--texto-fraco);
+  font-size: 13.5px;
+}
+
+.rodape-cartao > span + span::before {
+  content: '·';
+  margin-right: 10px;
+  color: var(--borda-solida);
+}
+
 /* Matéria que ainda não teve aula: a caixa existe assim mesmo, com um
    convite no lugar da lista. Caixa vazia é honesta; página vazia, não. */
 .cartao-materia .convite {

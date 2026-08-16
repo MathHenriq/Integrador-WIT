@@ -14,6 +14,7 @@ import {
   adminRemoverAula,
   adminRemoverHabilidade,
   adminRenomearEscola,
+  adminImportarHabilidades,
   adminSalvarHabilidade,
   carregarContexto,
   listarHabilidades,
@@ -561,6 +562,9 @@ function AbaBncc({
   const [carregando, setCarregando] = useState(true)
   const [codigo, setCodigo] = useState('')
   const [descricao, setDescricao] = useState('')
+  const [colado, setColado] = useState('')
+  const [importando, setImportando] = useState(false)
+  const [resultado, setResultado] = useState<string | null>(null)
   const [materiaId, setMateriaId] = useState('')
   const [ano, setAno] = useState<string>('')
   const [salvando, setSalvando] = useState(false)
@@ -601,6 +605,58 @@ function AbaBncc({
     }
   }
 
+  /**
+   * Lê a lista colada. Cada linha começa com o código da BNCC e o resto
+   * é a descrição — o separador pode ser tabulação, ponto e vírgula ou
+   * só espaço, porque muda conforme a pessoa copia de planilha, de PDF
+   * ou do site do MEC. Descrição que continua na linha seguinte (comum
+   * em PDF) é grudada na habilidade anterior.
+   */
+  function interpretar(texto: string) {
+    const pares: { codigo: string; descricao: string }[] = []
+
+    for (const linha of texto.split(/\r?\n/)) {
+      const limpa = linha.trim()
+      if (!limpa) continue
+
+      const casa = limpa.match(/^(EF\d{2}[A-Za-z]{2}\d{2})\s*[\t;,|-]?\s*(.*)$/i)
+      if (casa) {
+        pares.push({ codigo: casa[1].toUpperCase(), descricao: casa[2].trim() })
+      } else if (pares.length > 0) {
+        pares[pares.length - 1].descricao += ' ' + limpa
+      }
+    }
+
+    return pares
+  }
+
+  async function importar() {
+    const pares = interpretar(colado)
+    if (pares.length === 0) {
+      aoErro('Não encontrei nenhum código da BNCC no que você colou.')
+      return
+    }
+
+    setImportando(true)
+    aoErro(null)
+    setResultado(null)
+    try {
+      const r = await adminImportarHabilidades(senha, pares)
+      const partes = [
+        r.novas === 1 ? '1 habilidade nova' : `${r.novas} habilidades novas`,
+        r.alteradas > 0 ? `${r.alteradas} atualizada(s)` : null,
+        r.ignoradas.length > 0 ? `${r.ignoradas.length} ignorada(s): ${r.ignoradas.join(', ')}` : null,
+      ].filter(Boolean)
+      setResultado(partes.join(' · '))
+      setColado('')
+      await carregar()
+    } catch (f) {
+      aoErro(f instanceof Error ? f.message : 'Não foi possível importar.')
+    } finally {
+      setImportando(false)
+    }
+  }
+
   async function remover(h: Habilidade) {
     if (!window.confirm(`Remover ${h.codigo}?`)) return
     try {
@@ -613,8 +669,40 @@ function AbaBncc({
 
   return (
     <>
+      <div className="cartao" style={{ marginBottom: 24 }}>
+        <h2 style={{ fontSize: 18, marginBottom: 6 }}>Trazer a BNCC de uma vez</h2>
+        <p className="ajuda" style={{ marginBottom: 14 }}>
+          Cole aqui a lista oficial — uma habilidade por linha, começando pelo código. O ano e a
+          matéria saem do próprio código, então não precisa escolher nada: <code>EF06MA01</code> já
+          diz 6º ano, Matemática. Código repetido atualiza a descrição em vez de duplicar.
+        </p>
+
+        <textarea
+          value={colado}
+          onChange={(e) => setColado(e.target.value)}
+          rows={7}
+          placeholder={
+            'EF06MA01\tComparar, ordenar, ler e escrever números naturais…\n' +
+            'EF06CI11\tIdentificar as diferentes camadas que envolvem o planeta Terra…'
+          }
+          style={{ fontFamily: 'ui-monospace, monospace', fontSize: 13.5 }}
+        />
+
+        {resultado && (
+          <div style={{ marginTop: 12 }}>
+            <Aviso tipo="sucesso">{resultado}</Aviso>
+          </div>
+        )}
+
+        <div className="acoes-formulario">
+          <button type="button" onClick={() => void importar()} disabled={importando || !colado.trim()}>
+            {importando ? 'Importando…' : 'Importar habilidades'}
+          </button>
+        </div>
+      </div>
+
       <form onSubmit={salvar} className="cartao" style={{ marginBottom: 24 }}>
-        <h2 style={{ fontSize: 18, marginBottom: 6 }}>Cadastrar habilidade</h2>
+        <h2 style={{ fontSize: 18, marginBottom: 6 }}>Cadastrar uma habilidade</h2>
         <p className="ajuda" style={{ marginBottom: 16 }}>
           Cadastre uma vez e reaproveite em quantas aulas quiser. O código é o oficial da BNCC.
         </p>
