@@ -110,9 +110,26 @@ export function diasDaSemana(inicio: DataIso): DataIso[] {
   return Array.from({ length: 7 }, (_, i) => somarDias(inicio, i))
 }
 
-/** "17 a 23 de agosto de 2026" — encurta quando cruza mês ou ano. */
-export function rotuloSemana(inicio: DataIso) {
-  const fim = somarDias(inicio, 6)
+/**
+ * Segunda a sexta. O Núcleo não abre no fim de semana, e mostrar sábado
+ * e domingo vazios só ocupava espaço na grade.
+ */
+export function diasUteis(inicioDomingo: DataIso): DataIso[] {
+  return Array.from({ length: 5 }, (_, i) => somarDias(inicioDomingo, i + 1))
+}
+
+/** Horários padrão da sala, usados no cadastro da grade. */
+export const HORARIOS_PADRAO = [
+  { inicio: '07:20', fim: '08:50' },
+  { inicio: '09:20', fim: '10:50' },
+  { inicio: '13:20', fim: '14:50' },
+  { inicio: '15:20', fim: '16:50' },
+] as const
+
+/** "18 a 22 de agosto de 2026" — encurta quando cruza mês ou ano. */
+export function rotuloSemana(inicioDomingo: DataIso) {
+  const inicio = somarDias(inicioDomingo, 1)
+  const fim = somarDias(inicioDomingo, 5)
   const a = paraData(inicio)
   const b = paraData(fim)
 

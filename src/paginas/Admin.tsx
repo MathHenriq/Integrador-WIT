@@ -441,8 +441,20 @@ function AbaReservas({ senha, aoErro }: { senha: string; aoErro: (e: string | nu
       reserva.relato ?? '',
     )
     if (relato === null) return
+
+    const fotos = window.prompt(
+      'Endereços das fotos da aula, um por linha.\n\nCole o link direto da imagem (Drive, Storage do Supabase, etc.). Elas aparecem na vitrine e na página da atividade.',
+      reserva.fotos.join('\n'),
+    )
+    if (fotos === null) return
+
     try {
-      await adminRegistrarRelato(senha, reserva.id, relato)
+      await adminRegistrarRelato(
+        senha,
+        reserva.id,
+        relato,
+        fotos.split('\n').map((f) => f.trim()).filter(Boolean),
+      )
       await carregar()
     } catch (f) {
       aoErro(f instanceof Error ? f.message : 'Não foi possível salvar o relato.')
@@ -516,7 +528,7 @@ function AbaReservas({ senha, aoErro }: { senha: string; aoErro: (e: string | nu
                 <div className="acoes-linha">
                   {r.status === 'confirmado' && r.ja_aconteceu && (
                     <button type="button" className="fantasma pequeno" onClick={() => void relatar(r)}>
-                      {r.relato ? 'Editar relato' : '+ Relato'}
+                      {r.relato || r.fotos.length > 0 ? 'Relato e fotos' : '+ Relato e fotos'}
                     </button>
                   )}
                   {r.status === 'confirmado' && !r.ja_aconteceu && (

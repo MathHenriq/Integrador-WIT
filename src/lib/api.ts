@@ -62,6 +62,45 @@ export async function agendaEscola(escolaId: string, inicio: DataIso, fim: DataI
   return linhas.map((o) => ({ ...o, data_aula: soData(o.data_aula) }))
 }
 
+/**
+ * Quantos horários da semana corrente ainda estão livres, somando todas
+ * as escolas. É o número que cria o senso de urgência na home — e ele
+ * precisa ser real, não um enfeite.
+ */
+export async function vagasDaSemana(ctx: ContextoPublico) {
+  const inicio = inicioDaSemanaIso(ctx.hoje)
+  const fim = somarDiasIso(inicio, 6)
+
+  const agendas = await Promise.all(
+    ctx.escolas.map((e) => agendaEscola(e.id, inicio, fim).catch(() => [])),
+  )
+  const todas = agendas.flat()
+
+  return { livres: todas.filter((o) => o.reservavel).length, total: todas.length }
+}
+
+// Duas contas de data que a camada de API precisa fazer sozinha, sem
+// arrastar o módulo de formatação para cá.
+function inicioDaSemanaIso(iso: DataIso): DataIso {
+  const [a, m, d] = iso.split('-').map(Number)
+  const data = new Date(a, m - 1, d)
+  data.setDate(data.getDate() - data.getDay())
+  return paraIsoLocal(data)
+}
+
+function somarDiasIso(iso: DataIso, dias: number): DataIso {
+  const [a, m, d] = iso.split('-').map(Number)
+  const data = new Date(a, m - 1, d)
+  data.setDate(data.getDate() + dias)
+  return paraIsoLocal(data)
+}
+
+function paraIsoLocal(data: Date): DataIso {
+  const mes = String(data.getMonth() + 1).padStart(2, '0')
+  const dia = String(data.getDate()).padStart(2, '0')
+  return `${data.getFullYear()}-${mes}-${dia}`
+}
+
 export function listarAulas(filtros: {
   materiaId?: string | null
   ano?: number | null
@@ -302,10 +341,16 @@ export function adminCancelarReserva(senha: string, reservaId: string, motivo: s
   })
 }
 
-export function adminRegistrarRelato(senha: string, reservaId: string, relato: string) {
+export function adminRegistrarRelato(
+  senha: string,
+  reservaId: string,
+  relato: string,
+  fotos: string[],
+) {
   return chamar<unknown>('admin_registrar_relato', {
     p_admin_token: senha,
     p_reserva_id: reservaId,
     p_relato: relato,
+    p_fotos: fotos,
   })
 }

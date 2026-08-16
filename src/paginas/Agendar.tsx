@@ -4,7 +4,7 @@ import { DialogoAgendamento, DialogoComprovante } from '../componentes/DialogoAg
 import { agendaEscola, carregarContexto } from '../lib/api'
 import {
   DIAS_SIGLA,
-  diasDaSemana,
+  diasUteis,
   faixaHoraria,
   inicioDaSemana,
   paraData,
@@ -74,7 +74,7 @@ export function Agendar() {
     setCarregandoSemana(true)
     setErro(null)
     try {
-      setOcorrencias(await agendaEscola(escolaId, semana, somarDias(semana, 6)))
+      setOcorrencias(await agendaEscola(escolaId, somarDias(semana, 1), somarDias(semana, 5)))
     } catch (falha) {
       setErro(falha instanceof Error ? falha.message : 'Não foi possível carregar a agenda.')
       setOcorrencias([])
@@ -199,7 +199,7 @@ export function Agendar() {
       </div>
 
       <div className="semana">
-        {diasDaSemana(semanaAtual).map((dia) => {
+        {diasUteis(semanaAtual).map((dia) => {
           const doDia = porDia.get(dia) ?? []
           const passado = ctx ? dia < ctx.hoje : false
           const data = paraData(dia)

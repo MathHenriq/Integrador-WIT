@@ -4,6 +4,10 @@ import { LogoWit } from './LogoWit'
 
 const CHAVE_TEMA = 'wit:tema'
 
+/**
+ * Só quatro destinos, com o nome do que a pessoa vai fazer — nada de
+ * "explore" ou "saiba mais". Professor cansado não procura no site.
+ */
 const PAGINAS = [
   { para: '/agendar', rotulo: 'Agendar aula' },
   { para: '/atividades', rotulo: 'Atividades' },
@@ -11,14 +15,18 @@ const PAGINAS = [
   { para: '/reserva', rotulo: 'Minha reserva' },
 ]
 
+/** A tela de reservas do professor acontece "no chroma"; o resto, no estúdio. */
+function ambienteDaRota(caminho: string) {
+  return caminho.startsWith('/reserva') ? 'chroma' : 'estudio'
+}
+
 export function Layout({ children }: { children: React.ReactNode }) {
-  // O escuro é o padrão da identidade dos Núcleos; o claro fica de opção
-  // para quem projeta na sala de aula.
   const [tema, setTema] = useState<'escuro' | 'claro'>(
     () => (localStorage.getItem(CHAVE_TEMA) as 'escuro' | 'claro') ?? 'escuro',
   )
   const [menuAberto, setMenuAberto] = useState(false)
   const local = useLocation()
+  const ambiente = ambienteDaRota(local.pathname)
 
   useEffect(() => {
     document.documentElement.dataset.tema = tema
@@ -31,54 +39,58 @@ export function Layout({ children }: { children: React.ReactNode }) {
   }, [local.pathname])
 
   return (
-    <div className="app">
-      <header className="topo">
-        <div className="topo-interno">
-          <Link to="/" className="marca" aria-label="Núcleo WIT — início">
-            <LogoWit altura={34} semAssinatura />
-          </Link>
+    <>
+      <div className={`ambiente ${ambiente}`} aria-hidden="true" />
 
-          <button
-            type="button"
-            className="fantasma icone-so menu-hamburguer"
-            aria-label="Abrir menu"
-            aria-expanded={menuAberto}
-            onClick={() => setMenuAberto((a) => !a)}
-          >
-            {menuAberto ? '✕' : '☰'}
-          </button>
+      <div className={`app ${ambiente === 'chroma' ? 'sobre-chroma' : ''}`}>
+        <header className="topo">
+          <div className="topo-interno">
+            <Link to="/" className="marca" aria-label="Núcleo WIT — início">
+              <LogoWit altura={32} semAssinatura />
+            </Link>
 
-          <nav className={`nav ${menuAberto ? 'aberto' : ''}`}>
-            {PAGINAS.map((pagina) => (
-              <NavLink
-                key={pagina.para}
-                to={pagina.para}
-                className={({ isActive }) => (isActive ? 'ativo' : '')}
-              >
-                {pagina.rotulo}
-              </NavLink>
-            ))}
             <button
               type="button"
-              className="botao-tema"
-              onClick={() => setTema(tema === 'escuro' ? 'claro' : 'escuro')}
-              aria-label={tema === 'escuro' ? 'Usar tema claro' : 'Usar tema escuro'}
-              title={tema === 'escuro' ? 'Usar tema claro' : 'Usar tema escuro'}
+              className="fantasma icone-so menu-hamburguer"
+              aria-label="Abrir menu"
+              aria-expanded={menuAberto}
+              onClick={() => setMenuAberto((a) => !a)}
             >
-              {tema === 'escuro' ? '☀' : '☾'}
+              {menuAberto ? '✕' : '☰'}
             </button>
-          </nav>
-        </div>
-      </header>
 
-      {children}
+            <nav className={`nav ${menuAberto ? 'aberto' : ''}`}>
+              {PAGINAS.map((pagina) => (
+                <NavLink
+                  key={pagina.para}
+                  to={pagina.para}
+                  className={({ isActive }) => (isActive ? 'ativo' : '')}
+                >
+                  {pagina.rotulo}
+                </NavLink>
+              ))}
+              <button
+                type="button"
+                className="botao-tema"
+                onClick={() => setTema(tema === 'escuro' ? 'claro' : 'escuro')}
+                aria-label={tema === 'escuro' ? 'Usar tema claro' : 'Usar tema escuro'}
+                title={tema === 'escuro' ? 'Usar tema claro' : 'Usar tema escuro'}
+              >
+                {tema === 'escuro' ? '☀' : '☾'}
+              </button>
+            </nav>
+          </div>
+        </header>
 
-      <footer className="rodape">
-        <div className="rodape-interno">
-          <span>Projeto Integrador · Núcleo WIT · Secretaria de Educação de Barueri</span>
-          <Link to="/admin">Equipe WIT</Link>
-        </div>
-      </footer>
-    </div>
+        {children}
+
+        <footer className="rodape">
+          <div className="rodape-interno">
+            <span>Projeto Integrador · Núcleo WIT · Secretaria de Educação de Barueri</span>
+            <Link to="/admin">Equipe WIT</Link>
+          </div>
+        </footer>
+      </div>
+    </>
   )
 }

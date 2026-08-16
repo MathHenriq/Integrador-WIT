@@ -61,6 +61,7 @@ export type AulaDetalhe = {
   materia_nome: string | null
   materia_cor: string | null
   habilidades: HabilidadeResumo[]
+  fotos: string[]
   vezes_dada: number
 }
 
@@ -86,6 +87,7 @@ export type Realizada = {
   materia_cor: string | null
   aula_id: string | null
   do_catalogo: boolean
+  fotos: string[]
 }
 
 export type Comprovante = {
@@ -171,5 +173,6 @@ export type ReservaAdmin = {
   hora_fim: string
   aula_titulo: string | null
   relato: string | null
+  fotos: string[]
   ja_aconteceu: boolean
 }

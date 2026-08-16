@@ -5,7 +5,7 @@ import {
   adminListarHorarios,
   adminRemoverHorario,
 } from '../lib/api'
-import { DIAS_SEMANA, faixaHoraria } from '../lib/formato'
+import { DIAS_SEMANA, HORARIOS_PADRAO, faixaHoraria } from '../lib/formato'
 import type { HorarioAdmin } from '../lib/tipos'
 import { Aviso } from './Aviso'
 import { EtiquetaHorario } from './Etiqueta'
@@ -74,6 +74,50 @@ export function AdminHorarios({ adminToken, escolaId }: Props) {
       await carregar()
     } catch (falha) {
       setErro(falha instanceof Error ? falha.message : 'Não foi possível criar o horário.')
+    } finally {
+      setSalvando(false)
+    }
+  }
+
+  // A sala do Núcleo roda sempre nos mesmos quatro tempos, de segunda a
+  // sexta. Cadastrar os 20 na mão seria 20 formulários iguais.
+  async function criarGradePadrao() {
+    if (
+      !window.confirm(
+        'Criar a grade padrão desta escola?\n\nSegunda a sexta, nos quatro horários:\n' +
+          HORARIOS_PADRAO.map((h) => `  ${h.inicio} às ${h.fim}`).join('\n') +
+          '\n\nHorários que já existirem são mantidos como estão.',
+      )
+    ) {
+      return
+    }
+
+    setErro(null)
+    setSalvando(true)
+    let criados = 0
+    try {
+      for (let dia = 1; dia <= 5; dia++) {
+        for (const faixa of HORARIOS_PADRAO) {
+          try {
+            await adminCriarHorario(adminToken, escolaId, {
+              diaSemana: dia,
+              horaInicio: faixa.inicio,
+              horaFim: faixa.fim,
+              capacidade,
+              ocupacaoWit: 0,
+            })
+            criados++
+          } catch {
+            // Duplicado: já existe esse dia e hora. Segue para o próximo.
+          }
+        }
+      }
+      await carregar()
+      window.alert(
+        criados === 0
+          ? 'A grade já estava completa — nenhum horário novo foi criado.'
+          : `${criados} horário(s) criado(s).`,
+      )
     } finally {
       setSalvando(false)
     }
@@ -193,6 +237,9 @@ export function AdminHorarios({ adminToken, escolaId }: Props) {
           continua aberto para uma turma parceira.
         </p>
         <div className="acoes-formulario">
+          <button type="button" className="secundario" onClick={() => void criarGradePadrao()} disabled={salvando}>
+            Criar grade padrão (seg–sex)
+          </button>
           <button type="submit" disabled={salvando}>
             {salvando ? 'Adicionando…' : 'Adicionar horário'}
           </button>
