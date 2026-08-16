@@ -69,6 +69,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   {pagina.rotulo}
                 </NavLink>
               ))}
+              {/* A equipe entra por aqui. Fica à direita de tudo, separado
+                  das abas do professor, para ninguém confundir os dois. */}
+              <Link to="/admin" className="botao-painel">
+                Painel WIT
+              </Link>
+
               <button
                 type="button"
                 className="botao-tema"
@@ -87,7 +93,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <footer className="rodape">
           <div className="rodape-interno">
             <span>Projeto Integrador · Núcleo WIT · Secretaria de Educação de Barueri</span>
-            <Link to="/admin">Equipe WIT</Link>
           </div>
         </footer>
       </div>

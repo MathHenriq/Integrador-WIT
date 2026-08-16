@@ -1,9 +1,16 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Aviso } from '../componentes/Aviso'
+import { MotivoMateria, degradeMateria } from '../componentes/MotivoMateria'
 import { carregarContexto, listarRealizadas } from '../lib/api'
 import { MESES, paraData } from '../lib/formato'
 import type { Materia, Realizada } from '../lib/tipos'
+
+/** "14 de maio de 2026", sem passar a string ISO por `new Date`. */
+function porExtenso(iso: string) {
+  const data = paraData(iso)
+  return `${data.getDate()} de ${MESES[data.getMonth()]} de ${data.getFullYear()}`
+}
 
 export function Realizadas() {
   const [materias, setMaterias] = useState<Materia[]>([])
@@ -32,12 +39,29 @@ export function Realizadas() {
     itens.length === 0 || materiaId !== null ? true : itens.some((i) => i.materia_nome === m.nome),
   )
 
+  // Uma caixa por matéria, igual ao catálogo: o professor procura pela
+  // matéria que ele dá, não por data. A ordem dentro da caixa é a que veio
+  // do banco — da aula mais recente para a mais antiga.
+  const porMateria = useMemo(() => {
+    const mapa = new Map<string, { nome: string; cor: string | null; itens: Realizada[] }>()
+
+    for (const item of itens) {
+      const chave = item.materia_nome ?? 'Outras aulas'
+      const atual =
+        mapa.get(chave) ?? { nome: chave, cor: item.materia_cor, itens: [] }
+      atual.itens.push(item)
+      mapa.set(chave, atual)
+    }
+
+    return [...mapa.values()].sort((a, b) => b.itens.length - a.itens.length)
+  }, [itens])
+
   return (
     <main className="conteudo">
       <h1 className="titulo-pagina">Aulas já realizadas</h1>
       <p className="linha-fina">
-        O que professores de todas as escolas já fizeram no Núcleo. Serve de ideia para a próxima —
-        e mostra que dá certo.
+        O que professores de todas as escolas já fizeram no Núcleo, organizado por matéria. Serve de
+        ideia para a próxima — e mostra que dá certo.
       </p>
 
       {materiasComAula.length > 1 && (
@@ -87,64 +111,68 @@ export function Realizadas() {
             <p style={{ color: 'var(--texto-suave)', marginBottom: 16 }}>
               {itens.length === 1 ? '1 aula realizada' : `${itens.length} aulas realizadas`}
             </p>
-            <div className="linha-tempo">
-              {itens.map((item) => {
-                const data = paraData(item.data_aula)
-                return (
-                  <article key={item.id} className="item-realizada">
-                    <div className="data">
-                      <div className="dia">{data.getDate()}</div>
-                      <div className="mes">{MESES[data.getMonth()].slice(0, 3)}</div>
-                      <div className="ano">{data.getFullYear()}</div>
+
+            <div className="grade-materias">
+              {porMateria.map((materia) => (
+                <article key={materia.nome} className="cartao-materia">
+                  <div className="capa" style={{ background: degradeMateria(materia.cor) }}>
+                    <MotivoMateria nome={materia.nome} className="motivo" />
+                    <h3>{materia.nome}</h3>
+                    <div className="contagem">
+                      {materia.itens.length === 1
+                        ? '1 aula realizada'
+                        : `${materia.itens.length} aulas realizadas`}
                     </div>
+                  </div>
 
-                    <div>
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-                        {item.materia_nome && (
-                          <span className="etiqueta materia">{item.materia_nome}</span>
+                  <div className="corpo">
+                    {materia.itens.map((item) => (
+                      <article key={item.id} className="atividade feita">
+                        <span className="quando">{porExtenso(item.data_aula)}</span>
+                        <span className="nome">{item.titulo}</span>
+                        <span className="trabalha">
+                          {item.escola_nome} · {item.nome_professor}
+                          {item.turma ? ` · ${item.turma}` : ''}
+                        </span>
+
+                        {item.relato ? (
+                          <span className="relato">{item.relato}</span>
+                        ) : item.resumo ? (
+                          <span className="relato">{item.resumo}</span>
+                        ) : null}
+
+                        {item.fotos.length > 0 && (
+                          <span className="fotos">
+                            {item.fotos.map((url) => (
+                              <img
+                                key={url}
+                                src={url}
+                                alt={`Aula "${item.titulo}" na ${item.escola_nome}`}
+                                loading="lazy"
+                              />
+                            ))}
+                          </span>
                         )}
-                        {!item.do_catalogo && (
-                          <span className="etiqueta parcial">Aula do professor</span>
-                        )}
-                      </div>
 
-                      <h3 style={{ fontSize: 18 }}>{item.titulo}</h3>
+                        <span className="marcas">
+                          {!item.do_catalogo && (
+                            <span className="etiqueta parcial">Aula do professor</span>
+                          )}
+                          {item.aula_id && (
+                            <Link to={`/atividades/${item.aula_id}`} className="etiqueta codigo">
+                              quero fazer esta →
+                            </Link>
+                          )}
+                        </span>
+                      </article>
+                    ))}
+                  </div>
 
-                      <p style={{ color: 'var(--texto-suave)', fontSize: 15, marginTop: 4 }}>
-                        {item.escola_nome} · {item.nome_professor}
-                        {item.turma ? ` · ${item.turma}` : ''}
-                      </p>
-
-                      {item.relato ? (
-                        <p style={{ marginTop: 10 }}>{item.relato}</p>
-                      ) : item.resumo ? (
-                        <p style={{ marginTop: 10, color: 'var(--texto-suave)' }}>{item.resumo}</p>
-                      ) : null}
-
-                      {item.fotos.length > 0 && (
-                        <div className="fotos">
-                          {item.fotos.map((url) => (
-                            <img
-                              key={url}
-                              src={url}
-                              alt={`Aula "${item.titulo}" na ${item.escola_nome}`}
-                              loading="lazy"
-                            />
-                          ))}
-                        </div>
-                      )}
-
-                      {item.aula_id && (
-                        <div style={{ marginTop: 12 }}>
-                          <Link to={`/atividades/${item.aula_id}`}>
-                            quero fazer esta atividade →
-                          </Link>
-                        </div>
-                      )}
-                    </div>
-                  </article>
-                )
-              })}
+                  <div className="rodape">
+                    Toda aula daqui saiu de um professor que trouxe o conteúdo dele.
+                  </div>
+                </article>
+              ))}
             </div>
           </>
         )}

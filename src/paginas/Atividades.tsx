@@ -1,19 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Aviso } from '../componentes/Aviso'
-import { MotivoMateria } from '../componentes/MotivoMateria'
+import { MotivoMateria, degradeMateria } from '../componentes/MotivoMateria'
 import { listarAulas, obterAula } from '../lib/api'
 import type { AulaCatalogo, AulaDetalhe } from '../lib/tipos'
-
-/** Escurece a cor da matéria para o degradê da capa do cartão. */
-function maisEscura(hex: string, fator = 0.55) {
-  const limpo = hex.replace('#', '')
-  const n = parseInt(limpo.length === 3 ? limpo.replace(/./g, '$&$&') : limpo, 16)
-  const r = Math.round(((n >> 16) & 255) * fator)
-  const g = Math.round(((n >> 8) & 255) * fator)
-  const b = Math.round((n & 255) * fator)
-  return `rgb(${r}, ${g}, ${b})`
-}
 
 export function Atividades() {
   const [aulas, setAulas] = useState<AulaCatalogo[]>([])
@@ -57,8 +47,9 @@ export function Atividades() {
     <main className="conteudo">
       <h1 className="titulo-pagina">Atividades</h1>
       <p className="linha-fina">
-        Aulas que a equipe WIT já tem prontas, organizadas por matéria. Você escolhe uma, marca o
-        horário e <strong>damos a aula junto com você</strong> — sem preparar nada do zero.
+        Aulas que a equipe WIT já tem prontas, organizadas por matéria. Elas servem de{' '}
+        <strong>base e exemplo</strong>: você traz o conteúdo que já vai trabalhar, escolhe um ponto
+        de partida daqui e <strong>montamos a aula junto com você</strong>.
       </p>
 
       {erro && (
@@ -78,12 +69,7 @@ export function Atividades() {
           <div className="grade-materias">
             {porMateria.map((materia) => (
               <article key={materia.nome} className="cartao-materia">
-                <div
-                  className="capa"
-                  style={{
-                    background: `linear-gradient(120deg, ${materia.cor}, ${maisEscura(materia.cor)})`,
-                  }}
-                >
+                <div className="capa" style={{ background: degradeMateria(materia.cor) }}>
                   <MotivoMateria nome={materia.nome} className="motivo" />
                   <h3>{materia.nome}</h3>
                   <div className="contagem">
@@ -166,14 +152,7 @@ export function AtividadeDetalhe() {
         ← Voltar
       </button>
 
-      <header
-        className="capa-atividade"
-        style={{
-          background: `linear-gradient(120deg, ${aula.materia_cor ?? '#00a651'}, ${maisEscura(
-            aula.materia_cor ?? '#00a651',
-          )})`,
-        }}
-      >
+      <header className="capa-atividade" style={{ background: degradeMateria(aula.materia_cor) }}>
         <MotivoMateria nome={aula.materia_nome} className="motivo" />
         <div className="capa-texto">
           {aula.materia_nome && <span className="materia">{aula.materia_nome}</span>}

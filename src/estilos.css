@@ -160,29 +160,60 @@ a:hover { text-decoration: underline; }
 /* --- Chroma key ---------------------------------------------------- */
 
 .ambiente.chroma {
-  /* Ciclorama de verdade: verde de chroma cheio, com o pool de luz dos
-     softboxes batendo alto na parede e caindo de intensidade até o piso.
-     O degradê é largo de propósito — chroma chapado parece fundo de
-     formulário, não estúdio. */
+  /* Ciclorama de verdade. O que faz o verde parecer estúdio e não fundo
+     de formulário são três coisas, nesta ordem de importância: o vinco
+     escuro onde a parede vira piso (a "cove"), o brilho logo abaixo dele
+     — luz batendo no chão — e o pool de luz alto na parede. Um degradê
+     liso, por mais bonito, continua lendo como cor chapada. */
   background:
-    radial-gradient(75rem 48rem at 50% 12%, rgba(190, 255, 215, 0.4), transparent 66%),
-    radial-gradient(40rem 30rem at 12% 30%, rgba(120, 240, 175, 0.16), transparent 70%),
-    radial-gradient(40rem 30rem at 88% 30%, rgba(120, 240, 175, 0.16), transparent 70%),
-    linear-gradient(180deg, #1aa35c 0%, #14824a 34%, #0f6539 62%, #0a4527 86%, #062e1a 100%);
+    radial-gradient(56rem 32rem at 50% 6%, rgba(200, 255, 222, 0.4), transparent 64%),
+    radial-gradient(32rem 24rem at 12% 24%, rgba(120, 240, 175, 0.13), transparent 70%),
+    radial-gradient(32rem 24rem at 88% 24%, rgba(120, 240, 175, 0.13), transparent 70%),
+    linear-gradient(
+      180deg,
+      #1fa862 0%,
+      #1a9455 28%,
+      #147c46 56%,
+      #0b5330 72%,
+      #106b3e 82%,
+      #094a2a 100%
+    );
 }
 
-/* A curva do ciclorama: a sombra que fecha embaixo é o que dá a sensação
-   de parede virando piso, sem quina. */
+/* A curva: vinco fundo a 72% da tela e o reflexo do piso logo abaixo. */
 .ambiente.chroma::before {
   background:
-    radial-gradient(90rem 26rem at 50% 104%, rgba(0, 40, 20, 0.72), transparent 70%),
-    linear-gradient(90deg, rgba(0, 30, 15, 0.42), transparent 20%, transparent 80%, rgba(0, 30, 15, 0.42));
+    radial-gradient(120rem 12rem at 50% 72%, rgba(0, 34, 17, 0.55), transparent 72%),
+    radial-gradient(70rem 18rem at 50% 92%, rgba(190, 255, 215, 0.1), transparent 70%);
+}
+
+/* Vinheta: fecha os cantos como um softbox fecha o enquadramento. */
+.ambiente.chroma::after {
+  background: radial-gradient(ellipse 78% 68% at 50% 42%, transparent 42%, rgba(0, 32, 16, 0.5) 100%);
 }
 
 :root[data-tema='claro'] .ambiente.chroma {
   background:
-    radial-gradient(52rem 34rem at 50% 22%, rgba(210, 255, 225, 0.75), transparent 64%),
-    linear-gradient(180deg, #29a05e 0%, #1f8b4f 48%, #167041 100%);
+    radial-gradient(52rem 30rem at 50% 8%, rgba(214, 255, 228, 0.8), transparent 64%),
+    linear-gradient(
+      180deg,
+      #2eab66 0%,
+      #24975a 30%,
+      #1c8550 58%,
+      #146b40 72%,
+      #1d8250 82%,
+      #146540 100%
+    );
+}
+
+:root[data-tema='claro'] .ambiente.chroma::before {
+  background:
+    radial-gradient(120rem 12rem at 50% 72%, rgba(0, 40, 20, 0.3), transparent 72%),
+    radial-gradient(70rem 18rem at 50% 92%, rgba(235, 255, 242, 0.22), transparent 70%);
+}
+
+:root[data-tema='claro'] .ambiente.chroma::after {
+  background: radial-gradient(ellipse 80% 70% at 50% 42%, transparent 48%, rgba(0, 40, 20, 0.24) 100%);
 }
 
 /* Conteúdo sobre a ambientação */
@@ -286,6 +317,29 @@ a:hover { text-decoration: underline; }
   background: var(--verde);
 }
 
+/* Entrada da equipe. Fica na ponta direita, com contorno em vez de fundo
+   cheio, para não competir com a aba ativa do professor. */
+.botao-painel {
+  font-family: var(--fonte-titulo);
+  font-weight: 600;
+  font-size: 14.5px;
+  color: var(--texto-suave);
+  border: 1px solid var(--borda-solida);
+  border-radius: var(--raio-p);
+  padding: 8px 14px;
+  margin-left: 12px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.botao-painel:hover {
+  color: var(--texto);
+  border-color: var(--verde);
+  background: var(--superficie-alta);
+  text-decoration: none;
+}
+
 .botao-tema {
   background: transparent;
   border: 1px solid var(--borda-solida);
@@ -320,6 +374,7 @@ a:hover { text-decoration: underline; }
   }
   .nav.aberto { display: flex; }
   .nav a { padding: 13px 16px; }
+  .botao-painel { margin: 6px 0 0; text-align: center; }
   .botao-tema { margin: 6px 0 0; width: 100%; }
 }
 
@@ -713,7 +768,8 @@ legend { font-family: var(--fonte-titulo); font-size: 14.5px; font-weight: 600; 
   transition: background 0.14s, border-color 0.14s;
 }
 
-.atividade:hover {
+/* Só o item clicável reage ao mouse. A aula já realizada é leitura. */
+a.atividade:hover {
   background: var(--superficie-alta);
   border-color: var(--borda-solida);
   text-decoration: none;
@@ -738,6 +794,32 @@ legend { font-family: var(--fonte-titulo); font-size: 14.5px; font-weight: 600; 
   flex-wrap: wrap;
   gap: 5px;
   margin-top: 8px;
+}
+
+/* Aula já realizada dentro do cartão da matéria. Mesma caixa da atividade
+   do catálogo, com a data por cima do título e o relato logo abaixo. */
+.atividade.feita + .atividade.feita {
+  border-top: 1px solid var(--borda-solida);
+  border-radius: 0;
+  margin-top: 4px;
+  padding-top: 14px;
+}
+
+.atividade .quando {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--texto-fraco);
+  margin-bottom: 3px;
+}
+
+.atividade .relato {
+  display: block;
+  margin-top: 8px;
+  font-size: 15px;
+  color: var(--texto-suave);
 }
 
 .cartao-materia .rodape {

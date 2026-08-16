@@ -24,13 +24,37 @@ function chave(nome: string | null): string {
   if (limpo.includes('arte')) return 'arte'
   if (limpo.includes('fisica') || limpo.includes('educacao fisica')) return 'edfisica'
   if (limpo.includes('ingles')) return 'ingles'
-  if (limpo.includes('integrador')) return 'integrador'
+  // "Projetos WIT" é a caixa das atividades próprias do Núcleo. O nome
+  // antigo ("Projeto Integrador") continua reconhecido porque o banco de
+  // alguma escola pode não ter rodado a migration que renomeia.
+  if (limpo.includes('projetos wit') || limpo.includes('integrador')) return 'wit'
   return 'padrao'
 }
 
 const T = 'rgba(255,255,255,0.92)'
 const M = 'rgba(255,255,255,0.55)'
 const F = 'rgba(255,255,255,0.28)'
+
+/** Escurece a cor da matéria para o outro extremo do degradê da capa. */
+function maisEscura(hex: string, fator = 0.55) {
+  const limpo = hex.replace('#', '')
+  const n = parseInt(limpo.length === 3 ? limpo.replace(/./g, '$&$&') : limpo, 16)
+  if (Number.isNaN(n)) return hex
+  const r = Math.round(((n >> 16) & 255) * fator)
+  const g = Math.round(((n >> 8) & 255) * fator)
+  const b = Math.round((n & 255) * fator)
+  return `rgb(${r}, ${g}, ${b})`
+}
+
+/**
+ * Fundo da capa de uma matéria. Vive aqui junto do desenho porque os dois
+ * formam a mesma identidade visual — e porque o catálogo e as aulas já
+ * realizadas precisam pintar a capa exatamente igual.
+ */
+export function degradeMateria(cor: string | null) {
+  const base = cor ?? '#00a651'
+  return `linear-gradient(120deg, ${base}, ${maisEscura(base)})`
+}
 
 export function MotivoMateria({ nome, className }: Props) {
   const comum = {
@@ -160,14 +184,39 @@ export function MotivoMateria({ nome, className }: Props) {
         </svg>
       )
 
-    // Engrenagem com faísca (o Projeto Integrador em si)
-    case 'integrador':
+    // O que existe na sala do Núcleo: óculos VR (o herói), câmera,
+    // controle de games, a Alexa e a IA.
+    case 'wit':
       return (
+        // A capa recorta a faixa de cima e a de baixo do desenho (o SVG
+        // sobe a 128% da altura dela), então tudo aqui vive entre y=18 e
+        // y=104. Passar disso decepa o traço.
         <svg {...comum}>
-          <circle cx="56" cy="60" r="16" stroke={T} strokeWidth="3" />
-          <path d="M56 28v-12M56 104v-12M24 60H12M100 60H88M33 37l-9-9M88 92l-9-9M79 37l9-9M24 92l9-9"
-                stroke={M} strokeWidth="3" strokeLinecap="round" />
-          <path d="M96 14l4 10 10 4-10 4-4 10-4-10-10-4 10-4 4-10Z" fill={T} />
+          {/* Câmera */}
+          <path d="M8 26h6l2.5-4h9l2.5 4h6a4 4 0 0 1 4 4v11a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V30a4 4 0 0 1 4-4Z"
+                stroke={M} strokeWidth="2.5" strokeLinejoin="round" />
+          <circle cx="23" cy="35.5" r="5.5" stroke={M} strokeWidth="2.5" />
+
+          {/* IA */}
+          <text x="72" y="44" fontFamily="Outfit, sans-serif" fontSize="30" fontWeight="700" fill={T}>
+            IA
+          </text>
+
+          {/* Óculos VR — o herói do desenho */}
+          <path d="M10 54h72a8 8 0 0 1 8 8v12a8 8 0 0 1-8 8H62l-4-5a4 4 0 0 0-6 0l-4 5H10a8 8 0 0 1-8-8V62a8 8 0 0 1 8-8Z"
+                stroke={T} strokeWidth="3" strokeLinejoin="round" />
+          <rect x="12" y="60" width="24" height="13" rx="6.5" fill={M} />
+          <rect x="56" y="60" width="24" height="13" rx="6.5" fill={M} />
+
+          {/* Controle de games */}
+          <path d="M22 88h20a11 11 0 0 1 10 6l2 6a5 5 0 0 1-8 4l-4-4H24l-4 4a5 5 0 0 1-8-4l2-6a11 11 0 0 1 10-6Z"
+                stroke={M} strokeWidth="2.5" strokeLinejoin="round" />
+          <path d="M20 96h7M23.5 92.5v7" stroke={M} strokeWidth="2.2" strokeLinecap="round" />
+          <circle cx="45" cy="95" r="2.4" fill={M} />
+
+          {/* Alexa */}
+          <ellipse cx="90" cy="86" rx="12" ry="4" stroke={F} strokeWidth="2.5" />
+          <path d="M78 86v13c0 2.2 5.4 4 12 4s12-1.8 12-4V86" stroke={F} strokeWidth="2.5" />
         </svg>
       )
 
