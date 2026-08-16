@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { CenaEstudio } from '../componentes/CenaEstudio'
 import { LogoWit } from '../componentes/LogoWit'
 import { carregarContexto, listarAulas, listarRealizadas, vagasDaSemana } from '../lib/api'
 import type { AulaCatalogo, Realizada } from '../lib/tipos'
@@ -66,16 +65,15 @@ export function Inicio() {
           </h1>
 
           <p className="linha-fina">
-            O Núcleo WIT tem uma sala de tecnologia dentro da sua escola — com estúdio, chroma key,
-            computadores e equipamento de gravação. Quando um horário dela fica livre,{' '}
-            <strong>ele pode ser da sua turma</strong>.
+            A sala do Núcleo WIT está aberta para receber você e a sua turma. A ideia é{' '}
+            <strong>unir o conteúdo da sua matéria ao conhecimento técnico da nossa equipe</strong> —
+            no período regular de aula, com você conduzindo junto com o profissional WIT.
           </p>
 
           <p className="linha-fina" style={{ marginTop: 14 }}>
-            Você não precisa preparar nada do zero nem aprender a mexer nos equipamentos. Escolhe um
-            conteúdo que já ia dar mesmo — frações, gêneros textuais, o que for — e{' '}
-            <strong>a gente dá essa aula junto com você</strong>, usando tecnologia. Ou traz a sua
-            própria proposta, e nós montamos a estrutura.
+            Você traz o conteúdo que já vai trabalhar; nós entramos com a tecnologia que torna ele
+            palpável. O professor de Ciências vai dar astros e planetas? A turma percorre o sistema
+            solar nos óculos VR e fecha com uma pesquisa sobre o que viu.
           </p>
 
           {vagas !== null && vagas.total > 0 && (
@@ -108,11 +106,11 @@ export function Inicio() {
         </div>
 
         <div className="abertura-cena">
-          <CenaEstudio />
-          <p className="legenda-cena">
-            A sala: ciclorama de chroma key, dois softboxes, ring light e câmera — tudo já montado,
-            esperando a sua turma.
-          </p>
+          <img
+            src="/WIT HOME.jpg"
+            alt="Sala do Núcleo WIT montada, com estúdio e equipamentos"
+            loading="eager"
+          />
         </div>
       </section>
 

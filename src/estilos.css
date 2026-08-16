@@ -160,17 +160,23 @@ a:hover { text-decoration: underline; }
 /* --- Chroma key ---------------------------------------------------- */
 
 .ambiente.chroma {
-  /* Fundo infinito: sem quina visível entre parede e piso, com o pool de
-     luz dos softboxes batendo no centro. */
+  /* Ciclorama de verdade: verde de chroma cheio, com o pool de luz dos
+     softboxes batendo alto na parede e caindo de intensidade até o piso.
+     O degradê é largo de propósito — chroma chapado parece fundo de
+     formulário, não estúdio. */
   background:
-    radial-gradient(52rem 34rem at 50% 22%, rgba(150, 255, 190, 0.22), transparent 64%),
-    linear-gradient(180deg, #12633a 0%, #114a2c 46%, #0b3520 78%, #072616 100%);
+    radial-gradient(75rem 48rem at 50% 12%, rgba(190, 255, 215, 0.4), transparent 66%),
+    radial-gradient(40rem 30rem at 12% 30%, rgba(120, 240, 175, 0.16), transparent 70%),
+    radial-gradient(40rem 30rem at 88% 30%, rgba(120, 240, 175, 0.16), transparent 70%),
+    linear-gradient(180deg, #1aa35c 0%, #14824a 34%, #0f6539 62%, #0a4527 86%, #062e1a 100%);
 }
 
+/* A curva do ciclorama: a sombra que fecha embaixo é o que dá a sensação
+   de parede virando piso, sem quina. */
 .ambiente.chroma::before {
   background:
-    radial-gradient(70rem 30rem at 50% 100%, rgba(0, 0, 0, 0.42), transparent 72%),
-    linear-gradient(90deg, rgba(0, 0, 0, 0.3), transparent 22%, transparent 78%, rgba(0, 0, 0, 0.3));
+    radial-gradient(90rem 26rem at 50% 104%, rgba(0, 40, 20, 0.72), transparent 70%),
+    linear-gradient(90deg, rgba(0, 30, 15, 0.42), transparent 20%, transparent 80%, rgba(0, 30, 15, 0.42));
 }
 
 :root[data-tema='claro'] .ambiente.chroma {
@@ -1097,19 +1103,13 @@ tr.passado td { opacity: 0.6; }
   margin-top: 26px;
 }
 
-.abertura-cena svg {
+.abertura-cena img {
   width: 100%;
   height: auto;
   border-radius: var(--raio);
   box-shadow: var(--sombra-alta);
   display: block;
-}
-
-.legenda-cena {
-  margin-top: 12px;
-  color: var(--texto-fraco);
-  font-size: 14px;
-  line-height: 1.5;
+  border: 1px solid var(--borda-solida);
 }
 
 /* Aviso de vagas: fato, não enfeite — o número vem da agenda real. */
@@ -1118,15 +1118,15 @@ tr.passado td { opacity: 0.6; }
   flex-direction: column;
   gap: 2px;
   margin-top: 24px;
-  padding: 14px 16px;
-  border-left: 3px solid var(--verde);
+  padding: 14px 18px;
   background: var(--superficie);
-  border-radius: 0 var(--raio-p) var(--raio-p) 0;
+  border: 1px solid var(--borda-solida);
+  border-radius: var(--raio-p);
 }
 
 .chamada-vagas strong { font-family: var(--fonte-titulo); font-size: 17px; }
 .chamada-vagas span { color: var(--texto-suave); font-size: 14.5px; }
-.chamada-vagas.apertado { border-left-color: var(--urgente); }
+.chamada-vagas.apertado { border-color: var(--urgente); }
 .chamada-vagas.apertado strong { color: var(--urgente); }
 
 /* ------------------------------------------------------------------ */
@@ -1152,7 +1152,7 @@ tr.passado td { opacity: 0.6; }
   text-decoration: none;
 }
 
-.cartao-acao.principal { border-left: 3px solid var(--verde); }
+.cartao-acao.principal { border-color: var(--verde); }
 .cartao-acao h3 { font-size: 19px; }
 .cartao-acao p { color: var(--texto-suave); font-size: 15px; }
 
