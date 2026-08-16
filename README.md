@@ -176,9 +176,10 @@ Tema escuro por padrão (o mesmo clima do material dos Núcleos), com os verdes 
 lima `#A6CE39`, vivo `#39B54A`, `#00A651` e `#007236` — num gradiente reaproveitado em
 botões, destaques e números. Tema claro no botão do topo, guardado no navegador.
 
-A marca está em `src/componentes/LogoWit.tsx`, desenhada em SVG (quadradinhos em degradê +
-wordmark). Se você tiver o arquivo oficial, coloque em `public/` e troque o componente por
-uma `<img>` — nada mais muda.
+A marca está em `src/componentes/LogoWit.tsx`. Para usar o arquivo oficial, basta soltar
+**`public/logo-wit.png`** no repositório: o componente detecta o arquivo e passa a exibi-lo
+em toda a aplicação. Sem ele, entra um desenho em SVG equivalente. Nenhum código muda nos
+dois casos.
 
 ## Fora do escopo (Fase 2)
 
