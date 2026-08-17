@@ -1,13 +1,21 @@
+import { Suspense, lazy } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { Layout } from './componentes/Layout'
 import { LogoWit } from './componentes/LogoWit'
-import { Admin } from './paginas/Admin'
 import { Agendar } from './paginas/Agendar'
 import { AtividadeDetalhe, Atividades } from './paginas/Atividades'
 import { Inicio } from './paginas/Inicio'
 import { MinhaReserva } from './paginas/MinhaReserva'
 import { Realizadas } from './paginas/Realizadas'
 import { configuracaoAusente } from './lib/supabase'
+
+/**
+ * O painel é só para a equipe do WIT, e é a maior página do site: o
+ * editor de aula, a grade de horários e o importador do Canva juntos. O
+ * professor que entra para agendar uma aula não tem por que baixar nada
+ * disso.
+ */
+const Admin = lazy(() => import('./paginas/Admin').then((m) => ({ default: m.Admin })))
 
 export function App() {
   if (configuracaoAusente) return <ConfiguracaoPendente />
@@ -22,7 +30,14 @@ export function App() {
           <Route path="/atividades/:id" element={<AtividadeDetalhe />} />
           <Route path="/realizadas" element={<Realizadas />} />
           <Route path="/reserva" element={<MinhaReserva />} />
-          <Route path="/admin" element={<Admin />} />
+          <Route
+            path="/admin"
+            element={
+              <Suspense fallback={<p className="carregando">Carregando o painel…</p>}>
+                <Admin />
+              </Suspense>
+            }
+          />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Layout>

@@ -156,6 +156,45 @@ export type AulaAdmin = {
   vezes_dada: number
 }
 
+/** O que a Edge Function conseguiu ler do documento do Canva. */
+export type CamposCanva = {
+  tema: string | null
+  curso: string | null
+  turma: string | null
+  data: DataIso | null
+  /** O texto cru da data, para mostrar quando não deu para entender. */
+  data_lida: string | null
+  professor: string | null
+  escola: string | null
+  objetivos: string | null
+  descricao: string | null
+  materiais: string | null
+}
+
+export type ImportacaoCanva = {
+  importacao_id: string | null
+  campos: CamposCanva
+  relato: string
+  fotos: string[]
+  avisos: string[]
+  paginas: number
+  /** Vezes que este mesmo arquivo já virou aula publicada. */
+  anteriores: { criado_em: string; status: string; protocolo: string | null; data_aula: DataIso | null }[]
+}
+
+export type AulaImportada = {
+  reserva_id: string
+  protocolo: string
+  /** Entrou numa reserva que já existia, em vez de criar uma nova. */
+  anexada: boolean
+  data_aula: DataIso
+  hora_inicio: string
+  hora_fim: string
+  escola_nome: string
+  titulo: string
+  fotos: string[]
+}
+
 export type ReservaAdmin = {
   id: string
   protocolo: string

@@ -3,17 +3,14 @@
 > Leia o `CLAUDE.md` primeiro: ele tem a definição do produto, as regras de interface, a lista
 > de escolas e os horários. **Este arquivo é o estado da obra**; o `CLAUDE.md` é permanente.
 
-Estado em `128b179`. Site no ar pelo Vercel, banco no Supabase (projeto `Integrador-WIT`,
-ref `mdwqwwdohwixxotyeiua`).
+Site no ar pelo Vercel, banco no Supabase (projeto `Integrador-WIT`, ref `mdwqwwdohwixxotyeiua`).
 
 ---
 
 ## 1. Primeira coisa a fazer: conferir o banco
 
-A `0005` **já rodou** — as próprias telas do usuário provam: a home mostrou "340 de 340" horários
-(17 escolas × 4 tempos × 5 dias) e a lista de matérias trouxe "Projetos WIT", que é o nome novo.
-
-Falta confirmar a `0004` (coluna `fotos`) e rodar a `0006` e a `0007`:
+**Da `0001` à `0008`, tudo já foi aplicado e conferido.** A consulta abaixo tem que voltar todos
+os números do nome da coluna:
 
 ```sql
 select
@@ -24,11 +21,21 @@ select
       and column_name='fotos')                                       as coluna_fotos_esperado_1,
   (select count(*) from public.materias where cor = '#2563eb')       as cores_esperado_1,
   (select count(*) from pg_proc
-    where proname = 'admin_importar_habilidades')                    as importador_esperado_1;
+    where proname = 'admin_importar_habilidades')                    as importador_esperado_1,
+  (select count(*) from pg_proc
+    where proname = 'admin_importar_aula_realizada')                 as importador_canva_esperado_1,
+  (select count(*) from storage.buckets
+    where id = 'fotos-aulas' and public)                             as balde_esperado_1;
 ```
 
 Se `coluna_fotos` vier 0, **as páginas de atividade e de aulas realizadas quebram assim que
 existir uma aula realizada** — o front já lê esse campo. Rode `0004_fotos_das_aulas.sql`.
+
+### Edge Functions
+
+`importar-canva` **está deployada e testada em produção**. A `enviar-confirmacao` existe no
+repositório mas **nunca subiu** — a confirmação por e-mail continua desligada, o que não quebra
+nada (o protocolo na tela é a confirmação que vale).
 
 ### Ordem de execução das migrations
 
@@ -66,34 +73,63 @@ Falta também **agrupar por tema** na listagem, que foi o pedido original ("em l
 pelos seus temas"). Hoje a lista é corrida, e a tabela `habilidades` não tem coluna de unidade
 temática — vai precisar de uma.
 
-### 2.2 Importador do documento do Canva
-A funcionalidade mais pedida, ainda não começada. O PDF exportado do Canva vira um "projeto já
-realizado" automaticamente.
+O agrupamento **depende do arquivo oficial** e por isso não foi feito: a unidade temática não sai
+do código da habilidade (`EF06MA01` diz 6º ano e Matemática, mas não diz "Números"), então ela tem
+que vir da mesma planilha que traz as descrições. Escrever a lista de unidades de memória cairia
+no mesmo problema das descrições. Quando o arquivo chegar: uma migration acrescenta
+`habilidades.unidade_tematica`, o `admin_importar_habilidades` passa a receber a terceira coluna e
+a aba BNCC agrupa por ela.
 
-**Estrutura já decifrada** (exemplo analisado: `Projeto_Integrador_1405.pdf`, 4 páginas):
+### 2.2 Importador do documento do Canva — **pronto**
+Sobe o PDF na aba "Importar do Canva" do painel e vira aula realizada. As peças:
 
-- Campos rotulados no texto: `TEMA DA AULA`, `Curso`, `Turma`, `Data`, `Prof.`, `Escola`,
-  `OBJETIVOS DE APRENDIZAGEM`, `DESCRIÇÃO DA AULA`, `MATERIAIS E RECURSOS NECESSÁRIOS`, `FOTOS`.
-- No exemplo: Prof. Dante, EMEF Rita de Jesus, curso Inteligência Artificial, turma Inclusão,
-  14/05/2026.
-- **Separar foto de template**: as imagens que se repetem em *todas* as páginas são o
-  cabeçalho/rodapé do Canva (no exemplo, 321×231 e 657×489). As fotos reais aparecem uma vez só
-  (640×480, 800×600). No exemplo dá 8 fotos reais.
+| onde | o quê |
+| --- | --- |
+| `supabase/functions/importar-canva/pdf.ts` | leitor de PDF escrito à mão, sem dependência |
+| `.../texto.ts` | texto das páginas, traduzindo o `/ToUnicode` de cada fonte |
+| `.../imagens.ts` | fotos: JPEG sai direto, Flate vira PNG |
+| `.../extrair.ts` | os campos rotulados e a data |
+| `.../index.ts` | HTTP: confere a senha, sobe as fotos, registra |
+| `0008_importar_do_canva.sql` | balde, tabela `importacoes_canva` e as RPCs |
+| `src/componentes/ImportarCanva.tsx` | a tela de conferência |
 
-**Onde rodar:** precisa ser no servidor (Edge Function). Extrair no navegador esbarraria no mesmo
-problema do upload — ver 3.1.
+**Sem biblioteca de PDF de propósito.** O pdf.js resolveria o texto mas não entrega as imagens sem
+canvas, e custa ~1 MB de arranque frio. O leitor usa só APIs da plataforma, então **roda igual no
+Node** — é o que permite testar sem deployar.
+
+**Separar foto de template**, a parte que importa: num PDF a mesma imagem é *um* objeto
+referenciado por várias páginas. Conta-se em quantas páginas cada objeto aparece; apareceu em
+todas, é cabeçalho/rodapé e vai fora. Nada de comparar bytes ou chutar tamanho. Há ainda um piso
+de 120 px de lado, que pega ícone solto.
+
+**O horário não é perguntado.** Aula que já aconteceu está no site para inspirar outro professor,
+não para ocupar agenda. A RPC resolve: se já existe reserva confirmada naquela escola naquela data
+com o nome do professor batendo, o relato e as fotos entram *nela*; senão, cria no primeiro tempo
+livre do dia.
+
+**Nada derruba a importação.** PDF fora do padrão vira formulário meio preenchido com aviso — e as
+fotos são extraídas assim mesmo, que é o trabalho maior. Recusa mesmo, só: arquivo que não é PDF,
+PDF com senha, acima de 10 MB e data no futuro.
+
+**Como testar sem o arquivo do usuário.** `ferramentas/gerar-pdf-de-teste.mjs` monta um PDF que
+imita o do Canva: fontes recortadas com `/ToUnicode` (1 e 2 bytes), páginas escondidas num
+`/ObjStm`, cabeçalho e rodapé nas 4 páginas, fotos em JPEG e em Flate, e um ícone pequeno. É o
+caso difícil de propósito.
 
 ---
 
 ## 3. Decisões tomadas que não devem ser revertidas sem conversa
 
-### 3.1 Fotos entram como URL, não como upload
-O painel não tem login de verdade: é uma senha conferida por RPC. Aceitar upload direto pelo
-navegador exigiria abrir o Storage para o papel `anon`, e aí qualquer pessoa sobe arquivo.
-Guardar o endereço de uma imagem já hospedada evita o buraco.
+### 3.1 Quem escreve no Storage é a Edge Function, nunca o navegador
+No relato manual as fotos continuam entrando como **URL de imagem já hospedada**: o painel não tem
+login de verdade, e dar escrita ao papel `anon` deixaria qualquer um subir arquivo.
 
-**Se o usuário quiser upload de verdade**, o caminho é uma Edge Function que valida a senha e sobe
-com service role. Foi oferecido e ainda não foi pedido.
+O importador do Canva é a exceção construída para isso — o balde `fotos-aulas` é **público na
+leitura** (a vitrine precisa abrir a foto) e **não tem policy nenhuma de escrita**, então só a
+service role da Edge Function grava. Conferido: com o `anon key`, subir arquivo no balde dá
+`new row violates row-level security policy`.
+
+Se um dia aparecer upload em outra tela, é por esse caminho — nunca abrindo o balde.
 
 ### 3.2 O site é público
 Não existem mais links por escola. Qualquer um agenda; cancelar exige o protocolo recebido no
@@ -128,15 +164,22 @@ de cada ícone e custava ~45 kB gzip para usar um.
 
 ## 5. Dívida técnica conhecida
 
-- **`npm run build` sem `.env` não compila o site.** Sem as variáveis, `configuracaoAusente` vira
-  constante, o Vite elimina o router inteiro como código morto e o bundle fica congelado em
-  365 kB — build "verde" que não testou nada. Para valer, rode
-  `VITE_SUPABASE_URL=… VITE_SUPABASE_ANON_KEY=… npm run build`. Vale fazer o script falhar alto
-  quando as variáveis faltam.
-- **Bundle de 479 kB (139 kB gzip)**, acima do aviso do Vite. O `/admin` é só para a equipe e
-  poderia ser `React.lazy`.
+- ~~`npm run build` sem `.env` compilava em silêncio~~ — **resolvido**. O `vite.config.ts` agora
+  quebra o build, com o nome do que falta, quando `VITE_SUPABASE_URL` ou `VITE_SUPABASE_ANON_KEY`
+  não está definida. No `dev` continua subindo, porque ali a tela de "configuração pendente" é o
+  aviso útil para quem acabou de clonar. Para compilar:
+  `VITE_SUPABASE_URL=… VITE_SUPABASE_ANON_KEY=… npm run build`.
+- ~~Bundle acima do aviso do Vite~~ — **resolvido**. O `/admin` é `React.lazy`: o site público caiu
+  para 454 kB (133 kB gzip) e o painel virou um pedaço à parte de 36 kB, baixado só por quem entra
+  nele.
 - **`npm audit`**: esbuild/vite com aviso moderado. A correção exige Vite 8, que é breaking.
-- **Não há suíte de testes.** O arranjo da seção 6 vive em diretório temporário e se perde.
+- **Não há suíte de testes de ponta a ponta.** O arranjo da seção 6 continua vivendo em diretório
+  temporário. O que ficou no repositório é a conferência do extrator do Canva
+  (`ferramentas/conferir-extrator.mts`), que roda em Node sem banco e sem deploy — é o começo do
+  que faltava.
+- **Sobraram 4 fotos de teste no balde `fotos-aulas`**, na pasta `add0e69c70723d50/`, de um teste
+  feito contra a produção. Não estão ligadas a aula nenhuma. O Storage não deixa apagar por SQL;
+  dá para removê-las pelo painel do Supabase (Storage → `fotos-aulas`).
 
 ---
 
@@ -157,4 +200,22 @@ de cada ícone e custava ~45 kB gzip para usar um.
 
 Vários bugs desta obra só apareceram no navegador, nunca no typecheck: colunas `NaN` na grade, o
 botão de tema invisível no tema claro, a agenda abrindo numa semana sem vaga, o desenho do
-Projetos WIT decepado pela capa e `.rodape-cartao` sem regra nenhuma. **Olhe a tela.**
+Projetos WIT decepado pela capa, `.rodape-cartao` sem regra nenhuma e a aba sob o mouse ficando
+verde-escura com texto escuro no tema claro. **Olhe a tela.**
+
+### O extrator do Canva, sem banco e sem deploy
+
+```
+node ferramentas/gerar-pdf-de-teste.mjs /tmp/canva-falso.pdf
+node --experimental-strip-types ferramentas/conferir-extrator.mts /tmp/canva-falso.pdf
+```
+
+Sai zero quando está tudo certo. O `--experimental-strip-types` é necessário porque o extrator é
+TypeScript escrito para o Deno; ele só usa APIs da plataforma justamente para rodar nos dois.
+
+### O Chromium deste ambiente não sai pelo proxy
+
+Para olhar a tela do importador, as respostas do Supabase foram interceptadas com `page.route()`
+usando payloads **capturados de verdade** da produção com `curl` (que passa pelo proxy sem
+problema). O servidor foi testado direto, com `curl` contra a função deployada; o navegador serviu
+só para conferir a tela.

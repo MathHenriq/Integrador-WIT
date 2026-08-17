@@ -3,6 +3,7 @@ import { AdminHorarios } from '../componentes/AdminHorarios'
 import { Aviso } from '../componentes/Aviso'
 import { EditorAula } from '../componentes/EditorAula'
 import { EtiquetaReserva } from '../componentes/Etiqueta'
+import { ImportarCanva } from '../componentes/ImportarCanva'
 import { LogoWit } from '../componentes/LogoWit'
 import {
   adminCancelarReserva,
@@ -23,7 +24,7 @@ import { ANOS_ESCOLARES, dataCurta, faixaHoraria, rotuloAnos } from '../lib/form
 import type { AulaAdmin, EscolaAdmin, Habilidade, Materia, ReservaAdmin } from '../lib/tipos'
 
 const CHAVE = 'wit:senha-admin'
-type Aba = 'aulas' | 'escolas' | 'reservas' | 'bncc'
+type Aba = 'aulas' | 'escolas' | 'reservas' | 'canva' | 'bncc'
 
 export function Admin() {
   const [senha, setSenha] = useState(() => localStorage.getItem(CHAVE) ?? '')
@@ -143,6 +144,9 @@ function Painel({ senha, aoSair }: { senha: string; aoSair: () => void }) {
         <button role="tab" aria-selected={aba === 'reservas'} onClick={() => setAba('reservas')}>
           Reservas
         </button>
+        <button role="tab" aria-selected={aba === 'canva'} onClick={() => setAba('canva')}>
+          Importar do Canva
+        </button>
         <button role="tab" aria-selected={aba === 'bncc'} onClick={() => setAba('bncc')}>
           BNCC
         </button>
@@ -151,6 +155,7 @@ function Painel({ senha, aoSair }: { senha: string; aoSair: () => void }) {
       {aba === 'aulas' && <AbaAulas senha={senha} materias={materias} aoErro={setErro} />}
       {aba === 'escolas' && <AbaEscolas senha={senha} aoErro={setErro} />}
       {aba === 'reservas' && <AbaReservas senha={senha} aoErro={setErro} />}
+      {aba === 'canva' && <ImportarCanva senha={senha} aoErro={setErro} />}
       {aba === 'bncc' && <AbaBncc senha={senha} materias={materias} aoErro={setErro} />}
     </main>
   )

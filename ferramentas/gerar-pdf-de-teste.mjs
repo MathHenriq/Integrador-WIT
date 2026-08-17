@@ -1,0 +1,287 @@
+// =====================================================================
+// Gerador do PDF de teste do importador do Canva
+// =====================================================================
+//
+//   node ferramentas/gerar-pdf-de-teste.mjs /tmp/canva-falso.pdf
+//   node --experimental-strip-types ferramentas/conferir-extrator.mts /tmp/canva-falso.pdf
+//
+// Existe porque o documento de verdade tem foto de criança e não entra
+// no repositório. Este aqui reproduz o que é difícil no arquivo do
+// Canva, de propósito:
+//
+//  - fontes recortadas (código != caractere) com /ToUnicode, uma simples
+//    de 1 byte e uma Type0 de 2 bytes;
+//  - páginas e fontes escondidas dentro de um /ObjStm comprimido;
+//  - cabeçalho e rodapé referenciados pelas 4 páginas — o que o extrator
+//    tem de descartar;
+//  - fotos que aparecem uma vez só, em JPEG e em Flate cru;
+//  - um ícone pequeno, que tem de sair pelo tamanho;
+//  - uma frase partida em vários Tm na mesma linha, como o Canva faz.
+//
+// O resultado esperado: 9 campos lidos e 4 fotos, não 7.
+// =====================================================================
+import { deflateSync } from 'node:zlib'
+import { readFileSync, writeFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'node:path'
+
+const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
+
+const objetos = new Map() // num -> {corpo: string|Buffer, fluxo?: Buffer}
+let proximo = 1
+const reservar = () => proximo++
+
+function bin(s) {
+  return Buffer.from(s, 'latin1')
+}
+
+// ------------------------------------------------------------- fontes
+
+function cmap(pares, bytes, comFaixa) {
+  const hex = (c) => c.toString(16).padStart(bytes * 2, '0').toUpperCase()
+  const uni = (s) =>
+    [...s].map((c) => c.charCodeAt(0).toString(16).padStart(4, '0').toUpperCase()).join('')
+
+  let corpo = `/CIDInit /ProcSet findresource begin
+12 dict begin
+begincmap
+/CMapName /Recortada def
+/CMapType 2 def
+1 begincodespacerange
+<${'00'.repeat(bytes)}> <${'FF'.repeat(bytes)}>
+endcodespacerange
+`
+
+  const lista = [...pares]
+  // O produtor real quebra em blocos de no máximo 100; imitar isso testa
+  // a leitura de vários blocos.
+  for (let k = 0; k < lista.length; k += 100) {
+    const bloco = lista.slice(k, k + 100)
+    corpo += `${bloco.length} beginbfchar\n`
+    for (const [codigo, texto] of bloco) corpo += `<${hex(codigo)}> <${uni(texto)}>\n`
+    corpo += 'endbfchar\n'
+  }
+
+  if (comFaixa) {
+    // Uma faixa de dígitos, para exercitar o beginbfrange.
+    corpo += `1 beginbfrange\n<${hex(0xf0)}> <${hex(0xf9)}> <0030>\nendbfrange\n`
+  }
+
+  corpo += 'endcmap\nCMapName currentdict /CMap defineresource pop\nend\nend\n'
+  return bin(corpo)
+}
+
+function montarFonte({ texto, bytes, comFaixa }) {
+  const caracteres = [...new Set([...texto])].sort()
+  const paraCodigo = new Map()
+  const pares = []
+
+  caracteres.forEach((c, k) => {
+    // Começa longe do ASCII: se o extrator "chutar" o código como letra,
+    // o teste falha, que é o que queremos.
+    const codigo = bytes === 1 ? 3 + k : 0x100 + k
+    paraCodigo.set(c, codigo)
+    pares.push([codigo, c])
+  })
+
+  const numCmap = reservar()
+  objetos.set(numCmap, { corpo: '<< /Length %L /Filter /FlateDecode >>', fluxo: deflateSync(cmap(pares, bytes, comFaixa)) })
+
+  const numFonte = reservar()
+  const dicionario =
+    bytes === 1
+      ? `<< /Type /Font /Subtype /TrueType /BaseFont /AAAAAA+Outfit /FirstChar 3 /LastChar 255 /ToUnicode ${numCmap} 0 R >>`
+      : `<< /Type /Font /Subtype /Type0 /BaseFont /BBBBBB+SourceSans /Encoding /Identity-H /ToUnicode ${numCmap} 0 R >>`
+
+  return {
+    num: numFonte,
+    dicionario,
+    codificar(s) {
+      let hex = ''
+      for (const c of s) {
+        const codigo = paraCodigo.get(c)
+        if (codigo === undefined) continue
+        hex += codigo.toString(16).padStart(bytes * 2, '0')
+      }
+      return `<${hex}>`
+    },
+  }
+}
+
+// ------------------------------------------------------------ imagens
+
+function imagemFlate(largura, altura, semente) {
+  const amostras = Buffer.alloc(largura * altura * 3)
+  for (let k = 0; k < largura * altura; k++) {
+    amostras[k * 3] = (k + semente) % 256
+    amostras[k * 3 + 1] = (k * 3 + semente) % 256
+    amostras[k * 3 + 2] = semente % 256
+  }
+  const num = reservar()
+  objetos.set(num, {
+    corpo: `<< /Type /XObject /Subtype /Image /Width ${largura} /Height ${altura} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length %L /Filter /FlateDecode >>`,
+    fluxo: deflateSync(amostras),
+  })
+  return num
+}
+
+function imagemJpeg(caminho, largura, altura) {
+  const num = reservar()
+  objetos.set(num, {
+    corpo: `<< /Type /XObject /Subtype /Image /Width ${largura} /Height ${altura} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length %L /Filter /DCTDecode >>`,
+    fluxo: readFileSync(caminho),
+  })
+  return num
+}
+
+// ------------------------------------------------------------ páginas
+
+const fonteTitulo = montarFonte({
+  texto: 'TEMA DA AULA OBJETIVOS DE APRENDIZAGEM MATERIAIS E RECURSOS NECESSÁRIOS FOTOS DESCRIÇÃO',
+  bytes: 1,
+  comFaixa: false,
+})
+
+const fonteTexto = montarFonte({
+  texto:
+    'Astros e planetas no metaverso Curso: Inteligência Artificial Turma: Inclusão Data: 14/05/2026 ' +
+    'Prof.: Dante Escola: EMEF Rita de Jesus Reconhecer a posição dos do Sistema Solar. ' +
+    'Relacionar observação com registro escrito da pesquisa. A turma começou na roda de conversa ' +
+    'retomando o que já sabia sobre os astros. Depois, em duplas, cada estudante usou os óculos ' +
+    'de realidade virtual para percorrer e anotar três descobertas. No fechamento, montou um ' +
+    'mural coletivo com as anotações. Óculos VR, notebook, papel kraft canetas.',
+  bytes: 2,
+  comFaixa: true,
+})
+
+function linhas(pares) {
+  // Cada linha é um Tm próprio, como faz editor gráfico.
+  let y = 760
+  let saida = 'BT\n'
+  for (const [fonte, texto, tamanho] of pares) {
+    saida += `/F${fonte.num} ${tamanho ?? 11} Tf\n1 0 0 1 60 ${y} Tm\n${fonte.codificar(texto)} Tj\n`
+    y -= texto === '' ? 12 : 26
+  }
+  saida += 'ET\n'
+  return saida
+}
+
+const cabecalho = imagemFlate(321, 231, 7)
+const rodape = imagemFlate(657, 489, 19)
+const icone = imagemFlate(40, 40, 3)
+
+const fotos = [
+  imagemJpeg(join(RAIZ, 'public', 'WIT HOME.jpg'), 1024, 682),
+  imagemFlate(640, 480, 31),
+  imagemFlate(800, 600, 53),
+  imagemFlate(640, 480, 71),
+]
+
+const conteudos = [
+  linhas([
+    [fonteTitulo, 'TEMA DA AULA', 20],
+    [fonteTexto, 'Astros e planetas no metaverso'],
+    [fonteTexto, 'Curso: Inteligência Artificial'],
+    [fonteTexto, 'Turma: Inclusão'],
+    [fonteTexto, 'Data: 14/05/2026'],
+    [fonteTexto, 'Prof.: Dante'],
+    [fonteTexto, 'Escola: EMEF Rita de Jesus'],
+  ]),
+  linhas([
+    [fonteTitulo, 'OBJETIVOS DE APRENDIZAGEM', 20],
+    [fonteTexto, 'Reconhecer a posição dos planetas do Sistema Solar.'],
+    [fonteTexto, 'Relacionar observação com registro escrito da pesquisa.'],
+  ]),
+  // A descrição vem partida em vários Tm na MESMA linha, como o Canva
+  // faz: se o extrator não juntar com espaço, as palavras grudam.
+  'BT\n' +
+    `/F${fonteTitulo.num} 20 Tf\n1 0 0 1 60 760 Tm\n${fonteTitulo.codificar('DESCRIÇÃO DA AULA')} Tj\n` +
+    `/F${fonteTexto.num} 11 Tf\n` +
+    `1 0 0 1 60 720 Tm\n${fonteTexto.codificar('A turma começou na roda de conversa')} Tj\n` +
+    `1 0 0 1 300 720 Tm\n${fonteTexto.codificar('retomando o que já sabia sobre os astros.')} Tj\n` +
+    `1 0 0 1 60 694 Tm\n[${fonteTexto.codificar('Depois, em duplas, cada estudante usou os')} -260 ${fonteTexto.codificar('óculos')}] TJ\n` +
+    `1 0 0 1 60 668 Tm\n${fonteTexto.codificar('de realidade virtual para percorrer e anotar três descobertas.')} Tj\n` +
+    `1 0 0 1 60 642 Tm\n${fonteTexto.codificar('No fechamento, montou um mural coletivo com as anotações.')} Tj\n` +
+    'ET\n',
+  linhas([
+    [fonteTitulo, 'MATERIAIS E RECURSOS NECESSÁRIOS', 20],
+    [fonteTexto, 'Óculos VR, notebook, papel kraft canetas.'],
+    [fonteTitulo, 'FOTOS', 20],
+  ]),
+]
+
+const numPaginas = []
+const numConteudos = []
+
+conteudos.forEach((texto, k) => {
+  const desenho =
+    `q 321 0 0 231 40 800 cm /Im${cabecalho} Do Q\n` +
+    `q 657 0 0 489 40 40 cm /Im${rodape} Do Q\n` +
+    (k === 0 ? `q 40 0 0 40 500 800 cm /Im${icone} Do Q\n` : '') +
+    (fotos[k] !== undefined ? `q 300 0 0 200 60 300 cm /Im${fotos[k]} Do Q\n` : '')
+
+  const num = reservar()
+  objetos.set(num, { corpo: '<< /Length %L /Filter /FlateDecode >>', fluxo: deflateSync(bin(desenho + texto)) })
+  numConteudos.push(num)
+  numPaginas.push(reservar())
+})
+
+const numPaisDasPaginas = reservar()
+const numCatalogo = reservar()
+
+// As páginas, as fontes e o catálogo vão para dentro de um fluxo de
+// objetos comprimido — é assim que o PDF moderno grava, e sem abrir esse
+// fluxo o extrator não acharia página nenhuma.
+const dentroDoFluxo = []
+
+numPaginas.forEach((num, k) => {
+  const xobjetos = [cabecalho, rodape, ...(k === 0 ? [icone] : []), ...(fotos[k] !== undefined ? [fotos[k]] : [])]
+  dentroDoFluxo.push([
+    num,
+    `<< /Type /Page /Parent ${numPaisDasPaginas} 0 R /MediaBox [0 0 595 842] /Contents ${numConteudos[k]} 0 R ` +
+      `/Resources << /Font << /F${fonteTitulo.num} ${fonteTitulo.num} 0 R /F${fonteTexto.num} ${fonteTexto.num} 0 R >> ` +
+      `/XObject << ${xobjetos.map((n) => `/Im${n} ${n} 0 R`).join(' ')} >> >> >>`,
+  ])
+})
+
+dentroDoFluxo.push([fonteTitulo.num, fonteTitulo.dicionario])
+dentroDoFluxo.push([fonteTexto.num, fonteTexto.dicionario])
+dentroDoFluxo.push([
+  numPaisDasPaginas,
+  `<< /Type /Pages /Count ${numPaginas.length} /Kids [${numPaginas.map((n) => `${n} 0 R`).join(' ')}] >>`,
+])
+dentroDoFluxo.push([numCatalogo, `<< /Type /Catalog /Pages ${numPaisDasPaginas} 0 R >>`])
+
+let cabecalhoDoFluxo = ''
+let corpoDoFluxo = ''
+for (const [num, texto] of dentroDoFluxo) {
+  cabecalhoDoFluxo += `${num} ${corpoDoFluxo.length} `
+  corpoDoFluxo += texto + '\n'
+}
+
+const numFluxoDeObjetos = reservar()
+objetos.set(numFluxoDeObjetos, {
+  corpo: `<< /Type /ObjStm /N ${dentroDoFluxo.length} /First ${cabecalhoDoFluxo.length} /Length %L /Filter /FlateDecode >>`,
+  fluxo: deflateSync(bin(cabecalhoDoFluxo + corpoDoFluxo)),
+})
+
+// ------------------------------------------------------------ escrita
+
+const partes = [bin('%PDF-1.7\n%\xe2\xe3\xcf\xd3\n')]
+for (const [num, { corpo, fluxo }] of [...objetos].sort((a, b) => a[0] - b[0])) {
+  const dicionario = corpo.replace('%L', String(fluxo ? fluxo.length : 0))
+  partes.push(bin(`${num} 0 obj\n${dicionario}\n`))
+  if (fluxo) {
+    partes.push(bin('stream\n'), fluxo, bin('\nendstream\n'))
+  }
+  partes.push(bin('endobj\n'))
+}
+partes.push(bin(`trailer\n<< /Size ${proximo} /Root ${numCatalogo} 0 R >>\nstartxref\n0\n%%EOF\n`))
+
+const destino = process.argv[2] ?? '/tmp/canva-falso.pdf'
+writeFileSync(destino, Buffer.concat(partes))
+console.log('PDF escrito:', destino)
+console.log('  páginas:', numPaginas.length)
+console.log('  molduras (todas as páginas):', cabecalho, rodape)
+console.log('  ícone pequeno (descartar por tamanho):', icone)
+console.log('  fotos esperadas:', fotos.join(', '))

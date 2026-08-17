@@ -95,3 +95,9 @@ O PDF exportado do Canva tem os campos rotulados: `TEMA DA AULA`, `Curso`, `Turm
 As imagens que **se repetem em todas as páginas** são o cabeçalho/rodapé do template (ex.:
 321×231 e 657×489) — descartar. As fotos reais da aula são as que aparecem uma vez só
 (ex.: 640×480, 800×600).
+
+Isso já está implementado em `supabase/functions/importar-canva/` (leitor de PDF próprio, sem
+biblioteca) e na aba "Importar do Canva" do painel. Ver a seção 2.2 do `HANDOFF.md`.
+
+**Aula realizada não pergunta horário.** Ela está no site para inspirar outro professor, não para
+ocupar agenda: quem resolve o tempo é o banco, na `admin_importar_aula_realizada`.

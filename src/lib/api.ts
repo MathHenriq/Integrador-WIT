@@ -3,12 +3,14 @@ import type {
   AulaAdmin,
   AulaCatalogo,
   AulaDetalhe,
+  AulaImportada,
   ContextoPublico,
   DataIso,
   EscolaAdmin,
   Habilidade,
   HorarioAdmin,
   Comprovante,
+  ImportacaoCanva,
   Ocorrencia,
   Realizada,
   ReservaAdmin,
@@ -313,6 +315,77 @@ export function adminRegistrarRelato(
     p_reserva_id: reservaId,
     p_relato: relato,
     p_fotos: fotos,
+  })
+}
+
+// ------------------------------------------- importação do documento do Canva
+
+/**
+ * Manda o PDF do Canva para a Edge Function, que lê os campos e hospeda
+ * as fotos. É o único ponto do site que não passa por RPC: as fotos vêm
+ * dentro do arquivo e precisam ir para o Storage, e só o servidor tem
+ * permissão de escrever lá (ver `supabase/functions/importar-canva`).
+ */
+export async function importarDocumentoCanva(senha: string, arquivo: File) {
+  const formulario = new FormData()
+  formulario.append('senha', senha)
+  formulario.append('arquivo', arquivo)
+
+  const { data, error } = await supabase.functions.invoke('importar-canva', { body: formulario })
+
+  if (error) {
+    // A função devolve a frase pronta no corpo, inclusive quando responde
+    // 4xx; sem isto o usuário veria só "Edge Function returned a non-2xx".
+    let mensagem = ''
+    const contexto = (error as { context?: Response }).context
+    if (contexto && typeof contexto.json === 'function') {
+      try {
+        mensagem = ((await contexto.json()) as { mensagem?: string }).mensagem ?? ''
+      } catch {
+        mensagem = ''
+      }
+    }
+    throw new ErroApi(
+      mensagem ||
+        'Não foi possível falar com o importador. Confira a conexão e tente de novo.',
+    )
+  }
+
+  const corpo = data as ImportacaoCanva & { ok?: boolean; mensagem?: string }
+  if (corpo?.ok === false) throw new ErroApi(corpo.mensagem ?? 'Não consegui ler este documento.')
+
+  return corpo
+}
+
+/**
+ * Publica a aula lida do documento. O horário não é escolhido aqui: aula
+ * que já aconteceu está no site para inspirar outros professores, não
+ * para ocupar agenda, então o banco resolve sozinho (anexa à reserva que
+ * já existe ou usa o primeiro tempo livre do dia).
+ */
+export function adminImportarAulaRealizada(
+  senha: string,
+  dados: {
+    importacaoId: string | null
+    escolaId: string
+    dataAula: DataIso
+    nomeProfessor: string
+    turma: string | null
+    titulo: string
+    relato: string | null
+    fotos: string[]
+  },
+) {
+  return chamar<AulaImportada>('admin_importar_aula_realizada', {
+    p_admin_token: senha,
+    p_importacao_id: dados.importacaoId,
+    p_escola_id: dados.escolaId,
+    p_data_aula: dados.dataAula,
+    p_nome_professor: dados.nomeProfessor,
+    p_turma: dados.turma,
+    p_titulo: dados.titulo,
+    p_relato: dados.relato,
+    p_fotos: dados.fotos,
   })
 }
 

@@ -1149,6 +1149,72 @@ a.atividade:hover {
 .definicoes dd { margin: 0; font-weight: 600; }
 
 /* ------------------------------------------------------------------ */
+/* Importação do documento do Canva                                    */
+/* ------------------------------------------------------------------ */
+
+.solta-arquivo {
+  border: 1px dashed var(--borda-solida);
+  border-radius: var(--raio);
+  background: var(--superficie);
+  padding: 46px 24px;
+  text-align: center;
+}
+
+.solta-arquivo.sobre {
+  border-color: var(--verde);
+  border-style: solid;
+  background: var(--superficie-alta);
+}
+
+.solta-arquivo .emoji { font-size: 34px; display: block; margin-bottom: 12px; }
+.solta-arquivo h2 { font-size: 20px; margin-bottom: 8px; }
+
+.solta-arquivo p {
+  color: var(--texto-suave);
+  max-width: 52ch;
+  margin: 0 auto 20px;
+  font-size: 15px;
+}
+
+.fotos-importadas {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+
+.fotos-importadas figure {
+  position: relative;
+  margin: 0;
+  border: 1px solid var(--borda-solida);
+  border-radius: var(--raio-p);
+  overflow: hidden;
+  background: var(--superficie-alta);
+}
+
+.fotos-importadas img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+/* O × fica sobre a foto: a lista pode ser longa e caçar o botão embaixo
+   de cada miniatura seria trabalho à toa. */
+.fotos-importadas figure button {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  font-size: 19px;
+  line-height: 1;
+  border-radius: var(--raio-p);
+  background: var(--superficie);
+  border-color: var(--borda-solida);
+}
+
+/* ------------------------------------------------------------------ */
 /* Abas                                                                */
 /* ------------------------------------------------------------------ */
 
@@ -1175,6 +1241,15 @@ a.atividade:hover {
 :root[data-tema='claro'] .abas button[aria-selected='true'] {
   color: var(--verde-fundo);
   border-bottom-color: var(--verde-fundo);
+}
+
+/* No tema claro, a regra geral de hover de botão pinta o fundo de verde
+   escuro — e ela é mais específica que a de cima, então vencia aqui e
+   deixava a aba sob o mouse com texto escuro sobre fundo escuro. Aba não
+   é botão cheio: o destaque dela é o traço embaixo. */
+:root[data-tema='claro'] .abas button:hover:not(:disabled) {
+  background: transparent;
+  color: var(--texto);
 }
 
 /* ------------------------------------------------------------------ */
