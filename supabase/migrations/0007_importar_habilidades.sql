@@ -33,13 +33,15 @@ set search_path = public, pg_temp
 as $$
   select id from public.materias
    where nome ilike case upper(p_sigla)
+     -- `ilike` ignora a caixa mas NÃO ignora o acento: '%fisica%' não
+     -- encontra "Educação Física". Onde cai acento, entra `_`.
      when 'LP' then '%portugu%'
      when 'MA' then '%matem%'
      when 'CI' then '%ci_ncia%'
      when 'HI' then '%hist%'
      when 'GE' then '%geograf%'
      when 'AR' then '%arte%'
-     when 'EF' then '%fisica%'
+     when 'EF' then '%f_sica%'
      when 'LI' then '%ingl%'
      when 'ER' then '%religi%'
      else 'zzz-sigla-desconhecida'
