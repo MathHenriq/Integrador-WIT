@@ -143,15 +143,44 @@ const ESPACO_POR_ESPACAMENTO = 180
 /** Diferença de altura que separa duas linhas, em unidades do texto. */
 const ALTURA_DE_LINHA = 1.5
 
+/**
+ * O texto de uma página, incluindo o que está dentro de formulários
+ * (`/XObject` de subtipo `Form`).
+ *
+ * Essa descida não é preciosismo: editor gráfico costuma embrulhar a
+ * página inteira num formulário, e aí o `/Contents` da página só tem
+ * `/Fm0 Do`. Sem entrar ali, o documento devolve as imagens todas — o
+ * código das fotos já descia — e nenhuma letra. Foi exatamente o que
+ * aconteceu com o PDF de verdade do Canva: 8 fotos, zero campos.
+ */
 export async function textoDaPagina(doc: Documento, pagina: Valor): Promise<string> {
-  const fontes = await lerFontes(doc, pagina)
+  const estado: Estado = { saida: '', ultimoX: null, ultimoY: null }
+  await varrerConteudoDe(doc, pagina, estado, { fontes: {}, formularios: {} }, new Set(), 0)
+  return estado.saida
+}
 
-  const conteudos = doc.resolver(ehDic(pagina) ? pagina.itens.Contents : undefined)
+type Estado = { saida: string; ultimoX: number | null; ultimoY: number | null }
+type Recursos = { fontes: Record<string, Fonte>; formularios: Record<string, Valor> }
+
+/** Fontes e formulários de um dono, por cima dos que ele herdou. */
+async function recursosDe(doc: Documento, dono: Valor, herdados: Recursos): Promise<Recursos> {
+  return {
+    fontes: { ...herdados.fontes, ...(await lerFontes(doc, dono)) },
+    formularios: { ...herdados.formularios, ...doc.recursos(dono, 'XObject') },
+  }
+}
+
+/** Junta os fluxos de conteúdo de um dono (página ou formulário). */
+async function fluxoDe(doc: Documento, dono: Valor): Promise<string> {
+  // Formulário é ele mesmo um stream; página aponta para um ou vários.
+  if (ehDic(dono) && !dono.itens.Contents) return ''
+
+  const conteudos = doc.resolver(ehDic(dono) ? dono.itens.Contents : undefined)
   const referencias =
     conteudos?.tipo === 'lista'
       ? conteudos.itens
-      : ehDic(pagina) && pagina.itens.Contents
-        ? [pagina.itens.Contents]
+      : ehDic(dono) && dono.itens.Contents
+        ? [dono.itens.Contents]
         : []
 
   const partes: string[] = []
@@ -165,37 +194,57 @@ export async function textoDaPagina(doc: Documento, pagina: Valor): Promise<stri
       // página ilegível não derruba as outras
     }
   }
-
-  return varrer(partes.join('\n'), fontes)
+  return partes.join('\n')
 }
 
-function varrer(fluxo: string, fontes: Record<string, Fonte>) {
+async function varrerConteudoDe(
+  doc: Documento,
+  dono: Valor,
+  estado: Estado,
+  herdados: Recursos,
+  visitados: Set<number>,
+  nivel: number,
+) {
+  const recursos = await recursosDe(doc, dono, herdados)
+  await varrer(doc, await fluxoDe(doc, dono), estado, recursos, visitados, nivel)
+}
+
+async function varrer(
+  doc: Documento,
+  fluxo: string,
+  estado: Estado,
+  recursos: Recursos,
+  visitados: Set<number>,
+  nivel: number,
+) {
   const leitor = new Leitor(fluxo)
   const pilha: Valor[] = []
-  let saida = ''
 
   let fonte = FONTE_PADRAO
   let x = 0
   let y = 0
   let entrelinha = 0
-  let ultimoX: number | null = null
-  let ultimoY: number | null = null
 
   /** Decide sozinho se entre o pedaço anterior e este cabe uma quebra. */
   function escrever(texto: string) {
     if (!texto) return
 
-    if (ultimoY !== null && Math.abs(y - ultimoY) > ALTURA_DE_LINHA) {
-      saida += '\n'
-    } else if (ultimoX !== null && x !== ultimoX && !saida.endsWith(' ') && !saida.endsWith('\n')) {
+    if (estado.ultimoY !== null && Math.abs(y - estado.ultimoY) > ALTURA_DE_LINHA) {
+      estado.saida += '\n'
+    } else if (
+      estado.ultimoX !== null &&
+      x !== estado.ultimoX &&
+      !estado.saida.endsWith(' ') &&
+      !estado.saida.endsWith('\n')
+    ) {
       // Mesma linha, outra posição: o Canva quebra a frase em vários
       // pedaços posicionados, e sem isto as palavras vêm grudadas.
-      saida += ' '
+      estado.saida += ' '
     }
 
-    saida += texto
-    ultimoX = x
-    ultimoY = y
+    estado.saida += texto
+    estado.ultimoX = x
+    estado.ultimoY = y
   }
 
   while (!leitor.fim()) {
@@ -223,14 +272,14 @@ function varrer(fluxo: string, fontes: Record<string, Fonte>) {
         break
 
       case 'ET':
-        ultimoY = null
-        ultimoX = null
-        if (!saida.endsWith('\n')) saida += '\n'
+        estado.ultimoY = null
+        estado.ultimoX = null
+        if (!estado.saida.endsWith('\n')) estado.saida += '\n'
         break
 
       case 'Tf': {
         const apelido = pilha.length >= 2 ? pilha[pilha.length - 2] : undefined
-        fonte = (apelido?.tipo === 'nome' ? fontes[apelido.valor] : undefined) ?? FONTE_PADRAO
+        fonte = (apelido?.tipo === 'nome' ? recursos.fontes[apelido.valor] : undefined) ?? FONTE_PADRAO
         break
       }
 
@@ -293,10 +342,38 @@ function varrer(fluxo: string, fontes: Record<string, Fonte>) {
         leitor.i = fim < 0 ? fluxo.length : fim + 2
         break
       }
+
+      case 'Do': {
+        // Aqui mora o texto quando o produtor embrulha a página num
+        // formulário. Entrar custa uma chamada e é o que faz a diferença
+        // entre ler o documento e devolver folha em branco.
+        const apelido = pilha[pilha.length - 1]
+        if (apelido?.tipo !== 'nome' || nivel >= 8) break
+
+        const referencia = recursos.formularios[apelido.valor]
+        if (referencia?.tipo !== 'ref' || visitados.has(referencia.num)) break
+
+        const forma = doc.resolver(referencia)
+        if (!ehDic(forma) || nomeDe(forma.itens.Subtype) !== 'Form') break
+
+        const objeto = doc.objeto(referencia.num)
+        if (!objeto?.bruto) break
+
+        // O mesmo formulário costuma ser desenhado em várias páginas —
+        // moldura, por exemplo. Marcar evita ciclo, e a marca é limpa ao
+        // sair para o texto dele poder aparecer na página seguinte.
+        visitados.add(referencia.num)
+        try {
+          const dentro = await recursosDe(doc, forma, recursos)
+          await varrer(doc, paraBinario(await doc.conteudo(objeto)), estado, dentro, visitados, nivel + 1)
+        } catch {
+          // formulário ilegível não derruba a página
+        }
+        visitados.delete(referencia.num)
+        break
+      }
     }
 
     pilha.length = 0
   }
-
-  return saida
 }

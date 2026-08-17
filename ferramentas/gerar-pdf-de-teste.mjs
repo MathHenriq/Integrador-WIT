@@ -16,9 +16,14 @@
 //    tem de descartar;
 //  - fotos que aparecem uma vez só, em JPEG e em Flate cru;
 //  - um ícone pequeno, que tem de sair pelo tamanho;
-//  - uma frase partida em vários Tm na mesma linha, como o Canva faz.
+//  - uma frase partida em vários Tm na mesma linha, como o Canva faz;
+//  - e o texto embrulhado num /XObject de subtipo Form, que é como o
+//    editor gráfico exporta. Quem só lê o /Contents da página encontra
+//    ali um `/FmTexto Do` e mais nada — foi o que fez o documento de
+//    verdade voltar com 8 fotos e zero campos.
 //
-// O resultado esperado: 9 campos lidos e 4 fotos, não 7.
+// O resultado esperado: 9 campos lidos e 4 fotos, não 7 — e o texto
+// só aparece se o extrator entrar no formulário.
 // =====================================================================
 import { deflateSync } from 'node:zlib'
 import { readFileSync, writeFileSync } from 'node:fs'
@@ -213,15 +218,30 @@ const conteudos = [
 const numPaginas = []
 const numConteudos = []
 
+const numFormularios = []
+
 conteudos.forEach((texto, k) => {
+  // O texto vai para dentro de um formulário, com os recursos de fonte
+  // dele próprio; a página só manda desenhá-lo.
+  const numForma = reservar()
+  objetos.set(numForma, {
+    corpo:
+      `<< /Type /XObject /Subtype /Form /BBox [0 0 595 842] ` +
+      `/Resources << /Font << /F${fonteTitulo.num} ${fonteTitulo.num} 0 R /F${fonteTexto.num} ${fonteTexto.num} 0 R >> >> ` +
+      `/Length %L /Filter /FlateDecode >>`,
+    fluxo: deflateSync(bin(texto)),
+  })
+  numFormularios.push(numForma)
+
   const desenho =
     `q 321 0 0 231 40 800 cm /Im${cabecalho} Do Q\n` +
     `q 657 0 0 489 40 40 cm /Im${rodape} Do Q\n` +
     (k === 0 ? `q 40 0 0 40 500 800 cm /Im${icone} Do Q\n` : '') +
-    (fotos[k] !== undefined ? `q 300 0 0 200 60 300 cm /Im${fotos[k]} Do Q\n` : '')
+    (fotos[k] !== undefined ? `q 300 0 0 200 60 300 cm /Im${fotos[k]} Do Q\n` : '') +
+    `q 1 0 0 1 0 0 cm /FmTexto Do Q\n`
 
   const num = reservar()
-  objetos.set(num, { corpo: '<< /Length %L /Filter /FlateDecode >>', fluxo: deflateSync(bin(desenho + texto)) })
+  objetos.set(num, { corpo: '<< /Length %L /Filter /FlateDecode >>', fluxo: deflateSync(bin(desenho)) })
   numConteudos.push(num)
   numPaginas.push(reservar())
 })
@@ -239,8 +259,8 @@ numPaginas.forEach((num, k) => {
   dentroDoFluxo.push([
     num,
     `<< /Type /Page /Parent ${numPaisDasPaginas} 0 R /MediaBox [0 0 595 842] /Contents ${numConteudos[k]} 0 R ` +
-      `/Resources << /Font << /F${fonteTitulo.num} ${fonteTitulo.num} 0 R /F${fonteTexto.num} ${fonteTexto.num} 0 R >> ` +
-      `/XObject << ${xobjetos.map((n) => `/Im${n} ${n} 0 R`).join(' ')} >> >> >>`,
+      `/Resources << ` +
+      `/XObject << ${xobjetos.map((n) => `/Im${n} ${n} 0 R`).join(' ')} /FmTexto ${numFormularios[k]} 0 R >> >> >>`,
   ])
 })
 
