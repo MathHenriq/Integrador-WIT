@@ -165,6 +165,14 @@ a:hover { text-decoration: underline; }
      escuro onde a parede vira piso (a "cove"), o brilho logo abaixo dele
      — luz batendo no chão — e o pool de luz alto na parede. Um degradê
      liso, por mais bonito, continua lendo como cor chapada. */
+
+  /* Estes dois valores são os de sempre, e o desktop não muda por nada:
+     o enquadramento dos refletores foi acertado a dedo. Quem tinha de
+     mudar era só o celular — ver a regra no fim do arquivo. */
+  --softbox: 42rem;
+  --softbox-recuo: -4rem;
+  --softbox-altura: 0.5rem;
+
   background:
     radial-gradient(56rem 32rem at 50% 6%, rgba(200, 255, 222, 0.26), transparent 64%),
     radial-gradient(32rem 24rem at 12% 24%, rgba(120, 240, 175, 0.13), transparent 70%),
@@ -193,8 +201,8 @@ a:hover { text-decoration: underline; }
    senão o escurecimento de canto apagaria justo as duas luzes. */
 .ambiente.chroma::after {
   background:
-    url('/softbox-esq.webp') left -4rem top 0.5rem / 42rem 42rem no-repeat,
-    url('/softbox-dir.webp') right -4rem top 0.5rem / 42rem 42rem no-repeat,
+    url('/softbox-esq.webp') left var(--softbox-recuo) top var(--softbox-altura) / var(--softbox) var(--softbox) no-repeat,
+    url('/softbox-dir.webp') right var(--softbox-recuo) top var(--softbox-altura) / var(--softbox) var(--softbox) no-repeat,
     radial-gradient(ellipse 78% 68% at 50% 42%, transparent 42%, rgba(0, 32, 16, 0.5) 100%);
 }
 
@@ -220,8 +228,8 @@ a:hover { text-decoration: underline; }
 
 :root[data-tema='claro'] .ambiente.chroma::after {
   background:
-    url('/softbox-esq.webp') left -4rem top 0.5rem / 42rem 42rem no-repeat,
-    url('/softbox-dir.webp') right -4rem top 0.5rem / 42rem 42rem no-repeat,
+    url('/softbox-esq.webp') left var(--softbox-recuo) top var(--softbox-altura) / var(--softbox) var(--softbox) no-repeat,
+    url('/softbox-dir.webp') right var(--softbox-recuo) top var(--softbox-altura) / var(--softbox) var(--softbox) no-repeat,
     radial-gradient(ellipse 80% 70% at 50% 42%, transparent 48%, rgba(0, 40, 20, 0.24) 100%);
 }
 
@@ -272,6 +280,11 @@ a:hover { text-decoration: underline; }
   position: sticky;
   top: 0;
   z-index: 20;
+  /* O prefixo não é enfeite: o Safari do iPhone — e todo navegador que
+     abre dentro de um app, que é WebKit — ignora o `backdrop-filter`
+     sem ele. Sem o desfoque, a barra vira uma tarja transparente com o
+     conteúdo passando por trás, e lê como se tivesse soltado do topo. */
+  -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
   background: color-mix(in srgb, var(--fundo) 78%, transparent);
   border-bottom: 1px solid var(--borda-solida);
@@ -283,6 +296,27 @@ a:hover { text-decoration: underline; }
 
 :root[data-tema='claro'] .app.sobre-chroma .topo {
   background: rgba(255, 255, 255, 0.82);
+}
+
+/* No celular a barra fica quase opaca. Ali ela é fina, passa por cima
+   de foto e de verde forte, e translucidez a essa altura só atrapalha a
+   leitura do menu. */
+@media (max-width: 860px) {
+  .topo { background: color-mix(in srgb, var(--fundo) 94%, transparent); }
+  .app.sobre-chroma .topo { background: rgba(6, 22, 13, 0.93); }
+  :root[data-tema='claro'] .app.sobre-chroma .topo { background: rgba(255, 255, 255, 0.96); }
+
+  /* Os refletores em `rem` não cabem no celular: 42rem são 672px numa
+     tela de 390px, e cada luz saía maior que a sala inteira. Em `vw`
+     eles ocupam a mesma fatia da tela que ocupam no desktop. */
+  .ambiente.chroma {
+    --softbox: 52vw;
+    --softbox-recuo: -1.2rem;
+    /* A altura é a mesma do desktop de propósito: o painel aceso fica
+       na parte de cima do desenho e a haste escura embaixo, então subir
+       a imagem esconde justo a luz e deixa só o suporte à mostra. */
+    --softbox-altura: 0.5rem;
+  }
 }
 
 .topo-interno {
@@ -1058,6 +1092,7 @@ a.atividade:hover {
   position: fixed;
   inset: 0;
   background: rgba(3, 8, 5, 0.7);
+  -webkit-backdrop-filter: blur(3px);
   backdrop-filter: blur(3px);
   display: flex;
   align-items: center;
