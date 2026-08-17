@@ -12,6 +12,7 @@ import type {
   Comprovante,
   ImportacaoCanva,
   Ocorrencia,
+  PonteBncc,
   Realizada,
   ReservaAdmin,
   ReservaConsulta,
@@ -80,6 +81,15 @@ export function listarAulas(filtros: {
 
 export function obterAula(aulaId: string) {
   return chamar<AulaDetalhe | null>('obter_aula', { p_aula_id: aulaId })
+}
+
+/**
+ * A ponte curada entre os cursos do WIT e as matérias do comum: uma
+ * habilidade por cruzamento, para o professor ver onde a proposta
+ * encaixa sem ter de garimpar a BNCC inteira.
+ */
+export function listarPontesBncc() {
+  return chamar<PonteBncc[]>('listar_pontes_bncc')
 }
 
 export function listarHabilidades(materiaId?: string | null, ano?: number | null) {

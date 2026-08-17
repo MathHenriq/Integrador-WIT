@@ -86,6 +86,19 @@ EMEIEF JOSÉ EMÍDIO DE AGUIAR
 - Datas andam como string `AAAA-MM-DD` e **nunca** passam por `new Date(iso)` — isso exibiria o
   dia anterior no fuso do Brasil. "Hoje" é calculado em `America/Sao_Paulo` no banco.
 
+## Cursos do Núcleo WIT
+
+São cinco: **Inteligência Artificial, Games, Metaverso, Ambientes Inteligentes (IoT) e Comunicação
+Digital**. Para cada um deles há, na página `/cursos`, uma habilidade da BNCC por matéria do
+comum — a ponte que responde "onde isso encaixa na minha matéria".
+
+É **ponto de partida, não lista fechada**: quem escolhe as outras habilidades é o professor da
+turma junto com o profissional do WIT. Escrever essa página como se ela dispensasse a conversa
+seria o mesmo erro de dizer que o professor não precisa preparar nada.
+
+Não tente resolver isso com busca por palavra: *metaverso*, *óculos VR*, *robô* e *impressão 3D*
+não aparecem uma única vez no texto da BNCC.
+
 ## Documento de aula do Canva (importação)
 
 O PDF exportado do Canva tem os campos rotulados: `TEMA DA AULA`, `Curso`, `Turma`, `Data`,

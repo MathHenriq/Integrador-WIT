@@ -9,7 +9,7 @@ Site no ar pelo Vercel, banco no Supabase (projeto `Integrador-WIT`, ref `mdwqww
 
 ## 1. Primeira coisa a fazer: conferir o banco
 
-**Da `0001` à `0008`, tudo já foi aplicado e conferido.** A consulta abaixo tem que voltar todos
+**Da `0001` à `0009`, tudo já foi aplicado e conferido.** A consulta abaixo tem que voltar todos
 os números do nome da coluna:
 
 ```sql
@@ -25,7 +25,9 @@ select
   (select count(*) from pg_proc
     where proname = 'admin_importar_aula_realizada')                 as importador_canva_esperado_1,
   (select count(*) from storage.buckets
-    where id = 'fotos-aulas' and public)                             as balde_esperado_1;
+    where id = 'fotos-aulas' and public)                             as balde_esperado_1,
+  (select count(*) from public.habilidades)                          as bncc_esperado_1303,
+  (select count(*) from public.pontes_bncc)                          as pontes_esperado_40;
 ```
 
 Se `coluna_fotos` vier 0, **as páginas de atividade e de aulas realizadas quebram assim que
@@ -61,24 +63,33 @@ integração Vercel↔Supabase). Nesse caso, passar o `project_id` direto funcio
 
 ## 2. O que falta construir
 
-### 2.1 A BNCC em si — a ferramenta está pronta, faltam os dados
-A importação em lote existe (`0007` + caixa de colar na aba BNCC do painel): cola-se a lista
-oficial e o ano e a matéria saem do próprio código (`EF06MA01` → 6º ano, Matemática).
+### 2.1 A BNCC — **carregada**, e a ponte com os cursos do WIT também
+**As 1.303 habilidades estão no banco.** Não foi preciso pedir arquivo a ninguém: o leitor de PDF
+do importador do Canva lê o documento oficial do MEC (600 páginas) em quatro segundos. Para
+recarregar, `ferramentas/extrair-bncc.mts` — a receita está no cabeçalho dele.
 
-**O que não existe é a lista.** Ninguém aqui deve escrever as mais de mil descrições de memória:
-sai texto plausível e errado, num sistema em que professor usa a habilidade para justificar aula.
-Peça o CSV/planilha oficial ao usuário — não está no Drive dele (já procurei).
+Ficam sem matéria só as 63 de Ensino Religioso, porque essa matéria não está cadastrada.
 
-Falta também **agrupar por tema** na listagem, que foi o pedido original ("em listas separadas
-pelos seus temas"). Hoje a lista é corrida, e a tabela `habilidades` não tem coluna de unidade
-temática — vai precisar de uma.
+#### O que a busca por palavra não resolve, e o que foi feito no lugar
 
-O agrupamento **depende do arquivo oficial** e por isso não foi feito: a unidade temática não sai
-do código da habilidade (`EF06MA01` diz 6º ano e Matemática, mas não diz "Números"), então ela tem
-que vir da mesma planilha que traz as descrições. Escrever a lista de unidades de memória cairia
-no mesmo problema das descrições. Quando o arquivo chegar: uma migration acrescenta
-`habilidades.unidade_tematica`, o `admin_importar_habilidades` passa a receber a terceira coluna e
-a aba BNCC agrupa por ela.
+O pedido real não era agrupar por tema: era **o professor descrever a ideia da aula e a ferramenta
+achar a habilidade**. Isso foi testado e **não funciona com busca por palavra**, por um motivo que
+não tem contorno: *metaverso*, *óculos VR*, *robô* e *impressão 3D* **não aparecem uma única vez
+no texto da BNCC**. Buscar "metaverso" devolve "pesquisa sobre tema da realidade social".
+
+A saída escolhida foi a ponte curada (migration `0009`): para cada cruzamento de curso do WIT com
+matéria do comum, **uma** habilidade real, com uma frase dizendo por que ela. São 5 cursos × 8
+matérias = 40 pontes, na página `/cursos`. É ponto de partida declarado, não lista fechada — o
+resto sai da conversa entre o professor e a equipe.
+
+Se um dia quiserem a busca por frase de verdade, o caminho é etiquetar as 1.303 uma vez com uma
+IA (script com chave de API, custo de centavos, uma vez só) e deixar a busca em cima das
+etiquetas, que aí é `to_tsvector` e sai de graça. **Não** vale fazer isso dentro de uma conversa:
+aí sim o custo é absurdo.
+
+O `extrair-bncc.mts` já separa o **objeto de conhecimento** de 727 habilidades (vem grudado no fim
+da descrição, na coluna ao lado da tabela). É por ali que sai o agrupamento por tema, quando for a
+vez dele: falta uma coluna em `habilidades` e a terceira lista no `admin_importar_habilidades`.
 
 ### 2.2 Importador do documento do Canva — **pronto**
 Sobe o PDF na aba "Importar do Canva" do painel e vira aula realizada. As peças:

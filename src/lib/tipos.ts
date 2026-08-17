@@ -65,6 +65,17 @@ export type AulaDetalhe = {
   vezes_dada: number
 }
 
+/** Uma habilidade da BNCC ligada a um curso do WIT, curada à mão. */
+export type PonteBncc = {
+  curso: string
+  ordem: number
+  materia_nome: string
+  materia_cor: string
+  habilidade_codigo: string
+  habilidade_texto: string
+  motivo: string
+}
+
 export type Habilidade = {
   id: string
   codigo: string

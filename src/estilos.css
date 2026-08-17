@@ -1184,6 +1184,63 @@ a.atividade:hover {
 .definicoes dd { margin: 0; font-weight: 600; }
 
 /* ------------------------------------------------------------------ */
+/* Ponte entre os cursos do WIT e a BNCC                               */
+/* ------------------------------------------------------------------ */
+
+/* Cartão mais largo que o padrão da grade: aqui cada um carrega duas
+   frases e a citação oficial, e em 270px isso vira uma coluna de uma
+   palavra por linha. */
+.grade.pontes { grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); }
+
+.cartao.ponte {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-self: start;
+}
+
+.cartao.ponte .cabeca {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cartao.ponte .cabeca h2 { font-size: 18px; }
+
+.cartao.ponte .cabeca .motivo {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  display: block;
+}
+
+.cartao.ponte .cabeca .motivo svg { width: 100%; height: 100%; }
+
+.cartao.ponte .porque {
+  font-size: 15.5px;
+  line-height: 1.55;
+}
+
+/* O texto oficial da habilidade fica numa caixa à parte, com borda
+   igual nos quatro lados: é citação, não é a nossa voz.
+   A caixa segue logo depois do texto, sem ser empurrada para o rodapé
+   do cartão: as habilidades têm tamanhos muito diferentes e alinhar
+   pelo fim abria um buraco no meio de metade dos cartões. */
+.cartao.ponte .habilidade {
+  padding: 13px 15px;
+  border: 1px solid var(--borda-solida);
+  border-radius: var(--raio-p);
+  background: var(--superficie-alta);
+}
+
+.cartao.ponte .habilidade p {
+  margin-top: 8px;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--texto-suave);
+}
+
+/* ------------------------------------------------------------------ */
 /* Importação do documento do Canva                                    */
 /* ------------------------------------------------------------------ */
 

@@ -4,6 +4,7 @@ import { Layout } from './componentes/Layout'
 import { LogoWit } from './componentes/LogoWit'
 import { Agendar } from './paginas/Agendar'
 import { AtividadeDetalhe, Atividades } from './paginas/Atividades'
+import { Cursos } from './paginas/Cursos'
 import { Inicio } from './paginas/Inicio'
 import { MinhaReserva } from './paginas/MinhaReserva'
 import { Realizadas } from './paginas/Realizadas'
@@ -28,6 +29,7 @@ export function App() {
           <Route path="/agendar" element={<Agendar />} />
           <Route path="/atividades" element={<Atividades />} />
           <Route path="/atividades/:id" element={<AtividadeDetalhe />} />
+          <Route path="/cursos" element={<Cursos />} />
           <Route path="/realizadas" element={<Realizadas />} />
           <Route path="/reserva" element={<MinhaReserva />} />
           <Route
