@@ -5,12 +5,11 @@ import { LogoWit } from './LogoWit'
 const CHAVE_TEMA = 'wit:tema'
 
 /**
- * Poucos destinos, com o nome do que a pessoa vai fazer — nada de
+ * Só quatro destinos, com o nome do que a pessoa vai fazer — nada de
  * "explore" ou "saiba mais". Professor cansado não procura no site.
  */
 const PAGINAS = [
   { para: '/agendar', rotulo: 'Agendar aula' },
-  { para: '/cursos', rotulo: 'Na sua matéria' },
   { para: '/atividades', rotulo: 'Atividades' },
   { para: '/realizadas', rotulo: 'Já realizadas' },
   { para: '/reserva', rotulo: 'Minha reserva' },

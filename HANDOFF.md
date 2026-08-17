@@ -9,7 +9,7 @@ Site no ar pelo Vercel, banco no Supabase (projeto `Integrador-WIT`, ref `mdwqww
 
 ## 1. Primeira coisa a fazer: conferir o banco
 
-**Da `0001` à `0009`, tudo já foi aplicado e conferido.** A consulta abaixo tem que voltar todos
+**Da `0001` à `0010`, tudo já foi aplicado e conferido.** A consulta abaixo tem que voltar todos
 os números do nome da coluna:
 
 ```sql
@@ -27,7 +27,8 @@ select
   (select count(*) from storage.buckets
     where id = 'fotos-aulas' and public)                             as balde_esperado_1,
   (select count(*) from public.habilidades)                          as bncc_esperado_1303,
-  (select count(*) from public.pontes_bncc)                          as pontes_esperado_40;
+  (select count(*) from public.pontes_bncc)                          as pontes_esperado_40,
+  (select count(*) from public.aulas where publicada)                as atividades_esperado_40;
 ```
 
 Se `coluna_fotos` vier 0, **as páginas de atividade e de aulas realizadas quebram assim que
@@ -79,8 +80,12 @@ no texto da BNCC**. Buscar "metaverso" devolve "pesquisa sobre tema da realidade
 
 A saída escolhida foi a ponte curada (migration `0009`): para cada cruzamento de curso do WIT com
 matéria do comum, **uma** habilidade real, com uma frase dizendo por que ela. São 5 cursos × 8
-matérias = 40 pontes, na página `/cursos`. É ponto de partida declarado, não lista fechada — o
-resto sai da conversa entre o professor e a equipe.
+matérias = 40 pontes, e os 40 códigos foram conferidos contra o PDF oficial.
+
+Elas nasceram numa página própria (`/cursos`) e **a página foi removida na `0010`**: era mais uma
+aba para o professor visitar, e o que estava lá dentro já era ideia de aula. Agora as 40 são
+**atividades do catálogo**, com o curso do WIT no lugar do tema — onde o professor já procura. A
+tabela `pontes_bncc` continua sendo a fonte da carga; só a tela saiu.
 
 Se um dia quiserem a busca por frase de verdade, o caminho é etiquetar as 1.303 uma vez com uma
 IA (script com chave de API, custo de centavos, uma vez só) e deixar a busca em cima das

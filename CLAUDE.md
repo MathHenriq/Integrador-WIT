@@ -89,8 +89,9 @@ EMEIEF JOSÉ EMÍDIO DE AGUIAR
 ## Cursos do Núcleo WIT
 
 São cinco: **Inteligência Artificial, Games, Metaverso, Ambientes Inteligentes (IoT) e Comunicação
-Digital**. Para cada um deles há, na página `/cursos`, uma habilidade da BNCC por matéria do
-comum — a ponte que responde "onde isso encaixa na minha matéria".
+Digital**. Cada um deles tem, no catálogo de atividades, uma aula por matéria do comum, com o
+curso no lugar do tema — a ponte que responde "onde isso encaixa na minha matéria". São 40, e
+cada uma carrega a habilidade da BNCC que a sustenta.
 
 É **ponto de partida, não lista fechada**: quem escolhe as outras habilidades é o professor da
 turma junto com o profissional do WIT. Escrever essa página como se ela dispensasse a conversa
