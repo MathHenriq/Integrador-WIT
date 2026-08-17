@@ -33,14 +33,12 @@ function hexParaTexto(hex: string) {
   return saida
 }
 
-function lerToUnicode(cmap: string): Fonte {
+function lerToUnicode(cmap: string): Map<number, string> {
   const paraTexto = new Map<number, string>()
-  let larguraCodigo = 0
 
   for (const bloco of cmap.matchAll(/beginbfchar([\s\S]*?)endbfchar/g)) {
     const itens = [...bloco[1].matchAll(/<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]*)>/g)]
     for (const [, origem, destino] of itens) {
-      larguraCodigo = Math.max(larguraCodigo, Math.ceil(origem.length / 2))
       paraTexto.set(parseInt(origem, 16), hexParaTexto(destino))
     }
   }
@@ -54,7 +52,6 @@ function lerToUnicode(cmap: string): Fonte {
     for (const [, de, ate, destino, lista] of linhas) {
       const inicio = parseInt(de, 16)
       const fim = parseInt(ate, 16)
-      larguraCodigo = Math.max(larguraCodigo, Math.ceil(de.length / 2))
       if (!Number.isFinite(inicio) || !Number.isFinite(fim) || fim < inicio) continue
       // Faixa gigante é sinal de arquivo estranho; não vale estourar a
       // memória por causa dela.
@@ -75,7 +72,7 @@ function lerToUnicode(cmap: string): Fonte {
     }
   }
 
-  return { bytesPorCodigo: larguraCodigo === 2 ? 2 : 1, paraTexto }
+  return paraTexto
 }
 
 async function lerFontes(doc: Documento, pagina: Valor): Promise<Record<string, Fonte>> {
@@ -85,23 +82,28 @@ async function lerFontes(doc: Documento, pagina: Valor): Promise<Record<string, 
     const fonte = doc.resolver(referencia)
     if (!ehDic(fonte)) continue
 
-    const ehType0 = nomeDe(fonte.itens.Subtype) === 'Type0'
-    let lida: Fonte = { bytesPorCodigo: ehType0 ? 2 : 1, paraTexto: new Map() }
+    // A largura do código vem do TIPO da fonte, não do CMap: fonte
+    // simples usa sempre um byte por código, só a Type0 usa dois. O CMap
+    // não serve de pista — a Adobe grava `<0000> <FFFF>` no codespace e
+    // às vezes uma entrada de 4 dígitos mesmo numa fonte de um byte.
+    // Inferir dali fazia a fonte inteira decodificar como lixo, e foi
+    // isso que deixou a BNCC oficial (600 páginas) sair vazia.
+    const bytesPorCodigo = nomeDe(fonte.itens.Subtype) === 'Type0' ? 2 : 1
+    let paraTexto = new Map<number, string>()
 
     const referenciaCmap = fonte.itens.ToUnicode
     if (referenciaCmap?.tipo === 'ref') {
       const objeto = doc.objeto(referenciaCmap.num)
       if (objeto?.bruto) {
         try {
-          const tabela = lerToUnicode(paraBinario(await doc.conteudo(objeto)))
-          lida = { bytesPorCodigo: ehType0 ? 2 : tabela.bytesPorCodigo, paraTexto: tabela.paraTexto }
+          paraTexto = lerToUnicode(paraBinario(await doc.conteudo(objeto)))
         } catch {
-          // sem tradução: cai no palpite abaixo
+          // sem tradução: cai no palpite de `traduzir`
         }
       }
     }
 
-    saida[apelido] = lida
+    saida[apelido] = { bytesPorCodigo, paraTexto }
   }
 
   return saida
