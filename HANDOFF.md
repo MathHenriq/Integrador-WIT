@@ -9,7 +9,7 @@ Site no ar pelo Vercel, banco no Supabase (projeto `Integrador-WIT`, ref `mdwqww
 
 ## 1. Primeira coisa a fazer: conferir o banco
 
-**Da `0001` à `0010`, tudo já foi aplicado e conferido.** A consulta abaixo tem que voltar todos
+**Da `0001` à `0011`, tudo já foi aplicado e conferido.** A consulta abaixo tem que voltar todos
 os números do nome da coluna:
 
 ```sql
@@ -28,7 +28,10 @@ select
     where id = 'fotos-aulas' and public)                             as balde_esperado_1,
   (select count(*) from public.habilidades)                          as bncc_esperado_1303,
   (select count(*) from public.pontes_bncc)                          as pontes_esperado_40,
-  (select count(*) from public.aulas where publicada)                as atividades_esperado_40;
+  (select count(*) from public.aulas where publicada)                as atividades_esperado_40,
+  (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'listar_habilidades'
+      and p.pronargs = 4)                                            as busca_bncc_esperado_1;
 ```
 
 Se `coluna_fotos` vier 0, **as páginas de atividade e de aulas realizadas quebram assim que
@@ -70,6 +73,25 @@ do importador do Canva lê o documento oficial do MEC (600 páginas) em quatro s
 recarregar, `ferramentas/extrair-bncc.mts` — a receita está no cabeçalho dele.
 
 Ficam sem matéria só as 63 de Ensino Religioso, porque essa matéria não está cadastrada.
+
+#### O corte de mil linhas do PostgREST
+
+Vale saber antes de mexer em qualquer lista que possa crescer: **o PostgREST devolve no máximo mil
+linhas e não avisa**. A `listar_habilidades` antiga trazia tudo e filtrava no navegador — o que
+significava que, das 1.303, **303 não existiam** para quem usava a tela. Não dava erro, não dava
+aviso; elas só não estavam lá.
+
+Por isso a `0011` levou a busca para dentro do banco, com limite explícito e o `count(*) over ()`
+junto, para a tela poder dizer *"mostrando as primeiras 60 de 1.303"*. **Filtrar no navegador não
+é opção em lista grande**: o que foi cortado nunca chegou.
+
+Duas armadilhas que já custaram tempo e estão resolvidas na `0011`:
+
+- `ilike` ignora a caixa mas **não** ignora o acento. A descrição combina via `_texto_chave`,
+  senão "posicao" não acha "posição" e o professor conclui que a habilidade não existe.
+- No editor de aula, guardar só os `id` das habilidades marcadas fazia a escolhida **sumir da
+  tela** na busca seguinte, enquanto seguia salva — parecia que tinha desmarcado sozinha. As
+  marcadas são guardadas como objeto inteiro e entram na lista mesmo fora do resultado.
 
 #### O que a busca por palavra não resolve, e o que foi feito no lugar
 
@@ -188,6 +210,9 @@ de cada ícone e custava ~45 kB gzip para usar um.
 - ~~Bundle acima do aviso do Vite~~ — **resolvido**. O `/admin` é `React.lazy`: o site público caiu
   para 454 kB (133 kB gzip) e o painel virou um pedaço à parte de 36 kB, baixado só por quem entra
   nele.
+- ~~Listar 1.303 habilidades para o professor rolar~~ — **resolvido na `0011`**, junto com o corte
+  de mil linhas do PostgREST descrito na seção 2.1. Ganharam busca o catálogo de atividades, a aba
+  BNCC e o editor de aula.
 - **`npm audit`**: esbuild/vite com aviso moderado. A correção exige Vite 8, que é breaking.
 - **Não há suíte de testes de ponta a ponta.** O arranjo da seção 6 continua vivendo em diretório
   temporário. O que ficou no repositório é a conferência do extrator do Canva
