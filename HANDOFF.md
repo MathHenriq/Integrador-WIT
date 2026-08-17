@@ -3,15 +3,17 @@
 > Leia o `CLAUDE.md` primeiro: ele tem a definição do produto, as regras de interface, a lista
 > de escolas e os horários. **Este arquivo é o estado da obra**; o `CLAUDE.md` é permanente.
 
-Estado em `819384f`. Site no ar pelo Vercel, banco no Supabase (projeto `Integrador-WIT`,
+Estado em `128b179`. Site no ar pelo Vercel, banco no Supabase (projeto `Integrador-WIT`,
 ref `mdwqwwdohwixxotyeiua`).
 
 ---
 
 ## 1. Primeira coisa a fazer: conferir o banco
 
-As migrations `0004` e `0005` foram coladas no SQL Editor pelo usuário, mas **ninguém verificou o
-resultado** — o conector do Supabase estava fora do ar. Rode isto antes de qualquer outra coisa:
+A `0005` **já rodou** — as próprias telas do usuário provam: a home mostrou "340 de 340" horários
+(17 escolas × 4 tempos × 5 dias) e a lista de matérias trouxe "Projetos WIT", que é o nome novo.
+
+Falta confirmar a `0004` (coluna `fotos`) e rodar a `0006` e a `0007`:
 
 ```sql
 select
@@ -20,22 +22,30 @@ select
   (select count(*) from information_schema.columns
     where table_schema='public' and table_name='reservas'
       and column_name='fotos')                                       as coluna_fotos_esperado_1,
-  (select count(*) from public.materias where nome='Projetos WIT')   as projetos_wit_esperado_1;
+  (select count(*) from public.materias where cor = '#2563eb')       as cores_esperado_1,
+  (select count(*) from pg_proc
+    where proname = 'admin_importar_habilidades')                    as importador_esperado_1;
 ```
 
-Se `coluna_fotos` vier 0, **as páginas de atividade e de aulas realizadas estão quebradas em
-produção** — o front já espera esse campo. Rode `supabase/migrations/0004_fotos_das_aulas.sql`.
+Se `coluna_fotos` vier 0, **as páginas de atividade e de aulas realizadas quebram assim que
+existir uma aula realizada** — o front já lê esse campo. Rode `0004_fotos_das_aulas.sql`.
+
+### Ordem de execução das migrations
+
+Da `0002` em diante todos os arquivos reexecutam à vontade, **em ordem**. A `0001` só reexecuta em
+banco que ainda não passou pela `0002` (a `0002` apaga as colunas de token que as funções da
+`0001` usam). Isso está escrito no cabeçalho dela.
 
 ### O conector do Supabase
 
-Existem **duas instalações** do Supabase na conta: uma `connected`, outra `unknown`. O conector
-caiu três vezes numa mesma sessão, sempre com o mesmo padrão — suspeita de que o chat religa a
-instalação sem sessão válida. **Remover a duplicada** deve resolver.
+Existem **duas instalações** do Supabase na conta: uma `connected`, outra `unknown`. **Remover a
+duplicada** deve resolver as quedas.
 
 O estado que aparece do lado do Claude é `connected: true, enabledInChat: false`: autenticado na
-conta, desligado *naquele chat*. É um botão por conversa, nas configurações de conector do próprio
-chat — o Claude não liga sozinho. Também não adianta tentar falar com `supabase.co` por HTTP da
-sessão: o proxy de rede devolve 403 no CONNECT.
+conta, desligado *naquele chat*. A lista de ferramentas do conector é fixada quando a conversa
+começa — ligar o botão no meio de uma conversa **não** vale para ela; é preciso abrir um chat
+novo. Também não adianta tentar falar com `supabase.co` por HTTP da sessão: o proxy de rede
+devolve 403 no CONNECT (dá para liberar mudando a política de rede do ambiente).
 
 Atenção: `list_projects` já voltou vazio mesmo com o conector ligado (a org nasceu pela
 integração Vercel↔Supabase). Nesse caso, passar o `project_id` direto funciona.
@@ -44,19 +54,21 @@ integração Vercel↔Supabase). Nesse caso, passar o `project_id` direto funcio
 
 ## 2. O que falta construir
 
-Os quatro itens de interface saíram em `5f092d7` — cartões por matéria nas realizadas, o motivo
-do Projetos WIT (VR, câmera, controle, IA e Alexa), o Painel WIT como botão no topo à direita e
-o ciclorama do `/reserva` com o vinco parede-piso. Foram conferidos no navegador, nos dois temas
-e em 390px, contra um stub das RPCs. **Falta o que depende do banco:**
+### 2.1 A BNCC em si — a ferramenta está pronta, faltam os dados
+A importação em lote existe (`0007` + caixa de colar na aba BNCC do painel): cola-se a lista
+oficial e o ano e a matéria saem do próprio código (`EF06MA01` → 6º ano, Matemática).
 
-### 2.1 BNCC pré-carregada, agrupada por tema
-Hoje a equipe cadastra habilidade a habilidade na aba BNCC. O pedido: **já vir tudo preenchido**,
-em listas separadas por tema, para facilitar professor, equipe e gestão. É uma migration de seed
-grande — vale confirmar o recorte (quais anos/componentes) antes de escrever.
+**O que não existe é a lista.** Ninguém aqui deve escrever as mais de mil descrições de memória:
+sai texto plausível e errado, num sistema em que professor usa a habilidade para justificar aula.
+Peça o CSV/planilha oficial ao usuário — não está no Drive dele (já procurei).
+
+Falta também **agrupar por tema** na listagem, que foi o pedido original ("em listas separadas
+pelos seus temas"). Hoje a lista é corrida, e a tabela `habilidades` não tem coluna de unidade
+temática — vai precisar de uma.
 
 ### 2.2 Importador do documento do Canva
-A funcionalidade mais pedida. O PDF exportado do Canva vira um "projeto já realizado"
-automaticamente.
+A funcionalidade mais pedida, ainda não começada. O PDF exportado do Canva vira um "projeto já
+realizado" automaticamente.
 
 **Estrutura já decifrada** (exemplo analisado: `Projeto_Integrador_1405.pdf`, 4 páginas):
 
@@ -92,32 +104,57 @@ agendamento, ou o painel da equipe.
 reservado ou não é propriedade **da data**, calculada em `agenda_escola`. Nunca escrever `status`
 à mão.
 
+### 3.4 A cor e o desenho da matéria vivem no código, não no banco
+`src/componentes/MotivoMateria.tsx` decide os dois pelo nome da matéria. A cor do cadastro só é
+usada para matéria que não está na lista. É de propósito: cada matéria tem a sua cor na cabeça de
+quem usa, e isso não deve depender de alguém não ter errado o hex no painel. A `0006` grava a
+mesma paleta no banco para os dois não discordarem.
+
+Os desenhos são os `duotone` do Phosphor (MIT), **copiados** para `desenhos-materias.tsx` por
+`ferramentas/extrair-desenhos.py`. Não instale `@phosphor-icons/react`: ele carrega os seis pesos
+de cada ícone e custava ~45 kB gzip para usar um.
+
 ---
 
 ## 4. Pendências de segurança (avisadas, não resolvidas)
 
+- **`service_role` e `sb_secret_` foram colados no chat** e estão comprometidos. Foi pedida a
+  rotação várias vezes e **não há confirmação de que foi feita**. Não use essas chaves.
 - **A senha do `/admin` é `WIT`.** O usuário optou por manter por enquanto. É a única coisa que
   protege o painel, que lista todas as escolas, reservas e e-mails de contato. Não há limite de
   tentativas.
-- **`service_role` e `sb_secret_` foram colados no chat** e estão comprometidos. Foi pedida a
-  rotação várias vezes e **não há confirmação de que foi feita**. Não use essas chaves.
 
 ---
 
-## 5. Como testar sem tocar em produção
+## 5. Dívida técnica conhecida
 
-Não existe suite de teste no repositório — o que foi usado nesta sessão vivia em diretório
-temporário e se perdeu. O arranjo que funcionou bem, caso valha reconstruir:
+- **`npm run build` sem `.env` não compila o site.** Sem as variáveis, `configuracaoAusente` vira
+  constante, o Vite elimina o router inteiro como código morto e o bundle fica congelado em
+  365 kB — build "verde" que não testou nada. Para valer, rode
+  `VITE_SUPABASE_URL=… VITE_SUPABASE_ANON_KEY=… npm run build`. Vale fazer o script falhar alto
+  quando as variáveis faltam.
+- **Bundle de 479 kB (139 kB gzip)**, acima do aviso do Vite. O `/admin` é só para a equipe e
+  poderia ser `React.lazy`.
+- **`npm audit`**: esbuild/vite com aviso moderado. A correção exige Vite 8, que é breaking.
+- **Não há suíte de testes.** O arranjo da seção 6 vive em diretório temporário e se perde.
 
-1. Postgres 16 local, com os papéis `anon` e `authenticated` criados à mão e o schema
-   `extensions`, imitando o Supabase.
-2. Aplicar as migrations em ordem num banco limpo, e **rodar duas vezes** — todas são
-   reexecutáveis e isso já pegou erro real.
+---
+
+## 6. Como testar sem tocar em produção
+
+1. Postgres 16 local. `initdb` recusa rodar como root — crie um usuário sem privilégio
+   (`useradd pgtest`) e um diretório fora do scratchpad (`/var/tmp/...`, com `chown`). Crie à mão
+   os papéis `anon` e `authenticated` e o schema `extensions`, imitando o Supabase.
+2. Aplique as migrations em ordem num banco limpo e **rode a sequência duas vezes** — foi assim
+   que apareceu a função duplicada de `admin_registrar_relato`, que deixaria o PostgREST sem saber
+   qual chamar.
 3. Um stub HTTP de ~60 linhas traduzindo `POST /rest/v1/rpc/<fn>` em chamada SQL com `set local
    role anon`. Com ele o front roda inteiro contra o banco local.
    Cuidado: o driver `pg` devolve `date` como `Date`; o PostgREST devolve `"2026-08-19"`. Force
    `pg.types.setTypeParser(1082, v => v)` ou o calendário aparece vazio sem erro nenhum.
-4. Playwright com `executablePath: '/opt/pw-browsers/chromium'`.
+4. Playwright com `executablePath: '/opt/pw-browsers/chromium'`. Suba o Vite **a partir da raiz do
+   projeto** (`nohup env VITE_… npx vite --port 5199 &`), senão ele serve o diretório errado.
 
-Três bugs desta sessão só apareceram no navegador, nunca no typecheck: colunas `NaN` na grade,
-o botão de tema invisível no tema claro, e a agenda abrindo numa semana sem vaga. **Olhe a tela.**
+Vários bugs desta obra só apareceram no navegador, nunca no typecheck: colunas `NaN` na grade, o
+botão de tema invisível no tema claro, a agenda abrindo numa semana sem vaga, o desenho do
+Projetos WIT decepado pela capa e `.rodape-cartao` sem regra nenhuma. **Olhe a tela.**
