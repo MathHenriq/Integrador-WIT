@@ -563,6 +563,7 @@ function AbaBncc({
   aoErro: (e: string | null) => void
 }) {
   const [habilidades, setHabilidades] = useState<Habilidade[]>([])
+  const [busca, setBusca] = useState('')
   const [carregando, setCarregando] = useState(true)
   const [codigo, setCodigo] = useState('')
   const [descricao, setDescricao] = useState('')
@@ -572,16 +573,19 @@ function AbaBncc({
 
   const carregar = useCallback(async () => {
     try {
-      setHabilidades(await listarHabilidades())
+      setHabilidades(await listarHabilidades({ busca }))
     } catch (f) {
       aoErro(f instanceof Error ? f.message : 'Não foi possível carregar as habilidades.')
     } finally {
       setCarregando(false)
     }
-  }, [aoErro])
+  }, [aoErro, busca])
 
+  // Um respiro depois da última tecla: a busca vai ao servidor, porque
+  // são 1.303 habilidades e o PostgREST corta a resposta em mil.
   useEffect(() => {
-    void carregar()
+    const relogio = setTimeout(() => void carregar(), 250)
+    return () => clearTimeout(relogio)
   }, [carregar])
 
   async function salvar(evento: React.FormEvent) {
@@ -679,13 +683,33 @@ function AbaBncc({
         </div>
       </form>
 
+      <div className="campo" style={{ maxWidth: 620 }}>
+        <label htmlFor="busca-bncc">Procurar habilidade</label>
+        <input
+          id="busca-bncc"
+          type="search"
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          placeholder="Código (EF06CI) ou palavra do texto (sistema solar)…"
+        />
+        <p className="ajuda">
+          {carregando
+            ? 'Procurando…'
+            : `${habilidades[0]?.total ?? 0} habilidade(s)${busca.trim() ? ' com esse termo' : ' na BNCC'}` +
+              (habilidades.length < (habilidades[0]?.total ?? 0)
+                ? ` · mostrando as primeiras ${habilidades.length}`
+                : '')}
+        </p>
+      </div>
+
       {carregando ? (
         <p className="carregando">Carregando…</p>
       ) : habilidades.length === 0 ? (
         <div className="vazio">
           <span className="emoji">🎯</span>
-          Nenhuma habilidade cadastrada. As aulas funcionam sem isso, mas com elas o professor
-          consegue filtrar o catálogo por habilidade.
+          {busca.trim()
+            ? 'Nenhuma habilidade com esse termo. Tente o código ou outra palavra.'
+            : 'Nenhuma habilidade cadastrada. As aulas funcionam sem isso, mas com elas o professor consegue filtrar o catálogo por habilidade.'}
         </div>
       ) : (
         <div className="rolagem">

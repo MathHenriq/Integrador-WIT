@@ -7,6 +7,7 @@ import type { AulaCatalogo, AulaDetalhe } from '../lib/tipos'
 
 export function Atividades() {
   const [aulas, setAulas] = useState<AulaCatalogo[]>([])
+  const [busca, setBusca] = useState('')
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
 
@@ -19,6 +20,27 @@ export function Atividades() {
       .finally(() => setCarregando(false))
   }, [])
 
+  /**
+   * Busca por tudo que o professor pode ter na cabeça ao chegar: o nome
+   * da matéria, o curso do WIT (que fica no tema), o título, o resumo e
+   * o código da BNCC. Sem isso ele rola oito caixas até desistir.
+   */
+  const encontradas = useMemo(() => {
+    const termo = busca.trim().toLowerCase()
+    if (!termo) return aulas
+    return aulas.filter(
+      (a) =>
+        a.titulo.toLowerCase().includes(termo) ||
+        (a.tema ?? '').toLowerCase().includes(termo) ||
+        a.resumo.toLowerCase().includes(termo) ||
+        (a.materia_nome ?? '').toLowerCase().includes(termo) ||
+        a.habilidades.some(
+          (h) =>
+            h.codigo.toLowerCase().includes(termo) || h.descricao.toLowerCase().includes(termo),
+        ),
+    )
+  }, [aulas, busca])
+
   // Uma caixa por matéria. Sem separar por ano: por ora tudo junto, como
   // foi pedido — o professor lê o que trabalha e decide.
   const porMateria = useMemo(() => {
@@ -27,7 +49,7 @@ export function Atividades() {
       { nome: string; cor: string; aulas: AulaCatalogo[] }
     >()
 
-    for (const aula of aulas) {
+    for (const aula of encontradas) {
       const id = aula.materia_id ?? 'sem-materia'
       const atual =
         mapa.get(id) ??
@@ -41,7 +63,7 @@ export function Atividades() {
     }
 
     return [...mapa.values()].sort((a, b) => b.aulas.length - a.aulas.length)
-  }, [aulas])
+  }, [encontradas])
 
   return (
     <main className="conteudo">
@@ -58,12 +80,38 @@ export function Atividades() {
         </div>
       )}
 
+      <div className="campo busca-catalogo">
+        <input
+          type="search"
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          placeholder="Buscar por matéria, tema, curso do WIT ou código da BNCC…"
+          aria-label="Buscar atividade"
+        />
+        {busca.trim() && (
+          <p className="ajuda">
+            {encontradas.length === 0
+              ? 'Nenhuma atividade com esse termo.'
+              : encontradas.length === 1
+                ? '1 atividade encontrada.'
+                : `${encontradas.length} atividades encontradas.`}
+          </p>
+        )}
+      </div>
+
       <div className="secao" style={{ marginTop: 30 }}>
         {carregando ? (
           <p className="carregando">Carregando atividades…</p>
         ) : porMateria.length === 0 ? (
           <div className="vazio">
-            O catálogo ainda está vazio. A equipe WIT cadastra as atividades pelo painel.
+            {busca.trim() ? (
+              <>
+                Nenhuma atividade encontrada para <strong>{busca.trim()}</strong>. Tente o nome da
+                matéria, o curso do WIT ou um código da BNCC.
+              </>
+            ) : (
+              'O catálogo ainda está vazio. A equipe WIT cadastra as atividades pelo painel.'
+            )}
           </div>
         ) : (
           <div className="grade-materias">

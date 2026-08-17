@@ -71,6 +71,8 @@ export type Habilidade = {
   descricao: string
   materia_id: string | null
   ano: number | null
+  /** Quantas atendem ao filtro no total, não só as devolvidas. */
+  total: number
 }
 
 export type Realizada = {

@@ -5,6 +5,9 @@ import type { AulaAdmin, Habilidade, Materia } from '../lib/tipos'
 import { Aviso } from './Aviso'
 import { Modal } from './Modal'
 
+/** Quantas habilidades a lista mostra de uma vez, antes de exigir busca. */
+const TETO_DA_LISTA = 60
+
 type Props = {
   senha: string
   materias: Materia[]
@@ -33,29 +36,54 @@ export function EditorAula({ senha, materias, aula, aoFechar, aoSalvar }: Props)
   const [habIds, setHabIds] = useState<string[]>(aula?.habilidades.map((h) => h.id) ?? [])
 
   const [habilidades, setHabilidades] = useState<Habilidade[]>([])
+  const [buscaHab, setBuscaHab] = useState('')
   const [erro, setErro] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
 
+  /**
+   * Busca no servidor, com um respiro depois da última tecla. É lá que
+   * ela precisa acontecer: são 1.303 habilidades e o PostgREST corta em
+   * mil, então filtrar aqui deixaria 303 invisíveis sem avisar ninguém.
+   */
   useEffect(() => {
-    listarHabilidades().then(setHabilidades).catch(() => setHabilidades([]))
-  }, [])
+    const relogio = setTimeout(() => {
+      listarHabilidades({ materiaId: materiaId || null, busca: buscaHab })
+        .then(setHabilidades)
+        .catch(() => setHabilidades([]))
+    }, 250)
+    return () => clearTimeout(relogio)
+  }, [materiaId, buscaHab])
 
-  // Sugere as habilidades da matéria escolhida, mas mantém visíveis as já
-  // marcadas — trocar a matéria não pode sumir com o que foi vinculado.
+  /**
+   * As marcadas ficam guardadas inteiras, não só pelo id. A busca vai ao
+   * servidor e devolve outra lista a cada tecla; sem isto, marcar uma
+   * habilidade e procurar a próxima fazia a primeira sumir da tela — o
+   * vínculo continuava salvo, mas quem estava usando não via mais.
+   */
+  const [marcadas, setMarcadas] = useState<Habilidade[]>(
+    () => (aula?.habilidades ?? []).map((h) => ({ ...h, materia_id: null, ano: null, total: 0 })),
+  )
+
+  /**
+   * O que está marcado aparece sempre, no topo: sumir da vista o que a
+   * pessoa acabou de escolher seria pior que a rolagem.
+   */
   const habilidadesVisiveis = useMemo(
-    () =>
-      habilidades.filter(
-        (h) => !materiaId || h.materia_id === materiaId || habIds.includes(h.id),
-      ),
-    [habilidades, materiaId, habIds],
+    () => ({
+      marcadas: marcadas.filter((h) => habIds.includes(h.id)),
+      achadas: habilidades.filter((h) => !habIds.includes(h.id)),
+      total: habilidades[0]?.total ?? 0,
+    }),
+    [habilidades, marcadas, habIds],
   )
 
   function alternarAno(n: number) {
     setAnos((atual) => (atual.includes(n) ? atual.filter((a) => a !== n) : [...atual, n].sort()))
   }
 
-  function alternarHabilidade(id: string) {
-    setHabIds((atual) => (atual.includes(id) ? atual.filter((h) => h !== id) : [...atual, id]))
+  function alternarHabilidade(h: Habilidade) {
+    setHabIds((atual) => (atual.includes(h.id) ? atual.filter((x) => x !== h.id) : [...atual, h.id]))
+    setMarcadas((atual) => (atual.some((x) => x.id === h.id) ? atual : [...atual, h]))
   }
 
   async function salvar(evento: React.FormEvent) {
@@ -182,29 +210,61 @@ export function EditorAula({ senha, materias, aula, aoFechar, aoSalvar }: Props)
 
         <fieldset>
           <legend>Habilidades da BNCC</legend>
-          {habilidadesVisiveis.length === 0 ? (
+          {habilidades.length === 0 && !buscaHab.trim() ? (
             <p className="ajuda" style={{ margin: 0 }}>
               Nenhuma habilidade cadastrada
               {materiaId ? ' para esta matéria' : ''}. Cadastre na aba <strong>BNCC</strong> e volte
               aqui — dá para salvar a aula sem isso.
             </p>
           ) : (
-            <div style={{ display: 'grid', gap: 6, maxHeight: 220, overflowY: 'auto' }}>
-              {habilidadesVisiveis.map((h) => (
-                <label key={h.id} className="caixa" style={{ alignItems: 'flex-start' }}>
-                  <input
-                    type="checkbox"
-                    checked={habIds.includes(h.id)}
-                    onChange={() => alternarHabilidade(h.id)}
-                    style={{ marginTop: 4 }}
-                  />
-                  <span>
-                    <span className="etiqueta codigo">{h.codigo}</span>{' '}
-                    <span style={{ fontWeight: 400 }}>{h.descricao}</span>
-                  </span>
-                </label>
-              ))}
-            </div>
+            <>
+              <div className="campo" style={{ marginBottom: 10 }}>
+                <input
+                  type="search"
+                  value={buscaHab}
+                  onChange={(e) => setBuscaHab(e.target.value)}
+                  placeholder="Buscar por código ou por palavra da habilidade…"
+                  aria-label="Buscar habilidade da BNCC"
+                />
+                <p className="ajuda">
+                  {habIds.length > 0 && `${habIds.length} marcada(s) · `}
+                  {buscaHab.trim()
+                    ? `${habilidadesVisiveis.total} encontrada(s)`
+                    : `${habilidadesVisiveis.total} disponível(is) — escreva para achar a sua`}
+                </p>
+              </div>
+
+              <div className="lista-habilidades">
+                {[...habilidadesVisiveis.marcadas, ...habilidadesVisiveis.achadas].map((h) => (
+                  <label key={h.id} className="caixa" style={{ alignItems: 'flex-start' }}>
+                    <input
+                      type="checkbox"
+                      checked={habIds.includes(h.id)}
+                      onChange={() => alternarHabilidade(h)}
+                      style={{ marginTop: 4 }}
+                    />
+                    <span>
+                      <span className="etiqueta codigo">{h.codigo}</span>{' '}
+                      <span style={{ fontWeight: 400 }}>{h.descricao}</span>
+                    </span>
+                  </label>
+                ))}
+
+                {habilidadesVisiveis.achadas.length === 0 && buscaHab.trim() && (
+                  <p className="ajuda" style={{ margin: 0 }}>
+                    Nenhuma habilidade com esse termo. Tente o código (EF06CI11) ou uma palavra do
+                    texto.
+                  </p>
+                )}
+              </div>
+
+              {habilidadesVisiveis.total > TETO_DA_LISTA && (
+                <p className="ajuda">
+                  Mostrando as primeiras {TETO_DA_LISTA} de {habilidadesVisiveis.total}. Escreva
+                  mais para estreitar.
+                </p>
+              )}
+            </>
           )}
         </fieldset>
 

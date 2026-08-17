@@ -82,10 +82,22 @@ export function obterAula(aulaId: string) {
   return chamar<AulaDetalhe | null>('obter_aula', { p_aula_id: aulaId })
 }
 
-export function listarHabilidades(materiaId?: string | null, ano?: number | null) {
+/**
+ * A busca acontece no servidor de propósito. São 1.303 habilidades, e o
+ * PostgREST corta a resposta em mil linhas: filtrar no navegador nunca
+ * enxergaria as outras 303, sem nada avisar.
+ */
+export function listarHabilidades(filtros: {
+  materiaId?: string | null
+  ano?: number | null
+  busca?: string | null
+  limite?: number
+} = {}) {
   return chamar<Habilidade[]>('listar_habilidades', {
-    p_materia_id: materiaId ?? null,
-    p_ano: ano ?? null,
+    p_materia_id: filtros.materiaId ?? null,
+    p_ano: filtros.ano ?? null,
+    p_busca: filtros.busca?.trim() || null,
+    p_limite: filtros.limite ?? 60,
   })
 }
 

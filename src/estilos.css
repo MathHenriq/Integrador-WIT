@@ -41,6 +41,10 @@
   --raio-p: 9px;
   --largura: 1180px;
 
+  /* Desenho do × que limpa a busca. Vai como máscara, então a cor vem do
+     `background` de quem usa e acompanha o tema claro sem duplicar nada. */
+  --x-de-limpar: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M1.5 1.5l9 9M10.5 1.5l-9 9' stroke='%23000' stroke-width='1.8' stroke-linecap='round' fill='none'/%3E%3C/svg%3E");
+
   --fonte-titulo: 'Outfit', 'Segoe UI', system-ui, sans-serif;
   --fonte-texto: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif;
 }
@@ -1182,6 +1186,45 @@ a.atividade:hover {
 
 .definicoes dt { color: var(--texto-suave); }
 .definicoes dd { margin: 0; font-weight: 600; }
+
+/* ------------------------------------------------------------------ */
+/* Buscas de lista longa                                               */
+/* ------------------------------------------------------------------ */
+
+/* A busca do catálogo fica logo abaixo da linha fina, larga o bastante
+   para caber a frase inteira sem virar caixinha perdida no canto. */
+.busca-catalogo {
+  margin-top: 24px;
+  margin-bottom: 0;
+  max-width: 620px;
+}
+
+/* O botão de limpar que o Chromium põe sozinho no `type="search"` vem
+   azul, destoando de tudo. Trocado por um × desenhado aqui, no cinza do
+   texto suave, que escurece ao passar o mouse. */
+input[type='search']::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  background: var(--texto-suave);
+  -webkit-mask: var(--x-de-limpar) center / 12px 12px no-repeat;
+  mask: var(--x-de-limpar) center / 12px 12px no-repeat;
+}
+
+input[type='search']::-webkit-search-cancel-button:hover {
+  background: var(--texto);
+}
+
+/* A BNCC tem 1.303 habilidades. A altura é limitada de propósito: a
+   lista é para conferir o que a busca trouxe, não para percorrer. */
+.lista-habilidades {
+  display: grid;
+  gap: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+}
 
 /* ------------------------------------------------------------------ */
 /* Importação do documento do Canva                                    */
