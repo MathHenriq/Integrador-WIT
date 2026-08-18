@@ -3,6 +3,7 @@ import { AdminHorarios } from '../componentes/AdminHorarios'
 import { Aviso } from '../componentes/Aviso'
 import { EditorAula } from '../componentes/EditorAula'
 import { EtiquetaReserva } from '../componentes/Etiqueta'
+import { CriarDocumento } from '../componentes/CriarDocumento'
 import { ImportarCanva } from '../componentes/ImportarCanva'
 import { IntegradoresRealizados } from '../componentes/IntegradoresRealizados'
 import { LogoWit } from '../componentes/LogoWit'
@@ -24,7 +25,7 @@ import { pedirRelatoEFotos } from '../lib/relato'
 import type { AulaAdmin, EscolaAdmin, Habilidade, Materia, ReservaAdmin } from '../lib/tipos'
 
 const CHAVE = 'wit:senha-admin'
-type Aba = 'aulas' | 'escolas' | 'reservas' | 'integradores' | 'canva' | 'bncc'
+type Aba = 'aulas' | 'escolas' | 'reservas' | 'integradores' | 'documento' | 'canva' | 'bncc'
 
 export function Admin() {
   const [senha, setSenha] = useState(() => localStorage.getItem(CHAVE) ?? '')
@@ -151,6 +152,9 @@ function Painel({ senha, aoSair }: { senha: string; aoSair: () => void }) {
         >
           Integradores realizados
         </button>
+        <button role="tab" aria-selected={aba === 'documento'} onClick={() => setAba('documento')}>
+          Novo documento
+        </button>
         <button role="tab" aria-selected={aba === 'canva'} onClick={() => setAba('canva')}>
           Importar do Canva
         </button>
@@ -163,6 +167,7 @@ function Painel({ senha, aoSair }: { senha: string; aoSair: () => void }) {
       {aba === 'escolas' && <AbaEscolas senha={senha} aoErro={setErro} />}
       {aba === 'reservas' && <AbaReservas senha={senha} aoErro={setErro} />}
       {aba === 'integradores' && <IntegradoresRealizados senha={senha} aoErro={setErro} />}
+      {aba === 'documento' && <CriarDocumento senha={senha} aoErro={setErro} />}
       {aba === 'canva' && <ImportarCanva senha={senha} aoErro={setErro} />}
       {aba === 'bncc' && <AbaBncc senha={senha} materias={materias} aoErro={setErro} />}
     </main>

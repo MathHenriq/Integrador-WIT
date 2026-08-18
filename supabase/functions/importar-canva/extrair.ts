@@ -88,7 +88,10 @@ function limpar(valor: string, bloco: boolean) {
 
   texto = texto
     .split('\n')
-    .map((linha) => linha.replace(/[ \t]+/g, ' ').trim())
+    // O marcador de lista é desenho, não conteúdo: alguns documentos o
+    // trazem como letra (o nosso gerador, por exemplo) e ele não pode
+    // virar parte do objetivo que o professor escreveu.
+    .map((linha) => linha.replace(/[ \t]+/g, ' ').replace(/^\s*[•▪◦‣·*-]\s+/, '').trim())
     .join('\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim()

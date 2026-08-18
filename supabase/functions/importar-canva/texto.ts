@@ -237,14 +237,27 @@ async function lerFontes(doc: Documento, pagina: Valor): Promise<Record<string, 
 }
 
 /**
+ * Os dezesseis códigos em que o WinAnsi difere do Latin-1. Fora deles a
+ * tabela é o próprio Unicode, então não precisa de mapa.
+ */
+const WINANSI: Record<number, string> = {
+  0x80: '€', 0x82: '‚', 0x83: 'ƒ', 0x84: '„', 0x85: '…', 0x86: '†', 0x87: '‡',
+  0x88: 'ˆ', 0x89: '‰', 0x8a: 'Š', 0x8b: '‹', 0x8c: 'Œ', 0x8e: 'Ž',
+  0x91: '‘', 0x92: '’', 0x93: '“', 0x94: '”', 0x95: '•', 0x96: '–', 0x97: '—',
+  0x98: '˜', 0x99: '™', 0x9a: 'š', 0x9b: '›', 0x9c: 'œ', 0x9e: 'ž', 0x9f: 'Ÿ',
+}
+
+/**
  * Sem /ToUnicode não há o que consultar; o palpite é que o código seja o
  * próprio caractere, que é verdade nas fontes não recortadas (a maioria
- * dos PDFs que não vêm de editor gráfico).
+ * dos PDFs que não vêm de editor gráfico) — com a correção do WinAnsi,
+ * que é a codificação padrão dessas fontes.
  */
 function traduzir(fonte: Fonte, codigo: number) {
   const achado = fonte.paraTexto.get(codigo)
   if (achado !== undefined) return achado
   if (fonte.paraTexto.size > 0) return '' // fonte recortada: código fora da tabela não é letra
+  if (WINANSI[codigo]) return WINANSI[codigo]
   return codigo >= 32 && codigo < 0x3000 ? String.fromCharCode(codigo) : ''
 }
 

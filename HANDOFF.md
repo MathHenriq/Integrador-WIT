@@ -216,6 +216,45 @@ já aconteceu — como não havia nenhuma, o erro ficou escondido desde a `0004`
 na tela para o React derrubar a página inteira. **Lição:** o tipo `ReservaAdmin` é um contrato, e
 nada garante que a RPC o cumpra — quando mexer numa das pontas, confira a outra.
 
+### 2.4 Gerador do documento — **pronto**
+
+O caminho contrário do importador: a aba "Novo documento" do painel tem os mesmos campos do Canva,
+recebe as fotos e **devolve o PDF pronto**, no mesmo desenho — além de publicar a aula realizada e
+abrir a atividade no catálogo.
+
+| onde | o quê |
+| --- | --- |
+| `src/lib/documento/escritor.ts` | escritor de PDF: caixas, texto, JPEG e páginas |
+| `src/lib/documento/montar.ts` | o layout do documento, medida por medida |
+| `src/lib/documento/modelo.ts` | o logo e a marca d'água, gerados pela ferramenta |
+| `src/componentes/CriarDocumento.tsx` | o formulário e as fotos |
+| `ferramentas/extrair-modelo.mts` | tira o logo e a marca de um PDF do Canva |
+| `ferramentas/conferir-gerador.mts` | gera um documento e o passa pelo importador |
+
+**Roda no navegador, não no servidor.** O PDF é montado na máquina de quem preencheu e sobe pelo
+**mesmo caminho de um PDF do Canva**: a Edge Function `importar-canva` hospeda as fotos e registra
+o arquivo. Um caminho só nos dois sentidos, e nenhuma função nova para manter. O `modelo.ts` (99 KB,
+quase tudo base64 das duas imagens) fica num pedaço separado do bundle, carregado só quando alguém
+clica em gerar.
+
+**Nenhuma medida foi estimada a olho.** As caixas são os retângulos brancos do PDF exportado, as
+posições do logo e da marca são as matrizes com que o Canva os desenha, e os tamanhos de letra são
+os do texto de lá — tudo lido com `ferramentas/placas`-como-script durante o desenvolvimento e
+anotado em `montar.ts`.
+
+**A fonte não é embutida, e é de propósito.** O documento do Canva escreve 98% do texto em
+Arial-BoldMT; a Helvetica-Bold, uma das 14 fontes que todo visualizador tem, tem **as mesmas
+larguras de glifo** que a Arial. O texto cai onde caía, e o arquivo não carrega fonte nenhuma. (O
+resto do original é "Now Bold", uma fonte do Canva: o recorte embutido no PDF cobre 31 glifos, nem
+metade do alfabeto, então não dava para reaproveitar.)
+
+**A prova é o round-trip.** `ferramentas/conferir-gerador.mts` gera um documento e o entrega ao
+extrator do importador: os nove campos voltam idênticos ao que entrou. Se o leitor do Canva lê o
+que o gerador escreve, os dois lados falam do mesmo documento.
+
+**Uma liberdade em relação ao original:** o texto sempre cabe. O bloco diminui a letra até entrar
+na caixa, em vez de transbordar como acontece no Canva quando alguém escreve demais.
+
 ---
 
 ## 3. Decisões tomadas que não devem ser revertidas sem conversa

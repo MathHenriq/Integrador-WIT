@@ -1383,11 +1383,15 @@ input[type='search']::-webkit-search-cancel-button:hover {
   gap: 2px;
   border-bottom: 1px solid var(--borda-solida);
   margin-bottom: 22px;
+  /* São sete abas: no monitor elas quebram para a linha de baixo, e no
+     celular deslizam de lado. Aba cortada pela metade parece defeito. */
+  flex-wrap: wrap;
   overflow-x: auto;
 }
 
 .abas button {
   background: transparent;
+  flex: 0 0 auto;
   color: var(--texto-suave);
   border: none;
   border-bottom: 2px solid transparent;

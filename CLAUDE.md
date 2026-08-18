@@ -116,6 +116,11 @@ biblioteca) e na aba "Importar do Canva" do painel. Ver a seção 2.2 do `HANDOF
 **Aula realizada não pergunta horário.** Ela está no site para inspirar outro professor, não para
 ocupar agenda: quem resolve o tempo é o banco, na `admin_importar_aula_realizada`.
 
+**O site também gera o documento.** A aba "Novo documento" do painel tem os mesmos campos do Canva
+e devolve o PDF pronto, no mesmo desenho, com as fotos dentro — e publica a aula na mesma hora. O
+PDF é montado no navegador (`src/lib/documento/`) e sobe pelo mesmo caminho de um arquivo do Canva.
+Quando o template mudar no Canva, rode `ferramentas/extrair-modelo.mts` com um documento exportado.
+
 **O documento importado vale duas vezes.** Além de registrar o que a turma fez, ele **abre a
 atividade no catálogo** (tema, descrição, objetivos, materiais e o ano da turma), para outro
 professor poder escolher a mesma proposta ao agendar. Importar o mesmo tema de novo reaproveita a
