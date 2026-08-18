@@ -303,6 +303,16 @@ de cada ícone e custava ~45 kB gzip para usar um.
 
 ## 5. Dívida técnica conhecida
 
+- **A `importar-canva` no ar está uma versão atrás do repositório.** A que roda em produção é a que
+  resolveu o texto do Canva (geometria + larguras de glifo) e as fotos repetidas — é a que importa,
+  e está testada com três documentos reais. Ficaram de fora duas melhorias do leitor que vieram
+  depois, no mesmo dia: a tabela do **WinAnsi** em `texto.ts` e a retirada do **marcador de lista**
+  em `extrair.ts`. Nada disso muda a importação de um PDF do Canva (as fontes de lá são recortadas e
+  têm `/ToUnicode`); mexe só na leitura de PDF de outro produtor e na releitura de um documento
+  gerado pelo próprio site. Para alinhar: deploy da função com os cinco arquivos da pasta
+  `supabase/functions/importar-canva/`, e depois `curl` com um documento de verdade para conferir os
+  nove campos.
+
 - ~~`npm run build` sem `.env` compilava em silêncio~~ — **resolvido**. O `vite.config.ts` agora
   quebra o build, com o nome do que falta, quando `VITE_SUPABASE_URL` ou `VITE_SUPABASE_ANON_KEY`
   não está definida. No `dev` continua subindo, porque ali a tela de "configuração pendente" é o
