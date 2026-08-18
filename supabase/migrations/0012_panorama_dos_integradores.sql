@@ -8,7 +8,7 @@
 -- =====================================================================
 --
 -- A aba "Integradores realizados" do painel responde uma pergunta que a
--- lista de reservas não responde: **quais escolas não estão fazendo
+-- lista de reservas não responde: **quais escolas ainda não estão no
 -- projeto**. Escola sem nenhuma reserva não tem linha em reserva
 -- nenhuma, então ela só aparece se a conta começar pelas escolas — é o
 -- que esta função faz, com `left join`, devolvendo as 17 sempre, mesmo
@@ -22,18 +22,14 @@ drop function if exists public.admin_panorama_escolas(text);
 
 create or replace function public.admin_panorama_escolas(p_admin_token text)
 returns table (
-  escola_id         uuid,
-  escola_nome       text,
-  realizadas        bigint,
-  com_registro      bigint,
-  sem_registro      bigint,
-  agendadas         bigint,
-  canceladas        bigint,
-  professores       bigint,
-  primeira_data     date,
-  ultima_data       date,
-  proxima_data      date,
-  dias_desde_ultima int
+  escola_id    uuid,
+  escola_nome  text,
+  realizadas   bigint,
+  agendadas    bigint,
+  canceladas   bigint,
+  professores  bigint,
+  ultima_data  date,
+  proxima_data date
 )
 language plpgsql
 stable
@@ -49,8 +45,6 @@ begin
            e.nome as escola_nome,
            r.status,
            r.data_aula,
-           r.relato,
-           r.fotos,
            r.nome_professor,
            -- Mesma régua da lista de reservas e da vitrine pública: a
            -- aula só virou passado depois do fim do tempo dela.
@@ -62,11 +56,9 @@ begin
   contas as (
     select l.escola_id,
            l.escola_nome,
-           l.status = 'confirmado' and l.ja_aconteceu       as feita,
-           l.status = 'confirmado' and not l.ja_aconteceu   as marcada,
-           l.status = 'cancelado'                           as cancelada,
-           coalesce(btrim(l.relato), '') <> ''
-             or coalesce(array_length(l.fotos, 1), 0) > 0   as tem_registro,
+           l.status = 'confirmado' and l.ja_aconteceu     as feita,
+           l.status = 'confirmado' and not l.ja_aconteceu as marcada,
+           l.status = 'cancelado'                         as cancelada,
            l.data_aula,
            l.nome_professor
       from linhas l
@@ -74,15 +66,11 @@ begin
   select c.escola_id,
          c.escola_nome,
          count(*) filter (where c.feita),
-         count(*) filter (where c.feita and c.tem_registro),
-         count(*) filter (where c.feita and not c.tem_registro),
          count(*) filter (where c.marcada),
          count(*) filter (where c.cancelada),
          count(distinct lower(btrim(c.nome_professor))) filter (where c.feita),
-         min(c.data_aula) filter (where c.feita),
          max(c.data_aula) filter (where c.feita),
-         min(c.data_aula) filter (where c.marcada),
-         (public.hoje_brasil() - max(c.data_aula) filter (where c.feita))::int
+         min(c.data_aula) filter (where c.marcada)
     from contas c
    group by c.escola_id, c.escola_nome
    order by c.escola_nome;

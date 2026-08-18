@@ -730,17 +730,15 @@ legend { font-family: var(--fonte-titulo); font-size: 14.5px; font-weight: 600; 
 .etiqueta.materia { background: var(--superficie-alta); color: var(--texto-suave); border-color: var(--borda-solida); }
 
 /* Situação do integrador e da escola, no painel da equipe. Mesma família
-   de cores das reservas: verde é o que está resolvido, âmbar é o que
-   pede uma providência, vermelho é o que não anda. */
-.etiqueta.registrada, .etiqueta.em-atividade { background: var(--sucesso-fundo); color: var(--sucesso); }
-.etiqueta.sem-registro, .etiqueta.parada { background: var(--aviso-fundo); color: var(--aviso); }
-.etiqueta.agendada, .etiqueta.primeira-marcada {
+   de cores das reservas. */
+.etiqueta.realizada, .etiqueta.realizando { background: var(--sucesso-fundo); color: var(--sucesso); }
+.etiqueta.agendada {
   background: var(--superficie-alta);
   color: var(--texto-suave);
   border-color: var(--borda-solida);
 }
 .etiqueta.cancelada { background: var(--erro-fundo); color: var(--erro); }
-.etiqueta.sem-projeto { background: var(--erro-fundo); color: var(--erro); }
+.etiqueta.sem-projeto { background: var(--aviso-fundo); color: var(--aviso); }
 .etiqueta.codigo {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 12px;
@@ -908,45 +906,29 @@ a.atividade:hover {
    colorida na lateral em lugar nenhum — borda, quando existe, é igual
    nos quatro lados. */
 
-.numeros {
-  display: grid;
-  gap: 14px;
-  grid-template-columns: repeat(auto-fit, minmax(184px, 1fr));
-}
+.realizando-agora { padding: 20px 24px; }
 
-.cartao.numero { padding: 18px 20px; }
-
-.cartao.numero .valor {
-  display: block;
+.realizando-agora .valor {
   font-family: var(--fonte-titulo);
-  font-size: 34px;
+  font-size: 38px;
   font-weight: 700;
-  line-height: 1.1;
+  line-height: 1;
+  margin-right: 12px;
 }
 
-.cartao.numero .valor .de { font-size: 20px; color: var(--texto-fraco); font-weight: 600; }
-
-.cartao.numero .rotulo {
-  display: block;
-  margin-top: 6px;
-  color: var(--texto-suave);
-  font-size: 14.5px;
-  line-height: 1.4;
-}
+.realizando-agora .valor .de { font-size: 22px; color: var(--texto-fraco); font-weight: 600; }
+.realizando-agora .rotulo { color: var(--texto-suave); font-size: 15px; }
 
 .grade-escolas {
   display: grid;
   gap: 14px;
   grid-template-columns: repeat(auto-fit, minmax(272px, 1fr));
+  /* Cada cartão com a altura do seu conteúdo: a escola sem projeto é
+     duas linhas, e esticá-la até a altura da vizinha só faria buraco. */
+  align-items: start;
 }
 
 .escola-panorama.aberta { border-color: var(--verde); }
-
-.escola-panorama .sem-nada {
-  margin-top: 10px;
-  color: var(--texto-suave);
-  font-size: 14.5px;
-}
 
 .escola-panorama .numeros-escola {
   display: flex;
@@ -964,23 +946,6 @@ a.atividade:hover {
 }
 
 .escola-panorama .numeros-escola span { color: var(--texto-suave); font-size: 14px; }
-.escola-panorama .numeros-escola .atencao strong { color: var(--aviso); }
-
-.escolas-zeradas { margin-bottom: 16px; }
-.escolas-zeradas .topo-cartao strong { font-family: var(--fonte-titulo); font-size: 15.5px; }
-.escolas-zeradas p { margin-top: 10px; color: var(--texto-suave); font-size: 15px; max-width: 70ch; }
-
-.escolas-zeradas ul {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 2px 20px;
-  margin: 14px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.escolas-zeradas li { font-size: 15px; padding: 3px 0; }
-.escolas-zeradas li::before { content: '· '; color: var(--texto-fraco); }
 
 .filtros-integradores {
   display: flex;

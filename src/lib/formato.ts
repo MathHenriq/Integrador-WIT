@@ -167,48 +167,27 @@ export const ROTULO_STATUS_RESERVA: Record<StatusReserva, string> = {
 }
 
 export const ROTULO_SITUACAO: Record<SituacaoIntegrador, string> = {
-  registrada: 'Realizada',
-  'sem-registro': 'Falta o registro',
+  realizada: 'Realizada',
   agendada: 'Agendada',
   cancelada: 'Cancelada',
 }
 
 export const ROTULO_SITUACAO_ESCOLA: Record<SituacaoEscola, string> = {
-  'em-atividade': 'Em atividade',
-  parada: 'Parada',
-  'primeira-marcada': 'Primeira marcada',
+  realizando: 'Realizando projeto integrador',
   'sem-projeto': 'Sem projeto ainda',
 }
 
-/**
- * Uma aula que já passou e não tem relato nem foto não virou nada para
- * quem olha de fora — nem vitrine, nem exemplo para o próximo professor.
- * Por isso ela tem situação própria, separada da que foi registrada.
- */
 export function situacaoDoIntegrador(reserva: {
   status: StatusReserva
   ja_aconteceu: boolean
-  relato: string | null
-  fotos: string[]
 }): SituacaoIntegrador {
   if (reserva.status === 'cancelado') return 'cancelada'
-  if (!reserva.ja_aconteceu) return 'agendada'
-  const registrada = Boolean(reserva.relato?.trim()) || reserva.fotos.length > 0
-  return registrada ? 'registrada' : 'sem-registro'
+  return reserva.ja_aconteceu ? 'realizada' : 'agendada'
 }
 
-/**
- * Quanto tempo sem nenhuma aula até a escola contar como parada. Pouco
- * mais de um mês: menos que isso acusaria recesso e semana de prova como
- * problema; muito mais e a coordenação só descobriria no fim do
- * semestre.
- */
-export const DIAS_PARA_PARAR = 45
-
+/** Aula dada ou aula marcada: nos dois casos a escola está no projeto. */
 export function situacaoDaEscola(linha: PanoramaEscola): SituacaoEscola {
-  if (linha.realizadas === 0) return linha.agendadas > 0 ? 'primeira-marcada' : 'sem-projeto'
-  if (linha.agendadas > 0) return 'em-atividade'
-  return (linha.dias_desde_ultima ?? 0) > DIAS_PARA_PARAR ? 'parada' : 'em-atividade'
+  return linha.realizadas + linha.agendadas > 0 ? 'realizando' : 'sem-projeto'
 }
 
 export function emailValido(valor: string) {

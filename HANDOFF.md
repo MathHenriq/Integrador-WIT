@@ -154,29 +154,26 @@ imita o do Canva: fontes recortadas com `/ToUnicode` (1 e 2 bytes), páginas esc
 `/ObjStm`, cabeçalho e rodapé nas 4 páginas, fotos em JPEG e em Flate, e um ícone pequeno. É o
 caso difícil de propósito.
 
-### 2.3 Panorama dos integradores realizados — **pronto**
+### 2.3 Integradores realizados — **pronto**
 
-Aba "Integradores realizados" do painel, feita para o coordenador: quem está fazendo projeto, quem
-não está e como anda o registro de cada aula.
+Aba "Integradores realizados" do painel, feita para o coordenador: quantas escolas estão no projeto
+agora, escola por escola, e a lista de aulas filtrável por escola e por situação.
 
 | onde | o quê |
 | --- | --- |
 | `0012_panorama_dos_integradores.sql` | `admin_panorama_escolas`, uma linha por escola |
-| `src/componentes/IntegradoresRealizados.tsx` | números, panorama por escola e a lista filtrável |
+| `src/componentes/IntegradoresRealizados.tsx` | o cartão do "agora", os cartões e a lista |
 | `src/lib/relato.ts` | o relato e as fotos perguntados no navegador, agora compartilhados |
 
-**A conta é do banco, não do navegador.** Escola sem nenhuma reserva não aparece em lista de
-reserva nenhuma — e é justamente ela que interessa —, então a função parte das escolas com `left
-join`. Somar as reservas no navegador também daria número errado assim que o histórico passar das
-mil linhas que o PostgREST devolve.
+**Todas as escolas aparecem, inclusive as zeradas.** É o pedido do coordenador: escola sem nada é o
+que cria senso de urgência, e ela não tem linha em lista de reserva nenhuma. Por isso a função
+parte das escolas com `left join`, e as sem projeto vêm primeiro na tela. Somar as reservas no
+navegador também daria número errado assim que o histórico passar das mil linhas que o PostgREST
+devolve.
 
-**A situação da aula tem quatro valores**, e um deles não existe no banco: aula confirmada que já
-passou e não tem relato nem foto fica como *falta o registro*, separada da que já virou vitrine.
-É o que a coordenação precisa cobrar. Ver `situacaoDoIntegrador` em `src/lib/formato.ts`.
-
-**A escola conta como parada** depois de 45 dias sem aula e sem nada marcado (`DIAS_PARA_PARAR`).
-Menos que isso acusaria recesso e semana de prova; muito mais e a coordenação só descobriria no
-fim do semestre.
+**Duas situações para a escola** — *realizando projeto integrador* (tem aula dada ou marcada) e
+*sem projeto ainda* — e três para a aula: realizada, agendada, cancelada. Nada de "parada" nem de
+"falta o registro": foram tentados e reprovados, aula que aconteceu é aula realizada, ponto.
 
 ---
 

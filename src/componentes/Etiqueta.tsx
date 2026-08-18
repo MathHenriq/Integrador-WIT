@@ -23,18 +23,6 @@ export function EtiquetaSituacao({ situacao }: { situacao: SituacaoIntegrador })
   return <span className={`etiqueta ${situacao}`}>{ROTULO_SITUACAO[situacao]}</span>
 }
 
-export function EtiquetaEscola({
-  situacao,
-  detalhe,
-}: {
-  situacao: SituacaoEscola
-  /** Complemento curto, tipo "há 62 dias". */
-  detalhe?: string | null
-}) {
-  return (
-    <span className={`etiqueta ${situacao}`}>
-      {ROTULO_SITUACAO_ESCOLA[situacao]}
-      {detalhe ? ` ${detalhe}` : ''}
-    </span>
-  )
+export function EtiquetaEscola({ situacao }: { situacao: SituacaoEscola }) {
+  return <span className={`etiqueta ${situacao}`}>{ROTULO_SITUACAO_ESCOLA[situacao]}</span>
 }
