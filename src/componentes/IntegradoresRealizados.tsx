@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { EtiquetaSituacao } from './Etiqueta'
-import { adminListarReservas } from '../lib/api'
+import { adminListarEscolas, adminListarReservas } from '../lib/api'
 import { dataCurta, faixaHoraria, situacaoDoIntegrador } from '../lib/formato'
 import { pedirRelatoEFotos } from '../lib/relato'
-import type { ReservaAdmin, SituacaoIntegrador } from '../lib/tipos'
+import type { EscolaAdmin, ReservaAdmin, SituacaoIntegrador } from '../lib/tipos'
 
 /** Os recortes da lista, na ordem em que aparecem como filtro. */
 const VISTAS = [
@@ -30,6 +30,7 @@ export function IntegradoresRealizados({
   aoErro: (e: string | null) => void
 }) {
   const [reservas, setReservas] = useState<ReservaAdmin[]>([])
+  const [escolas, setEscolas] = useState<EscolaAdmin[]>([])
   const [carregando, setCarregando] = useState(true)
   const [escolaId, setEscolaId] = useState<string | null>(null)
   const [vista, setVista] = useState<Vista>('tudo')
@@ -39,7 +40,12 @@ export function IntegradoresRealizados({
   const carregar = useCallback(async () => {
     aoErro(null)
     try {
-      setReservas(await adminListarReservas(senha, null))
+      const [aulas, todas] = await Promise.all([
+        adminListarReservas(senha, null),
+        adminListarEscolas(senha),
+      ])
+      setReservas(aulas)
+      setEscolas(todas)
     } catch (f) {
       aoErro(f instanceof Error ? f.message : 'Não foi possível carregar os integradores.')
     } finally {
@@ -61,14 +67,6 @@ export function IntegradoresRealizados({
       .filter((r) => r.status === 'confirmado')
       .map((r) => r.escola_nome)
     return [...new Set(nomes)].sort((a, b) => a.localeCompare(b, 'pt-BR'))
-  }, [reservas])
-
-  /** Só as escolas que têm aula na lista entram no filtro. */
-  const escolas = useMemo(() => {
-    const porId = new Map(reservas.map((r) => [r.escola_id, r.escola_nome]))
-    return [...porId.entries()]
-      .map(([id, nome]) => ({ id, nome }))
-      .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
   }, [reservas])
 
   /**
@@ -130,11 +128,13 @@ export function IntegradoresRealizados({
             onChange={(e) => setEscolaId(e.target.value || null)}
           >
             <option value="">Todas as escolas</option>
-            {escolas.map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.nome}
-              </option>
-            ))}
+            {[...escolas]
+              .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+              .map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.nome}
+                </option>
+              ))}
           </select>
         </div>
 
