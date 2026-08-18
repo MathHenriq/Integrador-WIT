@@ -176,6 +176,13 @@ materiais está vazia no próprio documento) e só as fotos de verdade.
 qual deles o documento não entregou — e o cabeçalho diz "7 de 8 campos preenchidos pelo
 documento". O resto continua preenchido: documento fora do padrão nunca vira parede.
 
+**Resumo curto não derruba a publicação** (`0015`). O catálogo exige resumo com dez letras
+(`aulas_resumo_check`), e uma aula sem descrição batia nessa trava: o painel mostrava o texto cru do
+Postgres e a aula não era registrada. Agora, sem descrição, o resumo é montado do tema com o nome da
+escola — e abrir a atividade virou um passo que pode falhar sozinho: a aula fica salva, `aula_id`
+volta nulo e a tela conta o que houve. **Regra:** o registro da aula não se perde por causa do
+catálogo.
+
 **A aula importada vira atividade** (`0014`). O documento do Canva é bom demais para servir só de
 registro: tema, objetivos, descrição e materiais são o que outro professor precisa para repetir a
 proposta. A importação abre a atividade no catálogo, amarra a reserva nela (`reservas.aula_id`) e

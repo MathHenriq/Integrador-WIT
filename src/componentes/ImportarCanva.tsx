@@ -454,6 +454,8 @@ function Publicada({ aula, aoRecomecar }: { aula: AulaImportada; aoRecomecar: ()
           : `Registrada como ${aula.protocolo}.`}
       </Aviso>
 
+      {aula.aviso && <Aviso tipo="info">{aula.aviso}</Aviso>}
+
       {aula.aula_id && (
         <Aviso tipo="info">
           {aula.aula_nova

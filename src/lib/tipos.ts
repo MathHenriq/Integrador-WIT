@@ -196,6 +196,11 @@ export type AulaImportada = {
   aula_id: string | null
   /** A atividade foi aberta agora, e não reaproveitada de outro tema. */
   aula_nova: boolean
+  /**
+   * Preenchido quando a aula foi registrada mas a atividade do catálogo
+   * não pôde ser aberta. A aula nunca se perde por causa do catálogo.
+   */
+  aviso: string | null
   data_aula: DataIso
   hora_inicio: string
   hora_fim: string

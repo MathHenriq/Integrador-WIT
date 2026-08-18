@@ -404,6 +404,8 @@ function Pronta({
           : `Registrada como ${aula.protocolo}, com ${aula.fotos.length} foto(s).`}
       </Aviso>
 
+      {aula.aviso && <Aviso tipo="info">{aula.aviso}</Aviso>}
+
       {aula.aula_id && (
         <Aviso tipo="info">
           {aula.aula_nova
