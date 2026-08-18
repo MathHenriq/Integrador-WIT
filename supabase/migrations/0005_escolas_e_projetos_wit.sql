@@ -1,7 +1,7 @@
 -- =====================================================================
 --
 --   PROJETO INTEGRADOR · NÚCLEO WIT
---   Atualização 5: as 17 escolas e a matéria "Projetos WIT"
+--   Atualização 5: as escolas e a matéria "Projetos WIT"
 --
 --   Cole no SQL Editor. Pode rodar quantas vezes quiser.
 --
@@ -10,28 +10,30 @@
 -- --------------------------------------------------------------------
 -- Escolas atendidas
 -- --------------------------------------------------------------------
--- Nomes exatamente como na relação oficial. `on conflict` não serve aqui
--- porque `nome` não é único na tabela — a checagem é pelo not exists.
+-- Nomes exatamente como na relação oficial — os mesmos que a `0016`
+-- acertou no banco que já estava rodando. `on conflict` não serve aqui
+-- porque `nome` não é único na tabela: a checagem é pelo not exists.
 
 insert into public.escolas (nome)
 select nome from (values
-  ('EMEIEF ANNA IRENE M. FREITAS'),
-  ('EMEF ARMANDO CAVAZZA'),
-  ('EMEIEF BENEDITO ADHERBAL'),
-  ('EMEF CARLOS OSMARINHO DE LIMA - PROF. (COMPL.)'),
-  ('EMEF DALVA FOGAÇA'),
-  ('EMEF EGÍDIO COSTA'),
-  ('EMEIEF ELISABET TITTO'),
-  ('EMEIEF ENEIAS RAIMUNDO DA SILVA - PROF.'),
-  ('EMEF EZIO BERZAGHI'),
-  ('EMEIEF FRANCISCO ZACARIOTO'),
-  ('EMEF JOÃO TIBÚRCIO'),
-  ('EMEF JULIO GOMES CAMISÃO'),
-  ('EMEF MARIA MEDUNECKAS - PROF.'),
-  ('EMEF NESTOR DE CAMARGO'),
-  ('EMEF RENATO ROSA'),
-  ('EMEF RITA DE JESUS'),
-  ('EMEIEF JOSÉ EMÍDIO DE AGUIAR')
+  ('EMEF Renato Rosa'),
+  ('EMEF Prefeito Nestor de Camargo'),
+  ('EMEF Professor Ézio Berzaghi'),
+  ('EMEIEF Professor Eneias Raimundo da Silva'),
+  ('Complexo Educacional Professor Carlos Osmarinho de Lima'),
+  ('EMEF Professor Alfredo do Carmo'),
+  ('EMEF Professor Egídio Costa'),
+  ('EMEF Francisco Zacarioto'),
+  ('EMEF Rita de Jesus'),
+  ('EMEF Professora Dalva Fogaça'),
+  ('EMEF Prof. João Tibúrcio Silva Filho'),
+  ('EMEIEF Anna Irene Mazaro de Freitas'),
+  ('EMEIEF Benedito Adherbal Farbo'),
+  ('EMEF Armando Cavazza'),
+  ('EMEIEF Vereadora Elisabet Titto'),
+  ('EMEIEF José Emidio de Aguiar'),
+  ('EMEF Professora Maria Medunekas'),
+  ('EMEF Júlio Gomes Camisão')
 ) as t(nome)
 where not exists (select 1 from public.escolas e where e.nome = t.nome);
 

@@ -53,26 +53,30 @@ Sempre estes quatro, de segunda a sexta:
 | 07:20 – 08:50 | 09:20 – 10:50 |
 | 13:20 – 14:50 | 15:20 – 16:50 |
 
-## Escolas atendidas (17)
+## Escolas atendidas (18)
+
+Nomes oficiais, como na relação da Secretaria. É assim que aparecem no site e no documento —
+não abreviar nem trocar a caixa.
 
 ```
-EMEIEF ANNA IRENE M. FREITAS
-EMEF ARMANDO CAVAZZA
-EMEIEF BENEDITO ADHERBAL
-EMEF CARLOS OSMARINHO DE LIMA - PROF. (COMPL.)
-EMEF DALVA FOGAÇA
-EMEF EGÍDIO COSTA
-EMEIEF ELISABET TITTO
-EMEIEF ENEIAS RAIMUNDO DA SILVA - PROF.
-EMEF EZIO BERZAGHI
-EMEIEF FRANCISCO ZACARIOTO
-EMEF JOÃO TIBÚRCIO
-EMEF JULIO GOMES CAMISÃO
-EMEF MARIA MEDUNECKAS - PROF.
-EMEF NESTOR DE CAMARGO
-EMEF RENATO ROSA
-EMEF RITA DE JESUS
-EMEIEF JOSÉ EMÍDIO DE AGUIAR
+EMEF Renato Rosa
+EMEF Prefeito Nestor de Camargo
+EMEF Professor Ézio Berzaghi
+EMEIEF Professor Eneias Raimundo da Silva
+Complexo Educacional Professor Carlos Osmarinho de Lima
+EMEF Professor Alfredo do Carmo
+EMEF Professor Egídio Costa
+EMEF Francisco Zacarioto
+EMEF Rita de Jesus
+EMEF Professora Dalva Fogaça
+EMEF Prof. João Tibúrcio Silva Filho
+EMEIEF Anna Irene Mazaro de Freitas
+EMEIEF Benedito Adherbal Farbo
+EMEF Armando Cavazza
+EMEIEF Vereadora Elisabet Titto
+EMEIEF José Emidio de Aguiar
+EMEF Professora Maria Medunekas
+EMEF Júlio Gomes Camisão
 ```
 
 ## Arquitetura

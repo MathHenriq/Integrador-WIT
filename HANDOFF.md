@@ -308,6 +308,20 @@ de cada ícone e custava ~45 kB gzip para usar um.
 
 ---
 
+### 2.5 Nomes das escolas — **relação oficial**
+
+São dezoito, com o nome por extenso da Secretaria ("EMEF Professora Maria Medunekas", e não
+"EMEF MARIA MEDUNECKAS - PROF."). A `0016` renomeou o que já estava no banco e acrescentou a que
+faltava (Alfredo do Carmo, com a grade padrão); a semente da `0005` foi atualizada junto, para um
+banco novo nascer certo. **Renomear é seguro:** reserva, aula e foto apontam para o `id` da escola.
+
+O nome no documento do Canva quase nunca é igual ao do cadastro — abrevia, esquece o cargo e às
+vezes troca uma letra do sobrenome. Quem casa os dois é `src/lib/escolas.ts`, e
+`ferramentas/conferir-escolas.mts` guarda os casos reais, inclusive o "Meduneckas"/"Medunekas".
+Palavra é comparada pelas seis primeiras letras justamente por causa disso.
+
+---
+
 ## 5. Dívida técnica conhecida
 
 - **A `importar-canva` no ar está uma versão atrás do repositório.** A que roda em produção é a que

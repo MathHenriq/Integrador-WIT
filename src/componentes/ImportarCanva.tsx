@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Aviso } from './Aviso'
 import { adminImportarAulaRealizada, adminListarEscolas, importarDocumentoCanva } from '../lib/api'
+import { acharEscola } from '../lib/escolas.ts'
 import { dataCurta, dataExtensa, faixaHoraria } from '../lib/formato'
 import type { AulaImportada, EscolaAdmin, ImportacaoCanva } from '../lib/tipos'
 
@@ -121,56 +122,6 @@ export function ImportarCanva({ senha, aoErro }: { senha: string; aoErro: (e: st
   )
 }
 
-// ---------------------------------------------------------------- escola
-
-/** Sem acento, sem pontuação e sem as siglas que toda escola repete. */
-function chave(nome: string) {
-  return nome
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toUpperCase()
-    .replace(/\b(EMEIEF|EMEF|EMEI|ESCOLA|MUNICIPAL|PROF|PROFA|COMPL)\b/g, ' ')
-    .replace(/[^A-Z0-9]+/g, ' ')
-    .trim()
-}
-
-/**
- * Acha a escola do documento na lista do cadastro. "EMEF Rita de Jesus"
- * tem que encontrar "EMEF RITA DE JESUS", e o nome do cadastro às vezes
- * traz um complemento que o documento não tem.
- */
-function acharEscola(escolas: EscolaAdmin[], lido: string | null) {
-  if (!lido) return ''
-
-  const alvo = chave(lido)
-  if (!alvo) return ''
-
-  const exata = escolas.find((e) => chave(e.nome) === alvo)
-  if (exata) return exata.id
-
-  const contida = escolas.find((e) => chave(e.nome).includes(alvo) || alvo.includes(chave(e.nome)))
-  if (contida) return contida.id
-
-  // Último recurso: a escola que compartilha mais palavras com o que foi
-  // lido. Duas palavras em comum já separam as 17 com folga.
-  const palavras = new Set(alvo.split(' ').filter((p) => p.length > 2))
-  let melhor = { id: '', pontos: 0 }
-
-  for (const escola of escolas) {
-    const pontos = chave(escola.nome)
-      .split(' ')
-      .filter((p) => p.length > 2 && palavras.has(p)).length
-    if (pontos > melhor.pontos) melhor = { id: escola.id, pontos }
-  }
-
-  return melhor.pontos >= 2 ? melhor.id : ''
-}
-
-/**
- * A frase que aparece embaixo de um campo que o documento não entregou.
- * Curta de propósito: a tela já vem preenchida, e o que a equipe precisa
- * saber é só qual dos campos ficou por conta dela.
- */
 /** Os campos que o documento do Canva carrega, na ordem da tela. */
 const CAMPOS_DO_DOCUMENTO = [
   'escola',
@@ -185,6 +136,11 @@ const CAMPOS_DO_DOCUMENTO = [
 
 const TOTAL_DE_CAMPOS = CAMPOS_DO_DOCUMENTO.length
 
+/**
+ * A frase que aparece embaixo de um campo que o documento não entregou.
+ * Curta de propósito: a tela já vem preenchida, e o que a equipe precisa
+ * saber é só qual dos campos ficou por conta dela.
+ */
 function Faltou({ o }: { o: string }) {
   return <p className="ajuda falta">{o} não veio no documento — preencha aqui.</p>
 }
