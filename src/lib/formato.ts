@@ -1,4 +1,11 @@
-import type { DataIso, StatusHorario, StatusReserva } from './tipos'
+import type {
+  DataIso,
+  PanoramaEscola,
+  SituacaoEscola,
+  SituacaoIntegrador,
+  StatusHorario,
+  StatusReserva,
+} from './tipos'
 
 export const DIAS_SEMANA = [
   'Domingo',
@@ -157,6 +164,51 @@ export const ROTULO_STATUS_HORARIO: Record<StatusHorario, string> = {
 export const ROTULO_STATUS_RESERVA: Record<StatusReserva, string> = {
   confirmado: 'Confirmada',
   cancelado: 'Cancelada',
+}
+
+export const ROTULO_SITUACAO: Record<SituacaoIntegrador, string> = {
+  registrada: 'Realizada',
+  'sem-registro': 'Falta o registro',
+  agendada: 'Agendada',
+  cancelada: 'Cancelada',
+}
+
+export const ROTULO_SITUACAO_ESCOLA: Record<SituacaoEscola, string> = {
+  'em-atividade': 'Em atividade',
+  parada: 'Parada',
+  'primeira-marcada': 'Primeira marcada',
+  'sem-projeto': 'Sem projeto ainda',
+}
+
+/**
+ * Uma aula que já passou e não tem relato nem foto não virou nada para
+ * quem olha de fora — nem vitrine, nem exemplo para o próximo professor.
+ * Por isso ela tem situação própria, separada da que foi registrada.
+ */
+export function situacaoDoIntegrador(reserva: {
+  status: StatusReserva
+  ja_aconteceu: boolean
+  relato: string | null
+  fotos: string[]
+}): SituacaoIntegrador {
+  if (reserva.status === 'cancelado') return 'cancelada'
+  if (!reserva.ja_aconteceu) return 'agendada'
+  const registrada = Boolean(reserva.relato?.trim()) || reserva.fotos.length > 0
+  return registrada ? 'registrada' : 'sem-registro'
+}
+
+/**
+ * Quanto tempo sem nenhuma aula até a escola contar como parada. Pouco
+ * mais de um mês: menos que isso acusaria recesso e semana de prova como
+ * problema; muito mais e a coordenação só descobriria no fim do
+ * semestre.
+ */
+export const DIAS_PARA_PARAR = 45
+
+export function situacaoDaEscola(linha: PanoramaEscola): SituacaoEscola {
+  if (linha.realizadas === 0) return linha.agendadas > 0 ? 'primeira-marcada' : 'sem-projeto'
+  if (linha.agendadas > 0) return 'em-atividade'
+  return (linha.dias_desde_ultima ?? 0) > DIAS_PARA_PARAR ? 'parada' : 'em-atividade'
 }
 
 export function emailValido(valor: string) {

@@ -701,6 +701,9 @@ legend { font-family: var(--fonte-titulo); font-size: 14.5px; font-weight: 600; 
   background: var(--superficie);
 }
 
+/* O emoji do estado vazio nunca teve regra: ficava colado no texto. */
+.vazio .emoji { display: block; font-size: 30px; margin-bottom: 10px; }
+
 .carregando { color: var(--texto-suave); padding: 44px 0; text-align: center; }
 
 /* ------------------------------------------------------------------ */
@@ -725,6 +728,19 @@ legend { font-family: var(--fonte-titulo); font-size: 14.5px; font-weight: 600; 
 .etiqueta.cheio { background: var(--superficie-alta); color: var(--texto-fraco); }
 .etiqueta.cancelado { background: var(--erro-fundo); color: var(--erro); }
 .etiqueta.materia { background: var(--superficie-alta); color: var(--texto-suave); border-color: var(--borda-solida); }
+
+/* Situação do integrador e da escola, no painel da equipe. Mesma família
+   de cores das reservas: verde é o que está resolvido, âmbar é o que
+   pede uma providência, vermelho é o que não anda. */
+.etiqueta.registrada, .etiqueta.em-atividade { background: var(--sucesso-fundo); color: var(--sucesso); }
+.etiqueta.sem-registro, .etiqueta.parada { background: var(--aviso-fundo); color: var(--aviso); }
+.etiqueta.agendada, .etiqueta.primeira-marcada {
+  background: var(--superficie-alta);
+  color: var(--texto-suave);
+  border-color: var(--borda-solida);
+}
+.etiqueta.cancelada { background: var(--erro-fundo); color: var(--erro); }
+.etiqueta.sem-projeto { background: var(--erro-fundo); color: var(--erro); }
 .etiqueta.codigo {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 12px;
@@ -884,6 +900,100 @@ a.atividade:hover {
 /* Linha de dados soltos no pé de um cartão (anos · duração · nº de
    habilidades). Sem separador os textos encostam e viram "ano90 min1
    habilidade" — foi assim que apareceu no painel. */
+/* ------------------------------------------------------------------ */
+/* Panorama dos integradores (painel da equipe)                        */
+/* ------------------------------------------------------------------ */
+/* Números grandes primeiro, escola por escola depois: o coordenador
+   bate o olho e sabe quem está fazendo e quem não está. Sem tarja
+   colorida na lateral em lugar nenhum — borda, quando existe, é igual
+   nos quatro lados. */
+
+.numeros {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(184px, 1fr));
+}
+
+.cartao.numero { padding: 18px 20px; }
+
+.cartao.numero .valor {
+  display: block;
+  font-family: var(--fonte-titulo);
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.cartao.numero .valor .de { font-size: 20px; color: var(--texto-fraco); font-weight: 600; }
+
+.cartao.numero .rotulo {
+  display: block;
+  margin-top: 6px;
+  color: var(--texto-suave);
+  font-size: 14.5px;
+  line-height: 1.4;
+}
+
+.grade-escolas {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(272px, 1fr));
+}
+
+.escola-panorama.aberta { border-color: var(--verde); }
+
+.escola-panorama .sem-nada {
+  margin-top: 10px;
+  color: var(--texto-suave);
+  font-size: 14.5px;
+}
+
+.escola-panorama .numeros-escola {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin-top: 12px;
+}
+
+.escola-panorama .numeros-escola div { display: flex; align-items: baseline; gap: 6px; }
+
+.escola-panorama .numeros-escola strong {
+  font-family: var(--fonte-titulo);
+  font-size: 21px;
+  line-height: 1;
+}
+
+.escola-panorama .numeros-escola span { color: var(--texto-suave); font-size: 14px; }
+.escola-panorama .numeros-escola .atencao strong { color: var(--aviso); }
+
+.escolas-zeradas { margin-bottom: 16px; }
+.escolas-zeradas .topo-cartao strong { font-family: var(--fonte-titulo); font-size: 15.5px; }
+.escolas-zeradas p { margin-top: 10px; color: var(--texto-suave); font-size: 15px; max-width: 70ch; }
+
+.escolas-zeradas ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2px 20px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.escolas-zeradas li { font-size: 15px; padding: 3px 0; }
+.escolas-zeradas li::before { content: '· '; color: var(--texto-fraco); }
+
+.filtros-integradores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  align-items: flex-end;
+  margin-top: 16px;
+}
+
+.filtros-integradores label { display: block; }
+
+.topo-cartao { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
 .rodape-cartao {
   display: flex;
   flex-wrap: wrap;
@@ -1363,6 +1473,8 @@ th {
 
 tr:last-child td { border-bottom: none; }
 tr.passado td { opacity: 0.6; }
+
+td button.pequeno { white-space: nowrap; }
 
 .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13.5px; }
 .acoes-linha { display: flex; gap: 6px; flex-wrap: wrap; }

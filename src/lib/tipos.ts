@@ -1,6 +1,17 @@
 export type StatusHorario = 'vago' | 'parcial' | 'cheio'
 export type StatusReserva = 'confirmado' | 'cancelado'
 
+/**
+ * Situação de um integrador aos olhos da coordenação. Sai do cruzamento
+ * de status + data + registro, e não de uma coluna do banco: uma reserva
+ * confirmada que já passou sem relato nem foto não é a mesma coisa que
+ * uma que passou e virou vitrine.
+ */
+export type SituacaoIntegrador = 'registrada' | 'sem-registro' | 'agendada' | 'cancelada'
+
+/** Como anda o projeto integrador numa escola. */
+export type SituacaoEscola = 'em-atividade' | 'parada' | 'primeira-marcada' | 'sem-projeto'
+
 /** Data no formato ISO curto, "2026-08-19". Nunca um Date serializado. */
 export type DataIso = string
 
@@ -216,4 +227,21 @@ export type ReservaAdmin = {
   relato: string | null
   fotos: string[]
   ja_aconteceu: boolean
+}
+
+/** Uma linha do panorama: uma escola e o que já aconteceu nela. */
+export type PanoramaEscola = {
+  escola_id: string
+  escola_nome: string
+  realizadas: number
+  com_registro: number
+  sem_registro: number
+  agendadas: number
+  canceladas: number
+  /** Professores diferentes que já fizeram integrador na escola. */
+  professores: number
+  primeira_data: DataIso | null
+  ultima_data: DataIso | null
+  proxima_data: DataIso | null
+  dias_desde_ultima: number | null
 }

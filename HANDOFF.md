@@ -154,6 +154,30 @@ imita o do Canva: fontes recortadas com `/ToUnicode` (1 e 2 bytes), páginas esc
 `/ObjStm`, cabeçalho e rodapé nas 4 páginas, fotos em JPEG e em Flate, e um ícone pequeno. É o
 caso difícil de propósito.
 
+### 2.3 Panorama dos integradores realizados — **pronto**
+
+Aba "Integradores realizados" do painel, feita para o coordenador: quem está fazendo projeto, quem
+não está e como anda o registro de cada aula.
+
+| onde | o quê |
+| --- | --- |
+| `0012_panorama_dos_integradores.sql` | `admin_panorama_escolas`, uma linha por escola |
+| `src/componentes/IntegradoresRealizados.tsx` | números, panorama por escola e a lista filtrável |
+| `src/lib/relato.ts` | o relato e as fotos perguntados no navegador, agora compartilhados |
+
+**A conta é do banco, não do navegador.** Escola sem nenhuma reserva não aparece em lista de
+reserva nenhuma — e é justamente ela que interessa —, então a função parte das escolas com `left
+join`. Somar as reservas no navegador também daria número errado assim que o histórico passar das
+mil linhas que o PostgREST devolve.
+
+**A situação da aula tem quatro valores**, e um deles não existe no banco: aula confirmada que já
+passou e não tem relato nem foto fica como *falta o registro*, separada da que já virou vitrine.
+É o que a coordenação precisa cobrar. Ver `situacaoDoIntegrador` em `src/lib/formato.ts`.
+
+**A escola conta como parada** depois de 45 dias sem aula e sem nada marcado (`DIAS_PARA_PARAR`).
+Menos que isso acusaria recesso e semana de prova; muito mais e a coordenação só descobriria no
+fim do semestre.
+
 ---
 
 ## 3. Decisões tomadas que não devem ser revertidas sem conversa

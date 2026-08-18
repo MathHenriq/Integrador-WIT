@@ -12,6 +12,7 @@ import type {
   Comprovante,
   ImportacaoCanva,
   Ocorrencia,
+  PanoramaEscola,
   Realizada,
   ReservaAdmin,
   ReservaConsulta,
@@ -306,6 +307,22 @@ export async function adminListarReservas(senha: string, escolaId: string | null
     p_ate: null,
   })
   return linhas.map((r) => ({ ...r, data_aula: soData(r.data_aula) }))
+}
+
+/**
+ * Uma linha por escola, inclusive as que nunca receberam ninguém — são
+ * justamente essas que a coordenação precisa enxergar. A conta é feita
+ * no banco: somar no navegador daria número errado no dia em que o
+ * histórico passar das mil linhas que o PostgREST devolve.
+ */
+export async function adminPanoramaEscolas(senha: string) {
+  const linhas = await chamar<PanoramaEscola[]>('admin_panorama_escolas', { p_admin_token: senha })
+  return linhas.map((l) => ({
+    ...l,
+    primeira_data: l.primeira_data ? soData(l.primeira_data) : null,
+    ultima_data: l.ultima_data ? soData(l.ultima_data) : null,
+    proxima_data: l.proxima_data ? soData(l.proxima_data) : null,
+  }))
 }
 
 export function adminCancelarReserva(senha: string, reservaId: string, motivo: string | null) {

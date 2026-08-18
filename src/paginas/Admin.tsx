@@ -4,6 +4,7 @@ import { Aviso } from '../componentes/Aviso'
 import { EditorAula } from '../componentes/EditorAula'
 import { EtiquetaReserva } from '../componentes/Etiqueta'
 import { ImportarCanva } from '../componentes/ImportarCanva'
+import { IntegradoresRealizados } from '../componentes/IntegradoresRealizados'
 import { LogoWit } from '../componentes/LogoWit'
 import {
   adminCancelarReserva,
@@ -11,7 +12,6 @@ import {
   adminListarAulas,
   adminListarEscolas,
   adminListarReservas,
-  adminRegistrarRelato,
   adminRemoverAula,
   adminRemoverHabilidade,
   adminRenomearEscola,
@@ -20,10 +20,11 @@ import {
   listarHabilidades,
 } from '../lib/api'
 import { ANOS_ESCOLARES, dataCurta, faixaHoraria, rotuloAnos } from '../lib/formato'
+import { pedirRelatoEFotos } from '../lib/relato'
 import type { AulaAdmin, EscolaAdmin, Habilidade, Materia, ReservaAdmin } from '../lib/tipos'
 
 const CHAVE = 'wit:senha-admin'
-type Aba = 'aulas' | 'escolas' | 'reservas' | 'canva' | 'bncc'
+type Aba = 'aulas' | 'escolas' | 'reservas' | 'integradores' | 'canva' | 'bncc'
 
 export function Admin() {
   const [senha, setSenha] = useState(() => localStorage.getItem(CHAVE) ?? '')
@@ -143,6 +144,13 @@ function Painel({ senha, aoSair }: { senha: string; aoSair: () => void }) {
         <button role="tab" aria-selected={aba === 'reservas'} onClick={() => setAba('reservas')}>
           Reservas
         </button>
+        <button
+          role="tab"
+          aria-selected={aba === 'integradores'}
+          onClick={() => setAba('integradores')}
+        >
+          Integradores realizados
+        </button>
         <button role="tab" aria-selected={aba === 'canva'} onClick={() => setAba('canva')}>
           Importar do Canva
         </button>
@@ -154,6 +162,7 @@ function Painel({ senha, aoSair }: { senha: string; aoSair: () => void }) {
       {aba === 'aulas' && <AbaAulas senha={senha} materias={materias} aoErro={setErro} />}
       {aba === 'escolas' && <AbaEscolas senha={senha} aoErro={setErro} />}
       {aba === 'reservas' && <AbaReservas senha={senha} aoErro={setErro} />}
+      {aba === 'integradores' && <IntegradoresRealizados senha={senha} aoErro={setErro} />}
       {aba === 'canva' && <ImportarCanva senha={senha} aoErro={setErro} />}
       {aba === 'bncc' && <AbaBncc senha={senha} materias={materias} aoErro={setErro} />}
     </main>
@@ -441,26 +450,8 @@ function AbaReservas({ senha, aoErro }: { senha: string; aoErro: (e: string | nu
   }
 
   async function relatar(reserva: ReservaAdmin) {
-    const relato = window.prompt(
-      'Conte em poucas linhas como foi a aula. Isso aparece na vitrine pública de aulas realizadas.',
-      reserva.relato ?? '',
-    )
-    if (relato === null) return
-
-    const fotos = window.prompt(
-      'Endereços das fotos da aula, um por linha.\n\nCole o link direto da imagem (Drive, Storage do Supabase, etc.). Elas aparecem na vitrine e na página da atividade.',
-      reserva.fotos.join('\n'),
-    )
-    if (fotos === null) return
-
     try {
-      await adminRegistrarRelato(
-        senha,
-        reserva.id,
-        relato,
-        fotos.split('\n').map((f) => f.trim()).filter(Boolean),
-      )
-      await carregar()
+      if (await pedirRelatoEFotos(senha, reserva)) await carregar()
     } catch (f) {
       aoErro(f instanceof Error ? f.message : 'Não foi possível salvar o relato.')
     }
