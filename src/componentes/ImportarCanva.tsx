@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Aviso } from './Aviso'
 import { adminImportarAulaRealizada, adminListarEscolas, importarDocumentoCanva } from '../lib/api'
 import { dataCurta, dataExtensa, faixaHoraria } from '../lib/formato'
@@ -218,6 +219,7 @@ function Conferencia({
   const [titulo, setTitulo] = useState(lida.campos.tema ?? '')
   const [relato, setRelato] = useState(lida.relato)
   const [fotos, setFotos] = useState(lida.fotos)
+  const [virarAtividade, setVirarAtividade] = useState(true)
   const [publicando, setPublicando] = useState(false)
 
   // A lista de escolas chega depois do documento, então o casamento
@@ -252,6 +254,10 @@ function Conferencia({
           titulo: titulo.trim(),
           relato: relato.trim() || null,
           fotos,
+          descricao: lida.campos.descricao,
+          objetivos: lida.campos.objetivos,
+          materiais: lida.campos.materiais,
+          virarAtividade,
         }),
       )
     } catch (falha) {
@@ -373,6 +379,25 @@ function Conferencia({
       </div>
 
       <div className="cartao" style={{ marginBottom: 20 }}>
+        <h3 style={{ fontSize: 17, marginBottom: 6 }}>Também no catálogo de atividades</h3>
+        <p className="ajuda" style={{ marginBottom: 14 }}>
+          O mesmo documento serve duas vezes: conta o que esta turma fez e vira uma atividade que
+          outro professor pode escolher na hora de agendar. O tema, a descrição, os objetivos e os
+          materiais vão para lá — e as fotos desta aula aparecem na página da atividade.
+        </p>
+        <div className="caixas">
+          <label className="caixa">
+            <input
+              type="checkbox"
+              checked={virarAtividade}
+              onChange={(e) => setVirarAtividade(e.target.checked)}
+            />
+            Abrir esta aula no catálogo
+          </label>
+        </div>
+      </div>
+
+      <div className="cartao" style={{ marginBottom: 20 }}>
         <h3 style={{ fontSize: 17, marginBottom: 6 }}>Fotos da aula</h3>
         <p className="ajuda" style={{ marginBottom: fotos.length > 0 ? 14 : 0 }}>
           {fotos.length === 0
@@ -428,6 +453,15 @@ function Publicada({ aula, aoRecomecar }: { aula: AulaImportada; aoRecomecar: ()
           ? `Entrou na reserva ${aula.protocolo}, que já existia para esta turma nesta data.`
           : `Registrada como ${aula.protocolo}.`}
       </Aviso>
+
+      {aula.aula_id && (
+        <Aviso tipo="info">
+          {aula.aula_nova
+            ? 'Também abriu uma atividade no catálogo: outro professor já pode escolher esta aula ao agendar.'
+            : 'Entrou na atividade que já existia com este tema, no catálogo.'}{' '}
+          <Link to={`/atividades/${aula.aula_id}`}>ver a atividade →</Link>
+        </Aviso>
+      )}
 
       <div className="acoes-formulario" style={{ marginTop: 6 }}>
         <button type="button" onClick={aoRecomecar}>

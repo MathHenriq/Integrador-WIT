@@ -115,3 +115,8 @@ biblioteca) e na aba "Importar do Canva" do painel. Ver a seção 2.2 do `HANDOF
 
 **Aula realizada não pergunta horário.** Ela está no site para inspirar outro professor, não para
 ocupar agenda: quem resolve o tempo é o banco, na `admin_importar_aula_realizada`.
+
+**O documento importado vale duas vezes.** Além de registrar o que a turma fez, ele **abre a
+atividade no catálogo** (tema, descrição, objetivos, materiais e o ano da turma), para outro
+professor poder escolher a mesma proposta ao agendar. Importar o mesmo tema de novo reaproveita a
+atividade em vez de duplicar.

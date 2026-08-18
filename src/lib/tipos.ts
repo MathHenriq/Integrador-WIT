@@ -192,6 +192,10 @@ export type AulaImportada = {
   protocolo: string
   /** Entrou numa reserva que já existia, em vez de criar uma nova. */
   anexada: boolean
+  /** A atividade que a aula virou no catálogo, quando virou. */
+  aula_id: string | null
+  /** A atividade foi aberta agora, e não reaproveitada de outro tema. */
+  aula_nova: boolean
   data_aula: DataIso
   hora_inicio: string
   hora_fim: string

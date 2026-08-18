@@ -374,6 +374,10 @@ export async function importarDocumentoCanva(senha: string, arquivo: File) {
  * que já aconteceu está no site para inspirar outros professores, não
  * para ocupar agenda, então o banco resolve sozinho (anexa à reserva que
  * já existe ou usa o primeiro tempo livre do dia).
+ *
+ * As partes do documento vão separadas, e não só dentro do relato,
+ * porque a mesma aula abre uma atividade no catálogo: ali a descrição, os
+ * objetivos e os materiais moram em campos próprios.
  */
 export function adminImportarAulaRealizada(
   senha: string,
@@ -386,6 +390,10 @@ export function adminImportarAulaRealizada(
     titulo: string
     relato: string | null
     fotos: string[]
+    descricao: string | null
+    objetivos: string | null
+    materiais: string | null
+    virarAtividade: boolean
   },
 ) {
   return chamar<AulaImportada>('admin_importar_aula_realizada', {
@@ -398,6 +406,10 @@ export function adminImportarAulaRealizada(
     p_titulo: dados.titulo,
     p_relato: dados.relato,
     p_fotos: dados.fotos,
+    p_descricao: dados.descricao,
+    p_objetivos: dados.objetivos,
+    p_materiais: dados.materiais,
+    p_virar_atividade: dados.virarAtividade,
   })
 }
 

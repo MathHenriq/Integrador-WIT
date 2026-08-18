@@ -58,13 +58,14 @@ export function IntegradoresRealizados({
   }, [carregar])
 
   /**
-   * Quem está no projeto agora: escola com aula confirmada, dada ou
-   * marcada. Some da tela quando não há nenhuma — um "0 de 17" não diz
-   * nada a ninguém.
+   * Quem está no projeto agora: escola com aula **marcada daqui para a
+   * frente**. Aula que já aconteceu não conta — importar um documento de
+   * maio não pode fazer a escola parecer em atividade hoje. Some da tela
+   * quando não há nenhuma: um "0 de 17" não diz nada a ninguém.
    */
   const agora = useMemo(() => {
     const nomes = reservas
-      .filter((r) => r.status === 'confirmado')
+      .filter((r) => r.status === 'confirmado' && !r.ja_aconteceu)
       .map((r) => r.escola_nome)
     return [...new Set(nomes)].sort((a, b) => a.localeCompare(b, 'pt-BR'))
   }, [reservas])

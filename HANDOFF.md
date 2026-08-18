@@ -176,6 +176,14 @@ materiais está vazia no próprio documento) e só as fotos de verdade.
 qual deles o documento não entregou — e o cabeçalho diz "7 de 8 campos preenchidos pelo
 documento". O resto continua preenchido: documento fora do padrão nunca vira parede.
 
+**A aula importada vira atividade** (`0014`). O documento do Canva é bom demais para servir só de
+registro: tema, objetivos, descrição e materiais são o que outro professor precisa para repetir a
+proposta. A importação abre a atividade no catálogo, amarra a reserva nela (`reservas.aula_id`) e
+tira daí o ano do dado que já existe — "8C" vira 8º ano. Como `obter_aula` já junta as fotos das
+reservas ligadas, as fotos da aula aparecem na página da atividade sem cópia nenhuma. Mesmo tema
+importado de novo reaproveita a atividade e só completa o que estava em branco. A caixa fica
+marcada por padrão na tela de conferência; desmarcar registra a aula sem publicar no catálogo.
+
 **Como testar sem o arquivo do usuário.** `ferramentas/gerar-pdf-de-teste.mjs` monta um PDF que
 imita o do Canva: fontes recortadas com `/ToUnicode` (1 e 2 bytes) **e com larguras de glifo**,
 páginas escondidas num `/ObjStm`, cabeçalho e rodapé **gravados como dois objetos cada**, fotos em
