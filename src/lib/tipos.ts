@@ -4,9 +4,6 @@ export type StatusReserva = 'confirmado' | 'cancelado'
 /** Situação de um integrador: status da reserva cruzado com a data. */
 export type SituacaoIntegrador = 'realizada' | 'agendada' | 'cancelada'
 
-/** A escola está no projeto integrador, ou ainda não entrou. */
-export type SituacaoEscola = 'realizando' | 'sem-projeto'
-
 /** Data no formato ISO curto, "2026-08-19". Nunca um Date serializado. */
 export type DataIso = string
 
@@ -222,17 +219,4 @@ export type ReservaAdmin = {
   relato: string | null
   fotos: string[]
   ja_aconteceu: boolean
-}
-
-/** Uma linha do panorama: uma escola e o que já aconteceu nela. */
-export type PanoramaEscola = {
-  escola_id: string
-  escola_nome: string
-  realizadas: number
-  agendadas: number
-  canceladas: number
-  /** Professores diferentes que já fizeram integrador na escola. */
-  professores: number
-  ultima_data: DataIso | null
-  proxima_data: DataIso | null
 }

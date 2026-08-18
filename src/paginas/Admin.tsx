@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AdminHorarios } from '../componentes/AdminHorarios'
 import { Aviso } from '../componentes/Aviso'
 import { EditorAula } from '../componentes/EditorAula'
@@ -438,6 +438,25 @@ function AbaReservas({ senha, aoErro }: { senha: string; aoErro: (e: string | nu
     void carregar()
   }, [carregar])
 
+  /**
+   * Quem tem projeto reservado daqui para a frente. Escola sem reserva
+   * não entra na lista: aqui só interessa o que está de pé.
+   */
+  const reservadas = useMemo(() => {
+    const porEscola = new Map<string, { nome: string; quantas: number; proxima: string }>()
+    for (const r of reservas) {
+      if (r.status !== 'confirmado' || r.ja_aconteceu) continue
+      const atual = porEscola.get(r.escola_id)
+      if (atual) {
+        atual.quantas += 1
+        if (r.data_aula < atual.proxima) atual.proxima = r.data_aula
+      } else {
+        porEscola.set(r.escola_id, { nome: r.escola_nome, quantas: 1, proxima: r.data_aula })
+      }
+    }
+    return [...porEscola.values()].sort((a, b) => a.proxima.localeCompare(b.proxima))
+  }, [reservas])
+
   async function cancelar(reserva: ReservaAdmin) {
     const motivo = window.prompt(`Cancelar a reserva ${reserva.protocolo}?\n\nMotivo (opcional):`, '')
     if (motivo === null) return
@@ -469,76 +488,94 @@ function AbaReservas({ senha, aoErro }: { senha: string; aoErro: (e: string | nu
   }
 
   return (
-    <div className="rolagem">
-      <table>
-        <thead>
-          <tr>
-            <th>Protocolo</th>
-            <th>Data</th>
-            <th>Escola</th>
-            <th>Professor(a)</th>
-            <th>Aula</th>
-            <th>Situação</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {reservas.map((r) => (
-            <tr key={r.id} className={r.ja_aconteceu ? 'passado' : undefined}>
-              <td className="mono">{r.protocolo}</td>
-              <td>
-                {dataCurta(r.data_aula)}
-                <br />
-                <span style={{ color: 'var(--texto-suave)' }}>
-                  {faixaHoraria(r.hora_inicio, r.hora_fim)}
+    <>
+      {reservadas.length > 0 && (
+        <div className="cartao escolas-reservadas">
+          <span className="rotulo">Escolas com projeto reservado</span>
+          <ul>
+            {reservadas.map((e) => (
+              <li key={e.nome}>
+                {e.nome}
+                <span>
+                  {e.quantas} aula{e.quantas === 1 ? '' : 's'} · próxima em {dataCurta(e.proxima)}
                 </span>
-              </td>
-              <td>{r.escola_nome}</td>
-              <td>
-                {r.nome_professor}
-                {r.turma && (
-                  <>
-                    <br />
-                    <span style={{ color: 'var(--texto-suave)' }}>{r.turma}</span>
-                  </>
-                )}
-                {r.email_contato && (
-                  <>
-                    <br />
-                    <span style={{ color: 'var(--texto-fraco)', fontSize: 13 }}>
-                      {r.email_contato}
-                    </span>
-                  </>
-                )}
-              </td>
-              <td>{r.aula_titulo}</td>
-              <td>
-                <EtiquetaReserva status={r.status} />
-                {r.status === 'confirmado' && r.ja_aconteceu && (
-                  <div style={{ color: 'var(--texto-suave)', fontSize: 13, marginTop: 4 }}>
-                    Já realizada
-                  </div>
-                )}
-              </td>
-              <td>
-                <div className="acoes-linha">
-                  {r.status === 'confirmado' && r.ja_aconteceu && (
-                    <button type="button" className="fantasma pequeno" onClick={() => void relatar(r)}>
-                      {r.relato || r.fotos.length > 0 ? 'Relato e fotos' : '+ Relato e fotos'}
-                    </button>
-                  )}
-                  {r.status === 'confirmado' && !r.ja_aconteceu && (
-                    <button type="button" className="fantasma pequeno" onClick={() => void cancelar(r)}>
-                      Cancelar
-                    </button>
-                  )}
-                </div>
-              </td>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div className="rolagem">
+        <table>
+          <thead>
+            <tr>
+              <th>Protocolo</th>
+              <th>Data</th>
+              <th>Escola</th>
+              <th>Professor(a)</th>
+              <th>Aula</th>
+              <th>Situação</th>
+              <th />
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {reservas.map((r) => (
+              <tr key={r.id} className={r.ja_aconteceu ? 'passado' : undefined}>
+                <td className="mono">{r.protocolo}</td>
+                <td>
+                  {dataCurta(r.data_aula)}
+                  <br />
+                  <span style={{ color: 'var(--texto-suave)' }}>
+                    {faixaHoraria(r.hora_inicio, r.hora_fim)}
+                  </span>
+                </td>
+                <td>{r.escola_nome}</td>
+                <td>
+                  {r.nome_professor}
+                  {r.turma && (
+                    <>
+                      <br />
+                      <span style={{ color: 'var(--texto-suave)' }}>{r.turma}</span>
+                    </>
+                  )}
+                  {r.email_contato && (
+                    <>
+                      <br />
+                      <span style={{ color: 'var(--texto-fraco)', fontSize: 13 }}>
+                        {r.email_contato}
+                      </span>
+                    </>
+                  )}
+                </td>
+                <td>{r.aula_titulo}</td>
+                <td>
+                  <EtiquetaReserva status={r.status} />
+                  {r.status === 'confirmado' && r.ja_aconteceu && (
+                    <div style={{ color: 'var(--texto-suave)', fontSize: 13, marginTop: 4 }}>
+                      Já realizada
+                    </div>
+                  )}
+                </td>
+                <td>
+                  <div className="acoes-linha">
+                    {r.status === 'confirmado' && r.ja_aconteceu && (
+                      <button type="button" className="fantasma pequeno" onClick={() => void relatar(r)}>
+                        {r.relato || r.fotos.length > 0 ? 'Relato e fotos' : '+ Relato e fotos'}
+                      </button>
+                    )}
+                    {r.status === 'confirmado' && !r.ja_aconteceu && (
+                      <button type="button" className="fantasma pequeno" onClick={() => void cancelar(r)}>
+                        Cancelar
+                      </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   )
 }
 

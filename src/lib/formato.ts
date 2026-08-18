@@ -1,11 +1,4 @@
-import type {
-  DataIso,
-  PanoramaEscola,
-  SituacaoEscola,
-  SituacaoIntegrador,
-  StatusHorario,
-  StatusReserva,
-} from './tipos'
+import type { DataIso, SituacaoIntegrador, StatusHorario, StatusReserva } from './tipos'
 
 export const DIAS_SEMANA = [
   'Domingo',
@@ -172,22 +165,12 @@ export const ROTULO_SITUACAO: Record<SituacaoIntegrador, string> = {
   cancelada: 'Cancelada',
 }
 
-export const ROTULO_SITUACAO_ESCOLA: Record<SituacaoEscola, string> = {
-  realizando: 'Realizando projeto integrador',
-  'sem-projeto': 'Sem projeto ainda',
-}
-
 export function situacaoDoIntegrador(reserva: {
   status: StatusReserva
   ja_aconteceu: boolean
 }): SituacaoIntegrador {
   if (reserva.status === 'cancelado') return 'cancelada'
   return reserva.ja_aconteceu ? 'realizada' : 'agendada'
-}
-
-/** Aula dada ou aula marcada: nos dois casos a escola está no projeto. */
-export function situacaoDaEscola(linha: PanoramaEscola): SituacaoEscola {
-  return linha.realizadas + linha.agendadas > 0 ? 'realizando' : 'sem-projeto'
 }
 
 export function emailValido(valor: string) {

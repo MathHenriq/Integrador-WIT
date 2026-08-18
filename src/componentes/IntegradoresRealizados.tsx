@@ -1,25 +1,25 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { EtiquetaEscola, EtiquetaSituacao } from './Etiqueta'
-import { adminListarReservas, adminPanoramaEscolas } from '../lib/api'
-import { dataCurta, faixaHoraria, situacaoDaEscola, situacaoDoIntegrador } from '../lib/formato'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { EtiquetaSituacao } from './Etiqueta'
+import { adminListarReservas } from '../lib/api'
+import { dataCurta, faixaHoraria, situacaoDoIntegrador } from '../lib/formato'
 import { pedirRelatoEFotos } from '../lib/relato'
-import type { PanoramaEscola, ReservaAdmin, SituacaoIntegrador } from '../lib/tipos'
+import type { ReservaAdmin, SituacaoIntegrador } from '../lib/tipos'
 
 /** Os recortes da lista, na ordem em que aparecem como filtro. */
 const VISTAS = [
+  { chave: 'tudo', rotulo: 'Tudo' },
   { chave: 'realizadas', rotulo: 'Realizadas' },
   { chave: 'agendadas', rotulo: 'Agendadas' },
   { chave: 'canceladas', rotulo: 'Canceladas' },
-  { chave: 'tudo', rotulo: 'Tudo' },
 ] as const
 
 type Vista = (typeof VISTAS)[number]['chave']
 
 const SITUACAO_DA_VISTA: Record<Vista, SituacaoIntegrador | null> = {
+  tudo: null,
   realizadas: 'realizada',
   agendadas: 'agendada',
   canceladas: 'cancelada',
-  tudo: null,
 }
 
 export function IntegradoresRealizados({
@@ -29,22 +29,17 @@ export function IntegradoresRealizados({
   senha: string
   aoErro: (e: string | null) => void
 }) {
-  const [panorama, setPanorama] = useState<PanoramaEscola[]>([])
   const [reservas, setReservas] = useState<ReservaAdmin[]>([])
   const [carregando, setCarregando] = useState(true)
   const [escolaId, setEscolaId] = useState<string | null>(null)
-  const [vista, setVista] = useState<Vista>('realizadas')
-  const lista = useRef<HTMLDivElement>(null)
+  const [vista, setVista] = useState<Vista>('tudo')
+  const [de, setDe] = useState('')
+  const [ate, setAte] = useState('')
 
   const carregar = useCallback(async () => {
     aoErro(null)
     try {
-      const [linhas, aulas] = await Promise.all([
-        adminPanoramaEscolas(senha),
-        adminListarReservas(senha, null),
-      ])
-      setPanorama(linhas)
-      setReservas(aulas)
+      setReservas(await adminListarReservas(senha, null))
     } catch (f) {
       aoErro(f instanceof Error ? f.message : 'Não foi possível carregar os integradores.')
     } finally {
@@ -57,23 +52,30 @@ export function IntegradoresRealizados({
   }, [carregar])
 
   /**
-   * Todas as escolas aparecem, inclusive as zeradas — são elas que dão o
-   * senso de urgência. As que ainda não entraram vêm primeiro.
+   * Quem está no projeto agora: escola com aula confirmada, dada ou
+   * marcada. Some da tela quando não há nenhuma — um "0 de 17" não diz
+   * nada a ninguém.
    */
-  const escolas = useMemo(
-    () =>
-      panorama
-        .map((linha) => ({ linha, situacao: situacaoDaEscola(linha) }))
-        .sort((a, b) => {
-          if (a.situacao !== b.situacao) return a.situacao === 'sem-projeto' ? -1 : 1
-          return a.linha.escola_nome.localeCompare(b.linha.escola_nome, 'pt-BR')
-        }),
-    [panorama],
-  )
+  const agora = useMemo(() => {
+    const nomes = reservas
+      .filter((r) => r.status === 'confirmado')
+      .map((r) => r.escola_nome)
+    return [...new Set(nomes)].sort((a, b) => a.localeCompare(b, 'pt-BR'))
+  }, [reservas])
 
-  const realizando = escolas.filter((e) => e.situacao === 'realizando').length
+  /** Só as escolas que têm aula na lista entram no filtro. */
+  const escolas = useMemo(() => {
+    const porId = new Map(reservas.map((r) => [r.escola_id, r.escola_nome]))
+    return [...porId.entries()]
+      .map(([id, nome]) => ({ id, nome }))
+      .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+  }, [reservas])
 
-  /** A lista já chega do banco da aula mais recente para a mais antiga. */
+  /**
+   * A lista já chega do banco da aula mais recente para a mais antiga.
+   * As datas são comparadas como string "AAAA-MM-DD" de propósito: passar
+   * por `new Date` mostraria o dia anterior no fuso do Brasil.
+   */
   const aulas = useMemo(() => {
     const permitida = SITUACAO_DA_VISTA[vista]
     return reservas
@@ -81,15 +83,19 @@ export function IntegradoresRealizados({
       .filter(
         (a) =>
           (escolaId === null || a.reserva.escola_id === escolaId) &&
-          (permitida === null || a.situacao === permitida),
+          (permitida === null || a.situacao === permitida) &&
+          (de === '' || a.reserva.data_aula >= de) &&
+          (ate === '' || a.reserva.data_aula <= ate),
       )
-  }, [reservas, escolaId, vista])
+  }, [reservas, escolaId, vista, de, ate])
 
-  const escolaAberta = escolaId ? panorama.find((l) => l.escola_id === escolaId) : null
+  const filtrando = escolaId !== null || vista !== 'tudo' || de !== '' || ate !== ''
 
-  function verAulasDa(id: string) {
-    setEscolaId(escolaId === id ? null : id)
-    lista.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  function limpar() {
+    setEscolaId(null)
+    setVista('tudo')
+    setDe('')
+    setAte('')
   }
 
   async function relatar(reserva: ReservaAdmin) {
@@ -104,94 +110,19 @@ export function IntegradoresRealizados({
 
   return (
     <>
-      <div className="cartao realizando-agora">
-        <span className="valor">
-          {realizando}
-          <span className="de">/{panorama.length}</span>
-        </span>
-        <span className="rotulo">
-          escolas realizando projeto integrador agora — com aula já dada ou marcada
-        </span>
-      </div>
-
-      <div className="secao-titulo" style={{ marginTop: 32 }}>
-        <div>
-          <h2>Escola por escola</h2>
-          <p>As que ainda não entraram vêm primeiro.</p>
+      {agora.length > 0 && (
+        <div className="cartao em-projeto-agora">
+          <span className="rotulo">Em projeto integrador agora</span>
+          <ul>
+            {agora.map((nome) => (
+              <li key={nome}>{nome}</li>
+            ))}
+          </ul>
         </div>
-      </div>
+      )}
 
-      <div className="grade-escolas">
-        {escolas.map(({ linha, situacao }) => (
-          <article
-            key={linha.escola_id}
-            className={`cartao escola-panorama${escolaId === linha.escola_id ? ' aberta' : ''}`}
-          >
-            <div className="topo-cartao" style={{ marginBottom: 10 }}>
-              <EtiquetaEscola situacao={situacao} />
-            </div>
-
-            <h3 style={{ fontSize: 16.5 }}>{linha.escola_nome}</h3>
-
-            {situacao === 'realizando' && (
-              <div className="numeros-escola">
-                <div>
-                  <strong>{linha.realizadas}</strong>
-                  <span>realizada{linha.realizadas === 1 ? '' : 's'}</span>
-                </div>
-                {linha.agendadas > 0 && (
-                  <div>
-                    <strong>{linha.agendadas}</strong>
-                    <span>marcada{linha.agendadas === 1 ? '' : 's'}</span>
-                  </div>
-                )}
-                {linha.professores > 0 && (
-                  <div>
-                    <strong>{linha.professores}</strong>
-                    <span>professor{linha.professores === 1 ? '' : 'es'}</span>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div className="rodape-cartao" style={{ marginTop: 12 }}>
-              {linha.ultima_data && <span>última em {dataCurta(linha.ultima_data)}</span>}
-              {linha.proxima_data && <span>próxima em {dataCurta(linha.proxima_data)}</span>}
-              {linha.canceladas > 0 && (
-                <span>
-                  {linha.canceladas} cancelada{linha.canceladas === 1 ? '' : 's'}
-                </span>
-              )}
-            </div>
-
-            {linha.realizadas + linha.agendadas + linha.canceladas > 0 && (
-              <div className="acoes-linha" style={{ marginTop: 14 }}>
-                <button
-                  type="button"
-                  className="secundario pequeno"
-                  onClick={() => verAulasDa(linha.escola_id)}
-                >
-                  {escolaId === linha.escola_id ? 'Mostrar todas' : 'Ver as aulas'}
-                </button>
-              </div>
-            )}
-          </article>
-        ))}
-      </div>
-
-      <div className="secao-titulo" style={{ marginTop: 40 }} ref={lista}>
-        <div>
-          <h2>{escolaAberta ? escolaAberta.escola_nome : 'Todas as escolas'}</h2>
-          <p>
-            {aulas.length === 0
-              ? 'Nenhuma aula neste filtro.'
-              : `${aulas.length} aula${aulas.length === 1 ? '' : 's'} neste filtro`}
-          </p>
-        </div>
-      </div>
-
-      <div className="filtros-integradores">
-        <div className="campo" style={{ marginBottom: 0, minWidth: 280, flex: '1 1 280px' }}>
+      <div className="cartao filtros-integradores">
+        <div className="campo">
           <label htmlFor="filtro-escola">Escola</label>
           <select
             id="filtro-escola"
@@ -199,17 +130,25 @@ export function IntegradoresRealizados({
             onChange={(e) => setEscolaId(e.target.value || null)}
           >
             <option value="">Todas as escolas</option>
-            {[...panorama]
-              .sort((a, b) => a.escola_nome.localeCompare(b.escola_nome, 'pt-BR'))
-              .map((l) => (
-                <option key={l.escola_id} value={l.escola_id}>
-                  {l.escola_nome} ({l.realizadas} realizada{l.realizadas === 1 ? '' : 's'})
-                </option>
-              ))}
+            {escolas.map((e) => (
+              <option key={e.id} value={e.id}>
+                {e.nome}
+              </option>
+            ))}
           </select>
         </div>
 
-        <div className="campo" style={{ marginBottom: 0 }}>
+        <div className="campo">
+          <label htmlFor="filtro-de">De</label>
+          <input id="filtro-de" type="date" value={de} onChange={(e) => setDe(e.target.value)} />
+        </div>
+
+        <div className="campo">
+          <label htmlFor="filtro-ate">Até</label>
+          <input id="filtro-ate" type="date" value={ate} onChange={(e) => setAte(e.target.value)} />
+        </div>
+
+        <div className="campo situacao">
           <label>Situação da aula</label>
           <div className="chips">
             {VISTAS.map((v) => (
@@ -225,14 +164,27 @@ export function IntegradoresRealizados({
             ))}
           </div>
         </div>
+
+        <div className="campo resultado">
+          <span>
+            {aulas.length === 0
+              ? 'Nenhuma aula'
+              : `${aulas.length} aula${aulas.length === 1 ? '' : 's'}`}
+          </span>
+          {filtrando && (
+            <button type="button" className="fantasma pequeno" onClick={limpar}>
+              Limpar filtros
+            </button>
+          )}
+        </div>
       </div>
 
       {aulas.length === 0 ? (
         <div className="vazio" style={{ marginTop: 20 }}>
           <span className="emoji">🧩</span>
-          {vista === 'realizadas' && escolaId === null
-            ? 'Nenhum integrador realizado ainda. Quando a primeira turma passar pela sala, ela aparece aqui.'
-            : 'Nenhuma aula com esses filtros. Troque a escola ou a situação.'}
+          {filtrando
+            ? 'Nenhuma aula com esses filtros. Troque a escola, a data ou a situação.'
+            : 'Nenhum integrador ainda. Quando a primeira turma passar pela sala, ela aparece aqui.'}
         </div>
       ) : (
         <div className="rolagem" style={{ marginTop: 20 }}>

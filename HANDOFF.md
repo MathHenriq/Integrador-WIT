@@ -156,24 +156,29 @@ caso difícil de propósito.
 
 ### 2.3 Integradores realizados — **pronto**
 
-Aba "Integradores realizados" do painel, feita para o coordenador: quantas escolas estão no projeto
-agora, escola por escola, e a lista de aulas filtrável por escola e por situação.
+Aba "Integradores realizados" do painel: as escolas que estão no projeto agora, os filtros e a
+lista das aulas.
 
 | onde | o quê |
 | --- | --- |
-| `0012_panorama_dos_integradores.sql` | `admin_panorama_escolas`, uma linha por escola |
-| `src/componentes/IntegradoresRealizados.tsx` | o cartão do "agora", os cartões e a lista |
-| `src/lib/relato.ts` | o relato e as fotos perguntados no navegador, agora compartilhados |
+| `src/componentes/IntegradoresRealizados.tsx` | a aba inteira |
+| `src/lib/relato.ts` | o relato e as fotos perguntados no navegador, usados por duas abas |
+| `0013_fotos_na_lista_de_reservas.sql` | a coluna que faltava na `admin_listar_reservas` |
 
-**Todas as escolas aparecem, inclusive as zeradas.** É o pedido do coordenador: escola sem nada é o
-que cria senso de urgência, e ela não tem linha em lista de reserva nenhuma. Por isso a função
-parte das escolas com `left join`, e as sem projeto vêm primeiro na tela. Somar as reservas no
-navegador também daria número errado assim que o histórico passar das mil linhas que o PostgREST
-devolve.
+**Filtros no topo**, antes de qualquer coisa: escola, período (de/até) e situação — Tudo,
+Realizadas, Agendadas, Canceladas, nessa ordem. As datas são comparadas como string `AAAA-MM-DD`,
+igual ao resto do site; `new Date` mostraria o dia anterior.
 
-**Duas situações para a escola** — *realizando projeto integrador* (tem aula dada ou marcada) e
-*sem projeto ainda* — e três para a aula: realizada, agendada, cancelada. Nada de "parada" nem de
-"falta o registro": foram tentados e reprovados, aula que aconteceu é aula realizada, ponto.
+**"Em projeto integrador agora"** é só a lista de nomes das escolas com aula confirmada, e some da
+tela quando não há nenhuma — um "0 de 17" não diz nada a ninguém. Quem tem projeto reservado
+aparece na aba de reservas, e quem não tem não aparece em lugar nenhum: panorama escola por escola
+foi tentado e reprovado, junto com "escola parada" e "falta o registro".
+
+**O bug que apagava a tela** (`0013`): `admin_listar_reservas` nunca devolveu `fotos`, e a tela lê
+`reserva.fotos.length` em toda linha. A aba de reservas só toca nesse campo em aula confirmada que
+já aconteceu — como não havia nenhuma, o erro ficou escondido desde a `0004`. Bastou uma cancelada
+na tela para o React derrubar a página inteira. **Lição:** o tipo `ReservaAdmin` é um contrato, e
+nada garante que a RPC o cumpra — quando mexer numa das pontas, confira a outra.
 
 ---
 

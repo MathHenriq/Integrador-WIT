@@ -731,14 +731,13 @@ legend { font-family: var(--fonte-titulo); font-size: 14.5px; font-weight: 600; 
 
 /* Situação do integrador e da escola, no painel da equipe. Mesma família
    de cores das reservas. */
-.etiqueta.realizada, .etiqueta.realizando { background: var(--sucesso-fundo); color: var(--sucesso); }
+.etiqueta.realizada { background: var(--sucesso-fundo); color: var(--sucesso); }
 .etiqueta.agendada {
   background: var(--superficie-alta);
   color: var(--texto-suave);
   border-color: var(--borda-solida);
 }
 .etiqueta.cancelada { background: var(--erro-fundo); color: var(--erro); }
-.etiqueta.sem-projeto { background: var(--aviso-fundo); color: var(--aviso); }
 .etiqueta.codigo {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 12px;
@@ -899,63 +898,68 @@ a.atividade:hover {
    habilidades). Sem separador os textos encostam e viram "ano90 min1
    habilidade" — foi assim que apareceu no painel. */
 /* ------------------------------------------------------------------ */
-/* Panorama dos integradores (painel da equipe)                        */
+/* Integradores realizados (painel da equipe)                          */
 /* ------------------------------------------------------------------ */
-/* Números grandes primeiro, escola por escola depois: o coordenador
-   bate o olho e sabe quem está fazendo e quem não está. Sem tarja
-   colorida na lateral em lugar nenhum — borda, quando existe, é igual
-   nos quatro lados. */
+/* Uma lista de nomes em cima, os filtros logo abaixo e a tabela. Sem
+   tarja colorida na lateral em lugar nenhum — borda, quando existe, é
+   igual nos quatro lados. */
 
-.realizando-agora { padding: 20px 24px; }
+.em-projeto-agora, .escolas-reservadas { padding: 18px 22px; margin-bottom: 16px; }
 
-.realizando-agora .valor {
+.em-projeto-agora .rotulo, .escolas-reservadas .rotulo {
+  display: block;
   font-family: var(--fonte-titulo);
-  font-size: 38px;
-  font-weight: 700;
-  line-height: 1;
-  margin-right: 12px;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
 }
 
-.realizando-agora .valor .de { font-size: 22px; color: var(--texto-fraco); font-weight: 600; }
-.realizando-agora .rotulo { color: var(--texto-suave); font-size: 15px; }
-
-.grade-escolas {
+.em-projeto-agora ul, .escolas-reservadas ul {
   display: grid;
-  gap: 14px;
-  grid-template-columns: repeat(auto-fit, minmax(272px, 1fr));
-  /* Cada cartão com a altura do seu conteúdo: a escola sem projeto é
-     duas linhas, e esticá-la até a altura da vizinha só faria buraco. */
-  align-items: start;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 4px 24px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
 }
 
-.escola-panorama.aberta { border-color: var(--verde); }
-
-.escola-panorama .numeros-escola {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 20px;
-  margin-top: 12px;
-}
-
-.escola-panorama .numeros-escola div { display: flex; align-items: baseline; gap: 6px; }
-
-.escola-panorama .numeros-escola strong {
+.em-projeto-agora li, .escolas-reservadas li {
   font-family: var(--fonte-titulo);
-  font-size: 21px;
-  line-height: 1;
+  font-weight: 600;
+  font-size: 15.5px;
+  padding: 4px 0;
 }
 
-.escola-panorama .numeros-escola span { color: var(--texto-suave); font-size: 14px; }
+.escolas-reservadas li span {
+  display: block;
+  font-family: var(--fonte-texto);
+  font-weight: 400;
+  font-size: 14px;
+  color: var(--texto-suave);
+}
 
 .filtros-integradores {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px 24px;
+  gap: 14px 22px;
   align-items: flex-end;
-  margin-top: 16px;
 }
 
+.filtros-integradores .campo { margin-bottom: 0; }
+.filtros-integradores .campo:first-child { flex: 1 1 260px; min-width: 240px; }
+.filtros-integradores .campo.situacao { flex: 1 1 auto; }
 .filtros-integradores label { display: block; }
+
+.filtros-integradores .campo.resultado {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--texto-suave);
+  font-size: 14.5px;
+  padding-bottom: 4px;
+}
 
 .topo-cartao { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 
