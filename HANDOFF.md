@@ -149,10 +149,38 @@ livre do dia.
 fotos são extraídas assim mesmo, que é o trabalho maior. Recusa mesmo, só: arquivo que não é PDF,
 PDF com senha, acima de 10 MB e data no futuro.
 
+**Duas armadilhas do arquivo de verdade**, descobertas exportando um documento do Canva da conta
+da equipe e rodando o extrator nele:
+
+1. **O Canva desenha uma letra por vez**, cada glifo com o seu próprio `Td`. O leitor antigo
+   decidia o espaço por "mudou o x, então cabe um espaço" e devolvia `T E M A  D A  A U L A` —
+   texto perfeito aos olhos, e nenhum rótulo casava. Agora o `texto.ts` soma a largura dos glifos
+   (`/Widths` nas fontes simples, `/W` e `/DW` nas Type0): espaço é só o buraco que sobra além do
+   avanço natural da letra anterior.
+2. **A ordem dos objetos não é a ordem de leitura.** No documento do Canva os rótulos são
+   desenhados primeiro e os valores depois, então "TEMA DA AULA:" era seguido, no texto extraído,
+   por "MATERIAIS E RECURSOS" — e o tema saía vazio. O leitor agora acompanha a matriz (`cm`,
+   `q`/`Q`, `Tm`, `Td`, `/Matrix` do formulário) e devolve **linhas com x e y**, ordenadas de cima
+   para baixo. O resto do extrator não mudou: continua achando o rótulo e recortando até o
+   próximo.
+
+**O logo não é foto.** A regra do template era "objeto de imagem referenciado por todas as
+páginas". O Canva grava o MESMO logo como um objeto por página — cada um aparecia numa página só,
+e os dois subiam como se fossem foto da aula. A conta passou a ser por **conteúdo** (SHA-1 dos
+bytes), o que de quebra resolve a foto que o Canva duplica dentro do arquivo.
+
+Resultado nos três documentos reais testados: 9 de 9 campos (o terceiro tem 8 porque a caixa de
+materiais está vazia no próprio documento) e só as fotos de verdade.
+
+**Campo que não veio tem aviso próprio.** A tela de conferência marca em âmbar, embaixo do campo,
+qual deles o documento não entregou — e o cabeçalho diz "7 de 8 campos preenchidos pelo
+documento". O resto continua preenchido: documento fora do padrão nunca vira parede.
+
 **Como testar sem o arquivo do usuário.** `ferramentas/gerar-pdf-de-teste.mjs` monta um PDF que
-imita o do Canva: fontes recortadas com `/ToUnicode` (1 e 2 bytes), páginas escondidas num
-`/ObjStm`, cabeçalho e rodapé nas 4 páginas, fotos em JPEG e em Flate, e um ícone pequeno. É o
-caso difícil de propósito.
+imita o do Canva: fontes recortadas com `/ToUnicode` (1 e 2 bytes) **e com larguras de glifo**,
+páginas escondidas num `/ObjStm`, cabeçalho e rodapé **gravados como dois objetos cada**, fotos em
+JPEG e em Flate, um ícone pequeno, e uma folha de rosto escrita **letra por letra com os rótulos
+antes dos valores**. É o caso difícil de propósito — as duas armadilhas de cima estão ali dentro.
 
 ### 2.3 Integradores realizados — **pronto**
 

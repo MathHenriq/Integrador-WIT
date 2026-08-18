@@ -635,6 +635,9 @@ select {
 
 .campo { margin-bottom: 18px; }
 .campo .ajuda { margin-top: 6px; font-size: 14px; color: var(--texto-fraco); line-height: 1.45; }
+/* O campo que o documento não entregou. Discreto: a tela já veio
+   preenchida, e isto é só o lembrete de quem ficou de fora. */
+.campo .ajuda.falta { color: var(--aviso); }
 
 .linha-campos {
   display: grid;

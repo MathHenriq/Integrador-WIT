@@ -5,10 +5,15 @@
 // cabeçalho e o rodapé do template, que se repetem em todas as páginas,
 // e as fotos da aula, que aparecem uma vez só.
 //
-// A separação não precisa comparar bytes nem chutar tamanho: num PDF a
-// mesma imagem é UM objeto, referenciado por várias páginas. Basta
+// A separação é por conteúdo, e não por objeto. A ideia original era
 // contar em quantas páginas cada objeto aparece — apareceu em todas, é
-// moldura, e vai fora.
+// moldura —, mas o PDF de verdade do Canva grava o MESMO logo como um
+// objeto por página. Cada um aparecia numa página só, nenhum era
+// "repetido", e os dois logos subiam como se fossem foto da aula.
+//
+// Contando pelos bytes, o logo volta a ser o que é: uma imagem que
+// aparece em todas as páginas. De quebra resolve a foto que o Canva
+// duplica dentro do arquivo — ela entra uma vez só.
 // =====================================================================
 
 import { Documento, FILTROS_DE_IMAGEM, ehDic, nomeDe, numeroDe, type Valor } from './pdf.ts'
@@ -160,27 +165,24 @@ function componentes(doc: Documento, espaco: Valor | undefined): number | null {
 
 export async function fotosDoDocumento(doc: Documento) {
   const paginas = doc.paginas()
-  const usoPorObjeto = new Map<number, number>()
+  const paginasPorObjeto = new Map<number, Set<number>>()
 
-  for (const pagina of paginas) {
+  paginas.forEach((pagina, indice) => {
     for (const num of imagensDaPagina(doc, pagina.dic)) {
-      usoPorObjeto.set(num, (usoPorObjeto.get(num) ?? 0) + 1)
+      const onde = paginasPorObjeto.get(num) ?? new Set<number>()
+      onde.add(indice)
+      paginasPorObjeto.set(num, onde)
     }
-  }
+  })
 
-  const fotos: FotoExtraida[] = []
   const avisos: string[] = []
-  let descartadasPorRepeticao = 0
   let descartadasPorTamanho = 0
 
-  for (const [num, usos] of [...usoPorObjeto].sort((a, b) => a[0] - b[0])) {
-    // A regra do template. Num documento de página única não há
-    // "repetir em todas", então ela não se aplica.
-    if (paginas.length >= 2 && usos >= paginas.length) {
-      descartadasPorRepeticao++
-      continue
-    }
+  /** Uma imagem já decodificada, pronta para virar foto — ou para ser descartada. */
+  type Candidata = FotoExtraida & { chave: string; paginas: Set<number> }
+  const candidatas: Candidata[] = []
 
+  for (const [num, onde] of [...paginasPorObjeto].sort((a, b) => a[0] - b[0])) {
     const objeto = doc.objeto(num)
     if (!objeto?.bruto || !ehDic(objeto.valor)) continue
 
@@ -219,37 +221,82 @@ export async function fotosDoDocumento(doc: Documento) {
       continue
     }
 
+    let bytes: Uint8Array
+    let tipo: string
+    let extensao: string
+
     if (filtroDeImagem === 'DCTDecode') {
       // Os bytes já são um JPEG completo.
-      fotos.push({ objeto: num, largura, altura, tipo: 'image/jpeg', extensao: 'jpg', bytes: dados })
+      bytes = dados
+      tipo = 'image/jpeg'
+      extensao = 'jpg'
+    } else {
+      const bits = numeroDe(doc.resolver(objeto.valor.itens.BitsPerComponent)) ?? 8
+      const cores = componentes(doc, doc.resolver(objeto.valor.itens.ColorSpace))
+
+      if (bits !== 8 || cores === null || cores === 4) {
+        avisos.push(`Uma imagem de ${largura}×${altura} usa um espaço de cor que não sei converter.`)
+        continue
+      }
+
+      if (dados.length < largura * altura * cores) {
+        avisos.push(`Uma imagem de ${largura}×${altura} veio incompleta e ficou de fora.`)
+        continue
+      }
+
+      try {
+        bytes = await montarPng(largura, altura, cores, dados)
+        tipo = 'image/png'
+        extensao = 'png'
+      } catch {
+        avisos.push(`Não consegui converter uma imagem de ${largura}×${altura}.`)
+        continue
+      }
+    }
+
+    candidatas.push({
+      objeto: num,
+      largura,
+      altura,
+      tipo,
+      extensao,
+      bytes,
+      chave: await impressaoDigital(bytes),
+      paginas: onde,
+    })
+  }
+
+  // Em quantas páginas cada CONTEÚDO aparece — não cada objeto.
+  const paginasPorConteudo = new Map<string, Set<number>>()
+  for (const c of candidatas) {
+    const onde = paginasPorConteudo.get(c.chave) ?? new Set<number>()
+    for (const p of c.paginas) onde.add(p)
+    paginasPorConteudo.set(c.chave, onde)
+  }
+
+  const fotos: FotoExtraida[] = []
+  const jaEntraram = new Set<string>()
+  let descartadasPorRepeticao = 0
+  let descartadasPorCopia = 0
+
+  for (const candidata of candidatas) {
+    // A regra do template. Num documento de página única não há
+    // "repetir em todas", então ela não se aplica.
+    const espalhada = (paginasPorConteudo.get(candidata.chave)?.size ?? 0) >= paginas.length
+    if (paginas.length >= 2 && espalhada) {
+      if (!jaEntraram.has(candidata.chave)) descartadasPorRepeticao++
+      jaEntraram.add(candidata.chave)
       continue
     }
 
-    const bits = numeroDe(doc.resolver(objeto.valor.itens.BitsPerComponent)) ?? 8
-    const cores = componentes(doc, doc.resolver(objeto.valor.itens.ColorSpace))
-
-    if (bits !== 8 || cores === null || cores === 4) {
-      avisos.push(`Uma imagem de ${largura}×${altura} usa um espaço de cor que não sei converter.`)
+    if (jaEntraram.has(candidata.chave)) {
+      descartadasPorCopia++
       continue
     }
 
-    if (dados.length < largura * altura * cores) {
-      avisos.push(`Uma imagem de ${largura}×${altura} veio incompleta e ficou de fora.`)
-      continue
-    }
-
-    try {
-      fotos.push({
-        objeto: num,
-        largura,
-        altura,
-        tipo: 'image/png',
-        extensao: 'png',
-        bytes: await montarPng(largura, altura, cores, dados),
-      })
-    } catch {
-      avisos.push(`Não consegui converter uma imagem de ${largura}×${altura}.`)
-    }
+    jaEntraram.add(candidata.chave)
+    const { chave: _chave, paginas: _paginas, ...foto } = candidata
+    fotos.push(foto)
   }
 
   if (descartadasPorRepeticao > 0) {
@@ -258,9 +305,18 @@ export async function fotosDoDocumento(doc: Documento) {
         'cabeçalho e rodapé do template.',
     )
   }
+  if (descartadasPorCopia > 0) {
+    avisos.push(`${descartadasPorCopia} foto(s) estavam repetidas no arquivo e entraram uma vez só.`)
+  }
   if (descartadasPorTamanho > 0) {
     avisos.push(`${descartadasPorTamanho} imagem(ns) pequenas demais para serem foto ficaram de fora.`)
   }
 
   return { fotos, avisos }
+}
+
+/** Os bytes resumidos em hexadecimal, para reconhecer imagem repetida. */
+async function impressaoDigital(bytes: Uint8Array) {
+  const digestao = await crypto.subtle.digest('SHA-1', bytes as BufferSource)
+  return [...new Uint8Array(digestao)].map((b) => b.toString(16).padStart(2, '0')).join('')
 }

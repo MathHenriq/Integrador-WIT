@@ -165,6 +165,35 @@ function acharEscola(escolas: EscolaAdmin[], lido: string | null) {
   return melhor.pontos >= 2 ? melhor.id : ''
 }
 
+/**
+ * A frase que aparece embaixo de um campo que o documento não entregou.
+ * Curta de propósito: a tela já vem preenchida, e o que a equipe precisa
+ * saber é só qual dos campos ficou por conta dela.
+ */
+/** Os campos que o documento do Canva carrega, na ordem da tela. */
+const CAMPOS_DO_DOCUMENTO = [
+  'escola',
+  'data',
+  'professor',
+  'turma',
+  'tema',
+  'objetivos',
+  'descricao',
+  'materiais',
+] as const
+
+const TOTAL_DE_CAMPOS = CAMPOS_DO_DOCUMENTO.length
+
+function Faltou({ o }: { o: string }) {
+  return <p className="ajuda falta">{o} não veio no documento — preencha aqui.</p>
+}
+
+/** "a, b e c" — a vírgula até o penúltimo, o "e" só no fim. */
+function emLista(itens: string[]) {
+  if (itens.length <= 1) return itens.join('')
+  return `${itens.slice(0, -1).join(', ')} e ${itens[itens.length - 1]}`
+}
+
 // ----------------------------------------------------------- conferência
 
 function Conferencia({
@@ -196,6 +225,15 @@ function Conferencia({
   useEffect(() => {
     if (escolas.length > 0) setEscolaId((atual) => atual || acharEscola(escolas, lida.campos.escola))
   }, [escolas, lida.campos.escola])
+
+  const c = lida.campos
+  const lidos = CAMPOS_DO_DOCUMENTO.filter((campo) => c[campo]).length
+
+  const faltaNoRelato = [
+    c.descricao ? null : 'a descrição da aula',
+    c.objetivos ? null : 'os objetivos de aprendizagem',
+    c.materiais ? null : 'os materiais e recursos',
+  ].filter((f): f is string => f !== null)
 
   const faltaEscola = !escolaId
   const podePublicar = !!escolaId && !!data && professor.trim().length >= 3 && titulo.trim().length >= 3
@@ -229,7 +267,8 @@ function Conferencia({
         <div>
           <h2 style={{ fontSize: 20 }}>Confira antes de publicar</h2>
           <p style={{ color: 'var(--texto-suave)' }}>
-            {lida.paginas} página(s) lidas · {lida.fotos.length} foto(s) encontradas
+            {lida.paginas} página(s) lidas · {lida.fotos.length} foto(s) · {lidos} de{' '}
+            {TOTAL_DE_CAMPOS} campos preenchidos pelo documento
           </p>
         </div>
         <button type="button" className="secundario" onClick={aoCancelar}>
@@ -264,10 +303,11 @@ function Conferencia({
                 </option>
               ))}
             </select>
-            {faltaEscola && lida.campos.escola && (
-              <p className="ajuda">
-                No documento está escrito “{lida.campos.escola}”, que não bateu com nenhuma escola do
-                cadastro.
+            {!c.escola && <Faltou o="A escola" />}
+            {faltaEscola && c.escola && (
+              <p className="ajuda falta">
+                No documento está escrito “{c.escola}”, que não bateu com nenhuma escola do
+                cadastro. Escolha na lista.
               </p>
             )}
           </div>
@@ -275,8 +315,11 @@ function Conferencia({
           <div className="campo">
             <label htmlFor="imp-data">Data da aula *</label>
             <input id="imp-data" type="date" value={data} onChange={(e) => setData(e.target.value)} />
-            {!lida.campos.data && lida.campos.data_lida && (
-              <p className="ajuda">No documento está “{lida.campos.data_lida}”.</p>
+            {!c.data && !c.data_lida && <Faltou o="A data" />}
+            {!c.data && c.data_lida && (
+              <p className="ajuda falta">
+                Não entendi a data “{c.data_lida}” do documento — escolha no calendário.
+              </p>
             )}
           </div>
         </div>
@@ -290,10 +333,12 @@ function Conferencia({
               onChange={(e) => setProfessor(e.target.value)}
               maxLength={120}
             />
+            {!c.professor && <Faltou o="O nome do professor" />}
           </div>
           <div className="campo">
             <label htmlFor="imp-turma">Turma</label>
             <input id="imp-turma" value={turma} onChange={(e) => setTurma(e.target.value)} maxLength={60} />
+            {!c.turma && <Faltou o="A turma" />}
           </div>
         </div>
 
@@ -305,15 +350,21 @@ function Conferencia({
             onChange={(e) => setTitulo(e.target.value)}
             maxLength={160}
           />
+          {!c.tema && <Faltou o="O tema da aula" />}
           <p className="ajuda">
             É o título que aparece na vitrine de aulas realizadas.
-            {lida.campos.curso ? ` No documento, o curso é “${lida.campos.curso}”.` : ''}
+            {c.curso ? ` No documento, o curso é “${c.curso}”.` : ''}
           </p>
         </div>
 
         <div className="campo" style={{ marginBottom: 0 }}>
           <label htmlFor="imp-relato">Como foi a aula</label>
           <textarea id="imp-relato" value={relato} onChange={(e) => setRelato(e.target.value)} rows={10} />
+          {faltaNoRelato.length > 0 && (
+            <p className="ajuda falta">
+              O documento não trouxe {emLista(faltaNoRelato)} — escreva aqui o que faltar.
+            </p>
+          )}
           <p className="ajuda">
             Montado com a descrição, os objetivos e os materiais do documento. É o que outro
             professor lê para se inspirar — ajuste à vontade.

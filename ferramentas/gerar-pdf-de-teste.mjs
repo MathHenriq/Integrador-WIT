@@ -17,6 +17,15 @@
 //  - fotos que aparecem uma vez só, em JPEG e em Flate cru;
 //  - um ícone pequeno, que tem de sair pelo tamanho;
 //  - uma frase partida em vários Tm na mesma linha, como o Canva faz;
+//  - uma página escrita LETRA POR LETRA, cada glifo com o seu próprio
+//    `Td`, que é como o Canva exporta de verdade — quem decide o espaço
+//    só por "mudou o x" devolve "T E M A  D A  A U L A" e não acha
+//    rótulo nenhum;
+//  - os rótulos desenhados ANTES dos valores, também como no arquivo de
+//    verdade: a ordem dos objetos no PDF não é a ordem de leitura, e
+//    quem confia nela lê o rótulo seguinte no lugar do valor;
+//  - o mesmo logo gravado como DOIS objetos, um par de páginas cada,
+//    que é como o Canva repete cabeçalho e rodapé;
 //  - e o texto embrulhado num /XObject de subtipo Form, que é como o
 //    editor gráfico exporta. Quem só lê o /Contents da página encontra
 //    ali um `/FmTexto Do` e mais nada — foi o que fez o documento de
@@ -76,6 +85,14 @@ endcodespacerange
   return bin(corpo)
 }
 
+/** Largura de cada letra, em milésimos. Chutada, mas coerente. */
+function larguraDaLetra(c) {
+  if (c === ' ') return 260
+  if ('ilj.,:;!|'.includes(c)) return 300
+  if (c === c.toUpperCase() && c !== c.toLowerCase()) return 660
+  return 520
+}
+
 function montarFonte({ texto, bytes, comFaixa }) {
   const caracteres = [...new Set([...texto])].sort()
   const paraCodigo = new Map()
@@ -92,15 +109,37 @@ function montarFonte({ texto, bytes, comFaixa }) {
   const numCmap = reservar()
   objetos.set(numCmap, { corpo: '<< /Length %L /Filter /FlateDecode >>', fluxo: deflateSync(cmap(pares, bytes, comFaixa)) })
 
+  const larguras = caracteres.map((c) => larguraDaLetra(c))
   const numFonte = reservar()
-  const dicionario =
-    bytes === 1
-      ? `<< /Type /Font /Subtype /TrueType /BaseFont /AAAAAA+Outfit /FirstChar 3 /LastChar 255 /ToUnicode ${numCmap} 0 R >>`
-      : `<< /Type /Font /Subtype /Type0 /BaseFont /BBBBBB+SourceSans /Encoding /Identity-H /ToUnicode ${numCmap} 0 R >>`
+
+  let dicionario
+  if (bytes === 1) {
+    dicionario =
+      `<< /Type /Font /Subtype /TrueType /BaseFont /AAAAAA+Outfit /FirstChar 3 ` +
+      `/LastChar ${3 + caracteres.length - 1} /Widths [${larguras.join(' ')}] /ToUnicode ${numCmap} 0 R >>`
+  } else {
+    // A Type0 guarda as larguras no /W da fonte descendente, com o /DW
+    // de padrão — outro caminho de código, outro jeito de errar.
+    const numDescendente = reservar()
+    objetos.set(numDescendente, {
+      corpo:
+        `<< /Type /Font /Subtype /CIDFontType2 /BaseFont /BBBBBB+SourceSans ` +
+        `/CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> ` +
+        `/DW 1000 /W [256 [${larguras.join(' ')}]] >>`,
+    })
+    dicionario =
+      `<< /Type /Font /Subtype /Type0 /BaseFont /BBBBBB+SourceSans /Encoding /Identity-H ` +
+      `/DescendantFonts [${numDescendente} 0 R] /ToUnicode ${numCmap} 0 R >>`
+  }
 
   return {
     num: numFonte,
     dicionario,
+    larguraDe: larguraDaLetra,
+    /** Quanto o texto ocupa na página, no tamanho dado. */
+    largura(s, tamanho) {
+      return [...s].reduce((total, c) => total + (larguraDaLetra(c) / 1000) * tamanho, 0)
+    },
     codificar(s) {
       let hex = ''
       for (const c of s) {
@@ -171,8 +210,26 @@ function linhas(pares) {
   return saida
 }
 
+/**
+ * Uma linha escrita glifo a glifo, cada um com o seu `Td`, que é como o
+ * Canva exporta. O `Td` anda exatamente a largura da letra: é isso que
+ * diz ao extrator que ali NÃO cabe espaço nenhum.
+ */
+function letraPorLetra(fonte, texto, tamanho, x, y) {
+  let saida = `/F${fonte.num} ${tamanho} Tf\n1 0 0 1 ${x} ${y} Tm\n`
+  for (const c of texto) {
+    saida += `${fonte.codificar(c)} Tj\n${((fonte.larguraDe(c) / 1000) * tamanho).toFixed(4)} 0 Td\n`
+  }
+  return saida
+}
+
+// O mesmo cabeçalho e o mesmo rodapé, gravados como dois objetos cada:
+// a mesma semente dá os mesmos bytes. Quem separa moldura de foto
+// contando objeto por página não vê repetição nenhuma aqui.
 const cabecalho = imagemFlate(321, 231, 7)
+const cabecalhoDeNovo = imagemFlate(321, 231, 7)
 const rodape = imagemFlate(657, 489, 19)
+const rodapeDeNovo = imagemFlate(657, 489, 19)
 const icone = imagemFlate(40, 40, 3)
 
 const fotos = [
@@ -182,16 +239,35 @@ const fotos = [
   imagemFlate(640, 480, 71),
 ]
 
+/**
+ * A folha de rosto do jeito difícil: os cinco rótulos primeiro, os cinco
+ * valores depois, todos letra por letra. É a página que separa quem lê
+ * geometria de quem lê a ordem dos objetos.
+ */
+function folhaDeRosto() {
+  const campos = [
+    ['TEMA DA AULA:', 'Astros e planetas no metaverso', 12, 760],
+    ['Curso:', 'Inteligência Artificial', 11, 720],
+    ['Turma:', 'Inclusão', 11, 700],
+    ['Data:', '14/05/2026', 11, 680],
+    ['Prof.:', 'Dante', 11, 660],
+    ['Escola:', 'EMEF Rita de Jesus', 11, 640],
+  ]
+
+  let rotulos = 'BT\n'
+  let valores = 'BT\n'
+  for (const [rotulo, valor, tamanho, y] of campos) {
+    const fonte = y === 760 ? fonteTitulo : fonteTexto
+    rotulos += letraPorLetra(fonte, rotulo, tamanho, 60, y)
+    // O valor começa um pouco depois do fim do rótulo: o buraco entre os
+    // dois é o único espaço de verdade da linha.
+    valores += letraPorLetra(fonteTexto, valor, tamanho, 60 + fonte.largura(rotulo, tamanho) + 6, y)
+  }
+  return `${rotulos}ET\n${valores}ET\n`
+}
+
 const conteudos = [
-  linhas([
-    [fonteTitulo, 'TEMA DA AULA', 20],
-    [fonteTexto, 'Astros e planetas no metaverso'],
-    [fonteTexto, 'Curso: Inteligência Artificial'],
-    [fonteTexto, 'Turma: Inclusão'],
-    [fonteTexto, 'Data: 14/05/2026'],
-    [fonteTexto, 'Prof.: Dante'],
-    [fonteTexto, 'Escola: EMEF Rita de Jesus'],
-  ]),
+  folhaDeRosto(),
   linhas([
     [fonteTitulo, 'OBJETIVOS DE APRENDIZAGEM', 20],
     [fonteTexto, 'Reconhecer a posição dos planetas do Sistema Solar.'],
@@ -234,8 +310,8 @@ conteudos.forEach((texto, k) => {
   numFormularios.push(numForma)
 
   const desenho =
-    `q 321 0 0 231 40 800 cm /Im${cabecalho} Do Q\n` +
-    `q 657 0 0 489 40 40 cm /Im${rodape} Do Q\n` +
+    `q 321 0 0 231 40 800 cm /Im${k < 2 ? cabecalho : cabecalhoDeNovo} Do Q\n` +
+    `q 657 0 0 489 40 40 cm /Im${k < 2 ? rodape : rodapeDeNovo} Do Q\n` +
     (k === 0 ? `q 40 0 0 40 500 800 cm /Im${icone} Do Q\n` : '') +
     (fotos[k] !== undefined ? `q 300 0 0 200 60 300 cm /Im${fotos[k]} Do Q\n` : '') +
     `q 1 0 0 1 0 0 cm /FmTexto Do Q\n`
@@ -255,7 +331,12 @@ const numCatalogo = reservar()
 const dentroDoFluxo = []
 
 numPaginas.forEach((num, k) => {
-  const xobjetos = [cabecalho, rodape, ...(k === 0 ? [icone] : []), ...(fotos[k] !== undefined ? [fotos[k]] : [])]
+  const xobjetos = [
+    k < 2 ? cabecalho : cabecalhoDeNovo,
+    k < 2 ? rodape : rodapeDeNovo,
+    ...(k === 0 ? [icone] : []),
+    ...(fotos[k] !== undefined ? [fotos[k]] : []),
+  ]
   dentroDoFluxo.push([
     num,
     `<< /Type /Page /Parent ${numPaisDasPaginas} 0 R /MediaBox [0 0 595 842] /Contents ${numConteudos[k]} 0 R ` +
@@ -302,6 +383,6 @@ const destino = process.argv[2] ?? '/tmp/canva-falso.pdf'
 writeFileSync(destino, Buffer.concat(partes))
 console.log('PDF escrito:', destino)
 console.log('  páginas:', numPaginas.length)
-console.log('  molduras (todas as páginas):', cabecalho, rodape)
+console.log('  molduras (duas cópias de cada):', cabecalho, cabecalhoDeNovo, rodape, rodapeDeNovo)
 console.log('  ícone pequeno (descartar por tamanho):', icone)
 console.log('  fotos esperadas:', fotos.join(', '))

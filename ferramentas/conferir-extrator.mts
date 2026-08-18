@@ -50,7 +50,16 @@ conferir('professor', lido.campos.professor, 'Dante')
 conferir('escola', lido.campos.escola, 'EMEF Rita de Jesus')
 conferir('turma', lido.campos.turma, 'Inclusão')
 conferir('curso', lido.campos.curso, 'Inteligência Artificial')
-// As 4 fotos de verdade, sem as 2 molduras e sem o ícone.
+// Os blocos: o valor de cada um vai até o rótulo seguinte, e não
+// até o fim da página.
+conferir('objetivos em 2 linhas', lido.campos.objetivos?.split('\n').length, 2)
+conferir(
+  'descrição inteira',
+  lido.campos.descricao?.endsWith('mural coletivo com as anotações.'),
+  true,
+)
+conferir('materiais', lido.campos.materiais, 'Óculos VR, notebook, papel kraft canetas.')
+// As 4 fotos de verdade, sem as 4 molduras e sem o ícone.
 conferir('fotos', lido.fotos.length, 4)
 conferir('formatos', lido.fotos.map((f) => f.tipo), ['image/jpeg', 'image/png', 'image/png', 'image/png'])
 // A frase partida em vários Tm tem que voltar inteira, com espaço.
