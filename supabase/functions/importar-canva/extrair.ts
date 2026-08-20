@@ -91,7 +91,7 @@ function limpar(valor: string, bloco: boolean) {
     // O marcador de lista é desenho, não conteúdo: alguns documentos o
     // trazem como letra (o nosso gerador, por exemplo) e ele não pode
     // virar parte do objetivo que o professor escreveu.
-    .map((linha) => linha.replace(/[ \t]+/g, ' ').replace(/^\s*[•▪◦‣·*-]\s+/, '').trim())
+    .map((linha) => linha.replace(/[ \t]+/g, ' ').replace(/^\s*[\u2022\u25aa\u25e6\u2023\u00b7*-]\s+/, '').trim())
     .join('\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim()
@@ -222,7 +222,7 @@ export async function extrairDoPdf(bytes: Uint8Array): Promise<Extracao> {
       avisos.push('Uma das páginas não pôde ser lida; o texto dela ficou de fora.')
     }
   }
-  const texto = pedacos.join('\n').replace(/ /g, ' ')
+  const texto = pedacos.join('\n').replace(/\u00a0/g, ' ')
 
   const lidos = lerCampos(texto)
   const { fotos, avisos: avisosDasFotos } = await fotosDoDocumento(doc)
