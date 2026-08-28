@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { EtiquetaSituacao } from './Etiqueta'
+import { EtiquetaOrigem, EtiquetaSituacao } from './Etiqueta'
 import { adminListarEscolas, adminListarReservas } from '../lib/api'
 import { dataCurta, faixaHoraria, situacaoDoIntegrador } from '../lib/formato'
 import { pedirRelatoEFotos } from '../lib/relato'
@@ -196,6 +196,7 @@ export function IntegradoresRealizados({
                 <th>Escola</th>
                 <th>Professor(a)</th>
                 <th>Aula</th>
+                <th>Origem</th>
                 <th>Situação</th>
                 <th />
               </tr>
@@ -230,6 +231,9 @@ export function IntegradoresRealizados({
                         </span>
                       </>
                     )}
+                  </td>
+                  <td>
+                    <EtiquetaOrigem origem={reserva.origem} />
                   </td>
                   <td>
                     <EtiquetaSituacao situacao={situacao} />

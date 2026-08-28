@@ -4,7 +4,7 @@ import { Aviso } from './Aviso'
 import { adminImportarAulaRealizada, adminListarEscolas, importarDocumentoCanva } from '../lib/api'
 import { acharEscola } from '../lib/escolas.ts'
 import { dataCurta, dataExtensa, faixaHoraria } from '../lib/formato'
-import type { AulaImportada, EscolaAdmin, ImportacaoCanva } from '../lib/tipos'
+import type { AulaImportada, EscolaAdmin, ImportacaoCanva, OrigemReserva } from '../lib/tipos'
 
 /**
  * Sobe o PDF que a equipe exporta do Canva e transforma em aula
@@ -175,6 +175,7 @@ function Conferencia({
   const [titulo, setTitulo] = useState(lida.campos.tema ?? '')
   const [relato, setRelato] = useState(lida.relato)
   const [fotos, setFotos] = useState(lida.fotos)
+  const [origem, setOrigem] = useState<OrigemReserva>('equipe_wit')
   const [virarAtividade, setVirarAtividade] = useState(true)
   const [publicando, setPublicando] = useState(false)
 
@@ -214,6 +215,7 @@ function Conferencia({
           objetivos: lida.campos.objetivos,
           materiais: lida.campos.materiais,
           virarAtividade,
+          origem,
         }),
       )
     } catch (falha) {
@@ -331,6 +333,32 @@ function Conferencia({
             Montado com a descrição, os objetivos e os materiais do documento. É o que outro
             professor lê para se inspirar — ajuste à vontade.
           </p>
+        </div>
+      </div>
+
+      <div className="cartao" style={{ marginBottom: 20 }}>
+        <div className="campo" style={{ marginBottom: 0 }}>
+          <label>Quem conseguiu este projeto integrador? *</label>
+          <div className="caixas">
+            <label className="caixa">
+              <input
+                type="radio"
+                name="imp-origem"
+                checked={origem === 'equipe_wit'}
+                onChange={() => setOrigem('equipe_wit')}
+              />
+              Equipe WIT — fechou direto com o professor
+            </label>
+            <label className="caixa">
+              <input
+                type="radio"
+                name="imp-origem"
+                checked={origem === 'escola'}
+                onChange={() => setOrigem('escola')}
+              />
+              Escola — já tinha reservado pelo site
+            </label>
+          </div>
         </div>
       </div>
 

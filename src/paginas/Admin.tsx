@@ -2,11 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AdminHorarios } from '../componentes/AdminHorarios'
 import { Aviso } from '../componentes/Aviso'
 import { EditorAula } from '../componentes/EditorAula'
-import { EtiquetaReserva } from '../componentes/Etiqueta'
+import { EtiquetaOrigem, EtiquetaReserva } from '../componentes/Etiqueta'
 import { CriarDocumento } from '../componentes/CriarDocumento'
 import { ImportarCanva } from '../componentes/ImportarCanva'
 import { IntegradoresRealizados } from '../componentes/IntegradoresRealizados'
 import { LogoWit } from '../componentes/LogoWit'
+import { RegistrarProjeto } from '../componentes/RegistrarProjeto'
 import {
   adminCancelarReserva,
   adminCriarEscola,
@@ -25,7 +26,15 @@ import { pedirRelatoEFotos } from '../lib/relato'
 import type { AulaAdmin, EscolaAdmin, Habilidade, Materia, ReservaAdmin } from '../lib/tipos'
 
 const CHAVE = 'wit:senha-admin'
-type Aba = 'aulas' | 'escolas' | 'reservas' | 'integradores' | 'documento' | 'canva' | 'bncc'
+type Aba =
+  | 'registrar'
+  | 'aulas'
+  | 'escolas'
+  | 'reservas'
+  | 'integradores'
+  | 'documento'
+  | 'canva'
+  | 'bncc'
 
 export function Admin() {
   const [senha, setSenha] = useState(() => localStorage.getItem(CHAVE) ?? '')
@@ -109,7 +118,7 @@ function Entrada({ inicial, aoEntrar }: { inicial: string; aoEntrar: (s: string)
 }
 
 function Painel({ senha, aoSair }: { senha: string; aoSair: () => void }) {
-  const [aba, setAba] = useState<Aba>('aulas')
+  const [aba, setAba] = useState<Aba>('registrar')
   const [materias, setMaterias] = useState<Materia[]>([])
   const [erro, setErro] = useState<string | null>(null)
 
@@ -136,6 +145,9 @@ function Painel({ senha, aoSair }: { senha: string; aoSair: () => void }) {
       {erro && <Aviso tipo="erro">{erro}</Aviso>}
 
       <div className="abas" role="tablist">
+        <button role="tab" aria-selected={aba === 'registrar'} onClick={() => setAba('registrar')}>
+          + Registrar projeto
+        </button>
         <button role="tab" aria-selected={aba === 'aulas'} onClick={() => setAba('aulas')}>
           Aulas
         </button>
@@ -163,6 +175,7 @@ function Painel({ senha, aoSair }: { senha: string; aoSair: () => void }) {
         </button>
       </div>
 
+      {aba === 'registrar' && <RegistrarProjeto senha={senha} aoErro={setErro} />}
       {aba === 'aulas' && <AbaAulas senha={senha} materias={materias} aoErro={setErro} />}
       {aba === 'escolas' && <AbaEscolas senha={senha} aoErro={setErro} />}
       {aba === 'reservas' && <AbaReservas senha={senha} aoErro={setErro} />}
@@ -519,6 +532,7 @@ function AbaReservas({ senha, aoErro }: { senha: string; aoErro: (e: string | nu
               <th>Escola</th>
               <th>Professor(a)</th>
               <th>Aula</th>
+              <th>Origem</th>
               <th>Situação</th>
               <th />
             </tr>
@@ -553,6 +567,9 @@ function AbaReservas({ senha, aoErro }: { senha: string; aoErro: (e: string | nu
                   )}
                 </td>
                 <td>{r.aula_titulo}</td>
+                <td>
+                  <EtiquetaOrigem origem={r.origem} />
+                </td>
                 <td>
                   <EtiquetaReserva status={r.status} />
                   {r.status === 'confirmado' && r.ja_aconteceu && (

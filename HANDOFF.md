@@ -322,6 +322,28 @@ Palavra é comparada pelas seis primeiras letras justamente por causa disso.
 
 ---
 
+### 2.6 Origem do integrador + registro rápido sem agendamento — **pronto**
+
+A `0017` limpa o catálogo de aulas e o histórico de reservas (tudo era teste — o acervo próprio
+da equipe entra por cima, limpo) e acrescenta a `reservas.origem` (`equipe_wit` | `escola`):
+quem conseguiu aquele projeto integrador foi a Equipe WIT direto com o professor, ou foi a escola
+que reservou pelo site. O `agendar()` público sempre grava `escola`; as três telas do painel que
+publicam aula realizada perguntam a origem, com **Equipe WIT** pré-marcado, porque é o caso comum
+delas: `RegistrarProjeto.tsx`, `CriarDocumento.tsx` e a conferência do `ImportarCanva.tsx`. A
+origem só é gravada quando a reserva **nasce** ali — se o relato entra numa reserva que já
+existia (o professor tinha agendado pelo site), a origem de quem agendou não muda. Aparece como
+etiqueta na aba Reservas e na aba Integradores realizados.
+
+**A peça nova é `src/componentes/RegistrarProjeto.tsx`**, aba "+ Registrar projeto" — a primeira
+do painel, e a aba com que ele abre. É o pedido que fechava a lacuna real: até aqui, registrar um
+projeto integrador que a equipe fechou direto com o professor (sem passar pelo agendamento do
+site) exigia montar um documento inteiro no Canva ou no gerador do site. A tela nova pede só o
+essencial — escola, data, professor, tema, origem, fotos por link — e chama a mesma
+`admin_importar_aula_realizada` que já sabia criar a reserva sozinha quando não existe
+agendamento prévio (ver 2.2). Nenhuma função nova no banco para isso: só o parâmetro `p_origem`.
+
+---
+
 ## 5. Dívida técnica conhecida
 
 - ~~A `importar-canva` no ar estava uma versão atrás do repositório~~ — **resolvido**. A versão 5 da

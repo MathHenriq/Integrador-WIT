@@ -12,6 +12,7 @@ import type {
   Comprovante,
   ImportacaoCanva,
   Ocorrencia,
+  OrigemReserva,
   Realizada,
   ReservaAdmin,
   ReservaConsulta,
@@ -394,6 +395,8 @@ export function adminImportarAulaRealizada(
     objetivos: string | null
     materiais: string | null
     virarAtividade: boolean
+    /** Só vale quando cria uma reserva nova. Padrão: Equipe WIT. */
+    origem?: OrigemReserva
   },
 ) {
   return chamar<AulaImportada>('admin_importar_aula_realizada', {
@@ -410,6 +413,7 @@ export function adminImportarAulaRealizada(
     p_objetivos: dados.objetivos,
     p_materiais: dados.materiais,
     p_virar_atividade: dados.virarAtividade,
+    p_origem: dados.origem ?? 'equipe_wit',
   })
 }
 

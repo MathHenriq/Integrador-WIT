@@ -1,4 +1,4 @@
-import type { DataIso, SituacaoIntegrador, StatusHorario, StatusReserva } from './tipos'
+import type { DataIso, OrigemReserva, SituacaoIntegrador, StatusHorario, StatusReserva } from './tipos'
 
 export const DIAS_SEMANA = [
   'Domingo',
@@ -163,6 +163,11 @@ export const ROTULO_SITUACAO: Record<SituacaoIntegrador, string> = {
   realizada: 'Realizada',
   agendada: 'Agendada',
   cancelada: 'Cancelada',
+}
+
+export const ROTULO_ORIGEM: Record<OrigemReserva, string> = {
+  equipe_wit: 'Equipe WIT',
+  escola: 'Escola',
 }
 
 export function situacaoDoIntegrador(reserva: {

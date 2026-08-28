@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { Aviso } from './Aviso'
 import { adminImportarAulaRealizada, adminListarEscolas, importarDocumentoCanva } from '../lib/api'
 import { dataExtensa, faixaHoraria } from '../lib/formato'
-import type { AulaImportada, EscolaAdmin } from '../lib/tipos'
+import type { AulaImportada, EscolaAdmin, OrigemReserva } from '../lib/tipos'
 
 /** Os cinco cursos do Núcleo. O campo aceita outro, se for o caso. */
 const CURSOS = [
@@ -62,6 +62,7 @@ export function CriarDocumento({
   const [curso, setCurso] = useState(CURSOS[0])
   const [professor, setProfessor] = useState('')
   const [tema, setTema] = useState('')
+  const [origem, setOrigem] = useState<OrigemReserva>('equipe_wit')
   const [objetivos, setObjetivos] = useState('')
   const [descricao, setDescricao] = useState('')
   const [materiais, setMateriais] = useState('')
@@ -169,6 +170,7 @@ export function CriarDocumento({
         objetivos: objetivos.trim() || null,
         materiais: materiais.trim() || null,
         virarAtividade: true,
+        origem,
       })
 
       setPronto({ pdf: URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'application/pdf' })), nome, aula })
@@ -270,6 +272,30 @@ export function CriarDocumento({
             placeholder="Criação de sites sobre vegetais com IA"
             maxLength={160}
           />
+        </div>
+
+        <div className="campo">
+          <label>Quem conseguiu este projeto integrador? *</label>
+          <div className="caixas">
+            <label className="caixa">
+              <input
+                type="radio"
+                name="doc-origem"
+                checked={origem === 'equipe_wit'}
+                onChange={() => setOrigem('equipe_wit')}
+              />
+              Equipe WIT — fechou direto com o professor
+            </label>
+            <label className="caixa">
+              <input
+                type="radio"
+                name="doc-origem"
+                checked={origem === 'escola'}
+                onChange={() => setOrigem('escola')}
+              />
+              Escola — já tinha reservado pelo site
+            </label>
+          </div>
         </div>
 
         <div className="campo">

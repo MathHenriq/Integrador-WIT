@@ -1,6 +1,13 @@
 export type StatusHorario = 'vago' | 'parcial' | 'cheio'
 export type StatusReserva = 'confirmado' | 'cancelado'
 
+/**
+ * Quem conseguiu o projeto integrador: a Equipe WIT fechou direto com o
+ * professor (sem passar pelo agendamento do site) ou a escola reservou
+ * pelo site público.
+ */
+export type OrigemReserva = 'equipe_wit' | 'escola'
+
 /** Situação de um integrador: status da reserva cruzado com a data. */
 export type SituacaoIntegrador = 'realizada' | 'agendada' | 'cancelada'
 
@@ -207,6 +214,7 @@ export type AulaImportada = {
   escola_nome: string
   titulo: string
   fotos: string[]
+  origem: OrigemReserva
 }
 
 export type ReservaAdmin = {
@@ -228,4 +236,5 @@ export type ReservaAdmin = {
   relato: string | null
   fotos: string[]
   ja_aconteceu: boolean
+  origem: OrigemReserva
 }

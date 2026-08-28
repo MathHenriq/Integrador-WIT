@@ -756,6 +756,14 @@ legend { font-family: var(--fonte-titulo); font-size: 14.5px; font-weight: 600; 
   border-color: var(--urgente);
 }
 
+/* Quem conseguiu o projeto integrador: a Equipe WIT ou a escola. */
+.etiqueta.equipe_wit { background: var(--sucesso-fundo); color: var(--sucesso); }
+.etiqueta.escola {
+  background: var(--superficie-alta);
+  color: var(--texto-suave);
+  border-color: var(--borda-solida);
+}
+
 /* ------------------------------------------------------------------ */
 /* Cartão de matéria (catálogo)                                        */
 /* ------------------------------------------------------------------ */
