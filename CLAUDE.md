@@ -46,12 +46,29 @@ Logo oficial em `public/logo-wit.png`. Imagem da home em `public/WIT HOME.jpg`.
 
 ## Horários da sala
 
-Sempre estes quatro, de segunda a sexta:
+Estes quatro, de segunda a sexta, na maioria das escolas:
 
 | | |
 | --- | --- |
 | 07:20 – 08:50 | 09:20 – 10:50 |
 | 13:20 – 14:50 | 15:20 – 16:50 |
+
+### Escolas integrais (Grupo W)
+
+Período integral tem outra grade nos tempos 2 e 3 (1º e 4º tempos continuam iguais aos da tabela
+acima):
+
+| | |
+| --- | --- |
+| 2ª aula | 10:00 – 12:00 |
+| 3ª aula | 13:00 – 14:40 |
+
+Grupo W: **Complexo Educacional Professor Carlos Osmarinho de Lima**, **EMEF Professor Ézio
+Berzaghi**, **EMEF Renato Rosa**, **EMEIEF Professor Eneias Raimundo da Silva**, **EMEF Professor
+Alfredo do Carmo**.
+
+Caso à parte: **EMEF Professor Egídio Costa** só muda a 3ª aula (13:00 – 14:40); a 2ª continua no
+horário padrão (09:20 – 10:50).
 
 ## Escolas atendidas (18)
 
