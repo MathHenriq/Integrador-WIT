@@ -124,6 +124,8 @@ export type ReservaConsulta = {
   nome_professor: string
   turma: string | null
   aula_titulo: string
+  aula_objetivos: string | null
+  aula_materiais: string | null
   cancelado_em: string | null
   ja_aconteceu: boolean
 }
@@ -236,6 +238,8 @@ export type ReservaAdmin = {
   hora_inicio: string
   hora_fim: string
   aula_titulo: string | null
+  aula_objetivos: string | null
+  aula_materiais: string | null
   relato: string | null
   fotos: string[]
   ja_aconteceu: boolean

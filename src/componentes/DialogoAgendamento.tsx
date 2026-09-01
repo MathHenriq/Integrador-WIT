@@ -15,6 +15,37 @@ type Props = {
 
 type Origem = 'catalogo' | 'propria'
 
+/** Materiais que a sala do Núcleo já tem. Só um atalho — o professor pode
+ *  simplesmente escrever o que precisa no campo. */
+const MATERIAIS_DA_SALA = [
+  'Computadores',
+  'Celulares',
+  'Tablets',
+  'Relógios smartwatches',
+  'Óculos de realidade virtual',
+  'Óculos de realidade aumentada',
+  'Câmera',
+  'Televisões',
+  'Estúdio',
+  'Fones',
+]
+
+function linhasDe(texto: string) {
+  return texto
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
+}
+
+/** Acrescenta ou tira uma linha do texto, sem mexer no resto que o
+ *  professor já escreveu. */
+function alternarLinha(texto: string, item: string) {
+  const linhas = linhasDe(texto)
+  const chave = item.toLowerCase()
+  const jaTem = linhas.some((l) => l.toLowerCase() === chave)
+  return jaTem ? linhas.filter((l) => l.toLowerCase() !== chave).join('\n') : [...linhas, item].join('\n')
+}
+
 export function DialogoAgendamento({
   escolaId,
   escolaNome,
@@ -29,7 +60,9 @@ export function DialogoAgendamento({
   const [quantidadeAlunos, setQuantidadeAlunos] = useState('')
   const [origem, setOrigem] = useState<Origem>('catalogo')
   const [aulaId, setAulaId] = useState<string | null>(null)
-  const [aulaLivre, setAulaLivre] = useState('')
+  const [descricao, setDescricao] = useState('')
+  const [objetivos, setObjetivos] = useState('')
+  const [materiais, setMateriais] = useState('')
   const [busca, setBusca] = useState('')
 
   const [aulas, setAulas] = useState<AulaCatalogo[]>([])
@@ -86,8 +119,8 @@ export function DialogoAgendamento({
       setErro('Escolha uma aula do catálogo, ou mude para "Vou dar a minha aula".')
       return
     }
-    if (origem === 'propria' && aulaLivre.trim().length < 3) {
-      setErro('Descreva o que você pretende fazer na sala do Núcleo WIT.')
+    if (origem === 'propria' && descricao.trim().length < 3) {
+      setErro('Descreva a aula que você quer dar na sala do Núcleo WIT.')
       return
     }
 
@@ -103,7 +136,9 @@ export function DialogoAgendamento({
         whatsapp: whatsapp.trim() || null,
         quantidadeAlunos: alunos,
         aulaId: origem === 'catalogo' ? aulaId : null,
-        aulaLivre: origem === 'propria' ? aulaLivre.trim() : null,
+        aulaLivre: origem === 'propria' ? descricao.trim() : null,
+        aulaObjetivos: origem === 'propria' ? objetivos.trim() || null : null,
+        aulaMateriais: origem === 'propria' ? materiais.trim() || null : null,
       })
       aoConfirmar(comprovante)
     } catch (falha) {
@@ -263,23 +298,71 @@ export function DialogoAgendamento({
               </>
             )
           ) : (
-            <div className="campo" style={{ marginBottom: 0 }}>
-              <label htmlFor="aula-livre">O que você pretende fazer na sala do Núcleo WIT</label>
-              <textarea
-                id="aula-livre"
-                value={aulaLivre}
-                onChange={(e) => setAulaLivre(e.target.value)}
-                placeholder="Ex.: Revisão de frações com jogos digitais — a turma calcula frações de receitas e monta um cardápio no Canva."
-                maxLength={500}
-                rows={3}
-              />
-              <p className="ajuda">
-                Conte o conteúdo que sua turma está estudando e o que gostaria de fazer com a
-                tecnologia da sala (VR, robótica, IA…). É com essa descrição que a equipe WIT
-                entende como preparar a aula com você. Fica registrado na vitrine de aulas
-                realizadas.
-              </p>
-            </div>
+            <>
+              <div className="campo">
+                <label htmlFor="descricao-aula">Descrição da aula</label>
+                <textarea
+                  id="descricao-aula"
+                  value={descricao}
+                  onChange={(e) => setDescricao(e.target.value)}
+                  placeholder="Ex.: Revisão de frações com jogos digitais — a turma calcula frações de receitas e monta um cardápio no Canva."
+                  maxLength={500}
+                  rows={3}
+                />
+                <p className="ajuda">
+                  Conte o conteúdo que sua turma está estudando e o que gostaria de fazer com a
+                  tecnologia da sala (VR, robótica, IA…). É com essa descrição que a equipe WIT
+                  entende como preparar a aula com você. Fica registrado na vitrine de aulas
+                  realizadas.
+                </p>
+              </div>
+
+              <div className="campo">
+                <label htmlFor="objetivos-aula">
+                  Objetivos de aprendizagem <span className="opcional">(opcional)</span>
+                </label>
+                <textarea
+                  id="objetivos-aula"
+                  value={objetivos}
+                  onChange={(e) => setObjetivos(e.target.value)}
+                  placeholder="Um objetivo por linha."
+                  maxLength={400}
+                  rows={2}
+                />
+              </div>
+
+              <div className="campo" style={{ marginBottom: 0 }}>
+                <label htmlFor="materiais-aula">
+                  Materiais e recursos <span className="opcional">(opcional)</span>
+                </label>
+                <textarea
+                  id="materiais-aula"
+                  value={materiais}
+                  onChange={(e) => setMateriais(e.target.value)}
+                  placeholder="Um material por linha, se já souber o que vai precisar."
+                  maxLength={400}
+                  rows={2}
+                />
+                <details className="lista-discreta">
+                  <summary>Prefere escolher da lista do Núcleo?</summary>
+                  <div className="chips" style={{ marginTop: 10 }}>
+                    {MATERIAIS_DA_SALA.map((item) => (
+                      <button
+                        type="button"
+                        key={item}
+                        className="chip"
+                        aria-pressed={linhasDe(materiais)
+                          .map((l) => l.toLowerCase())
+                          .includes(item.toLowerCase())}
+                        onClick={() => setMateriais((atual) => alternarLinha(atual, item))}
+                      >
+                        {item}
+                      </button>
+                    ))}
+                  </div>
+                </details>
+              </div>
+            </>
           )}
         </fieldset>
 

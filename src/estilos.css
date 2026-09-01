@@ -594,6 +594,20 @@ button.chip[aria-pressed='true'] {
   border-color: transparent;
 }
 
+/* Atalho discreto: fica fechado por padrão, só para quem quiser escolher
+   de uma lista pronta em vez de escrever. */
+.lista-discreta { margin-top: 8px; }
+.lista-discreta summary {
+  cursor: pointer;
+  font-size: 13.5px;
+  color: var(--texto-fraco);
+  list-style: none;
+}
+.lista-discreta summary::-webkit-details-marker { display: none; }
+.lista-discreta summary:hover { color: var(--texto-suave); }
+.lista-discreta summary::before { content: '+ '; }
+.lista-discreta[open] summary::before { content: '– '; }
+
 /* ------------------------------------------------------------------ */
 /* Formulários                                                         */
 /* ------------------------------------------------------------------ */

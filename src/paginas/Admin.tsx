@@ -610,7 +610,24 @@ function AbaReservas({ senha, aoErro }: { senha: string; aoErro: (e: string | nu
                     </>
                   )}
                 </td>
-                <td>{r.aula_titulo}</td>
+                <td>
+                  {r.aula_titulo}
+                  {(r.aula_objetivos || r.aula_materiais) && (
+                    <details className="lista-discreta">
+                      <summary>Objetivos e materiais</summary>
+                      {r.aula_objetivos && (
+                        <p style={{ color: 'var(--texto-suave)', fontSize: 13, marginTop: 6 }}>
+                          <strong>Objetivos:</strong> {r.aula_objetivos}
+                        </p>
+                      )}
+                      {r.aula_materiais && (
+                        <p style={{ color: 'var(--texto-suave)', fontSize: 13, marginTop: 6 }}>
+                          <strong>Materiais:</strong> {r.aula_materiais}
+                        </p>
+                      )}
+                    </details>
+                  )}
+                </td>
                 <td>
                   <EtiquetaOrigem origem={r.origem} />
                 </td>

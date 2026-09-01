@@ -126,6 +126,8 @@ export async function agendar(dados: {
   quantidadeAlunos: number
   aulaId: string | null
   aulaLivre: string | null
+  aulaObjetivos: string | null
+  aulaMateriais: string | null
 }) {
   const comprovante = await chamar<Comprovante>('agendar', {
     p_escola_id: dados.escolaId,
@@ -138,6 +140,8 @@ export async function agendar(dados: {
     p_aula_livre: dados.aulaLivre,
     p_quantidade_alunos: dados.quantidadeAlunos,
     p_whatsapp_contato: dados.whatsapp,
+    p_aula_objetivos: dados.aulaObjetivos,
+    p_aula_materiais: dados.aulaMateriais,
   })
   // Disparo do e-mail depois da reserva já estar gravada, e sem await no
   // caminho de erro: a confirmação que vale é o protocolo na tela.
