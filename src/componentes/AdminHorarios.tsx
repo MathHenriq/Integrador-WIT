@@ -1,10 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import {
-  adminAtualizarHorario,
-  adminCriarHorario,
-  adminListarHorarios,
-  adminRemoverHorario,
-} from '../lib/api'
+import { adminAtualizarHorario, adminCriarHorario, adminListarHorarios } from '../lib/api'
 import { DIAS_SEMANA, HORARIOS_PADRAO, faixaHoraria } from '../lib/formato'
 import type { HorarioAdmin } from '../lib/tipos'
 import { Aviso } from './Aviso'
@@ -154,19 +149,6 @@ export function AdminHorarios({ adminToken, escolaId }: Props) {
     }
   }
 
-  async function remover(horario: HorarioAdmin) {
-    if (!window.confirm(`Remover ${DIAS_SEMANA[horario.dia_semana]} ${faixaHoraria(horario.hora_inicio, horario.hora_fim)}?`)) {
-      return
-    }
-    setErro(null)
-    try {
-      await adminRemoverHorario(adminToken, horario.id)
-      await carregar()
-    } catch (falha) {
-      setErro(falha instanceof Error ? falha.message : 'Não foi possível remover o horário.')
-    }
-  }
-
   return (
     <div style={{ marginTop: 16, borderTop: '1px solid var(--borda)', paddingTop: 16 }}>
       {erro && <Aviso tipo="erro">{erro}</Aviso>}
@@ -298,22 +280,13 @@ export function AdminHorarios({ adminToken, escolaId }: Props) {
                     </div>
                   </td>
                   <td>
-                    <div style={{ display: 'flex', gap: 4 }}>
-                      <button
-                        type="button"
-                        className="discreto"
-                        onClick={() => void alternarAtivo(horario)}
-                      >
-                        {horario.ativo ? 'Desativar' : 'Reativar'}
-                      </button>
-                      {/* Remover apaga o histórico junto; a RPC só deixa
-                          quando o horário nunca teve reserva. */}
-                      {horario.total_reservas === 0 && (
-                        <button type="button" className="discreto" onClick={() => void remover(horario)}>
-                          Remover
-                        </button>
-                      )}
-                    </div>
+                    <button
+                      type="button"
+                      className="discreto"
+                      onClick={() => void alternarAtivo(horario)}
+                    >
+                      {horario.ativo ? 'Desativar' : 'Reativar'}
+                    </button>
                   </td>
                 </tr>
               ))}
