@@ -87,11 +87,11 @@ export function MinhaReserva() {
   }
 
   const proximas = reservas
-    .filter((r) => r.status === 'confirmado' && !r.ja_aconteceu)
+    .filter((r) => r.status !== 'cancelado' && !r.ja_aconteceu)
     .sort((a, b) => a.data_aula.localeCompare(b.data_aula))
 
   const anteriores = reservas
-    .filter((r) => r.status !== 'confirmado' || r.ja_aconteceu)
+    .filter((r) => r.status === 'cancelado' || r.ja_aconteceu)
     .sort((a, b) => b.data_aula.localeCompare(a.data_aula))
 
   return (
@@ -197,6 +197,7 @@ function CartaoReserva({
   ocupado?: boolean
 }) {
   const cancelada = reserva.status === 'cancelado'
+  const aguardando = reserva.status === 'aguardando_confirmacao'
 
   return (
     <article className={`cartao reserva-simples ${cancelada ? 'passado' : ''}`}>
@@ -205,10 +206,25 @@ function CartaoReserva({
           <div className="quando">{dataExtensa(reserva.data_aula)}</div>
           <div className="hora">{faixaHoraria(reserva.hora_inicio, reserva.hora_fim)}</div>
         </div>
-        <span className={`etiqueta ${cancelada ? 'cancelado' : reserva.ja_aconteceu ? 'cheio' : 'confirmado'}`}>
-          {cancelada ? 'Cancelada' : reserva.ja_aconteceu ? 'Já aconteceu' : 'Confirmada'}
+        <span
+          className={`etiqueta ${
+            cancelada ? 'cancelado' : aguardando ? 'aguardando_confirmacao' : reserva.ja_aconteceu ? 'cheio' : 'confirmado'
+          }`}
+        >
+          {cancelada
+            ? 'Cancelada'
+            : aguardando
+              ? 'Aguardando confirmação do WIT'
+              : reserva.ja_aconteceu
+                ? 'Já aconteceu'
+                : 'Confirmada'}
         </span>
       </div>
+      {aguardando && (
+        <p className="ajuda" style={{ marginTop: 10 }}>
+          A equipe WIT vai entrar em contato para confirmar os detalhes da aula.
+        </p>
+      )}
 
       <dl className="definicoes" style={{ marginTop: 14 }}>
         <dt>Aula</dt>

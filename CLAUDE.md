@@ -70,6 +70,21 @@ Alfredo do Carmo**.
 Caso à parte: **EMEF Professor Egídio Costa** só muda a 3ª aula (13:00 – 14:40); a 2ª continua no
 horário padrão (09:20 – 10:50).
 
+## Reservas
+
+Quando o professor da escola agenda pelo site, a reserva **não nasce confirmada** — nasce
+`aguardando_confirmacao`. É o professor do dia, da equipe WIT, que entra em contato (e-mail ou
+WhatsApp, o que o professor deixou), entende como vai ser a aula e só então confirma pelo painel
+(aba "Reservas", botão "Confirmar"). Uma reserva pendente já tranca o horário — ninguém mais
+consegue reservar aquela data/tempo enquanto ela não for cancelada.
+
+O agendamento público exige:
+- **Quantidade de alunos** da turma.
+- **E-mail ou WhatsApp** — pelo menos um dos dois, nunca os dois em branco.
+
+Reserva registrada pela própria equipe (aba "Registrar projeto" ou importação do Canva/documento)
+não passa por essa fila: já entra `confirmado`, porque é sempre de aula que **já aconteceu**.
+
 ## Escolas atendidas (18)
 
 Nomes oficiais, como na relação da Secretaria. É assim que aparecem no site e no documento —

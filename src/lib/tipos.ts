@@ -1,5 +1,5 @@
 export type StatusHorario = 'vago' | 'parcial' | 'cheio'
-export type StatusReserva = 'confirmado' | 'cancelado'
+export type StatusReserva = 'aguardando_confirmacao' | 'confirmado' | 'cancelado'
 
 /**
  * Quem conseguiu o projeto integrador: a Equipe WIT fechou direto com o
@@ -9,7 +9,7 @@ export type StatusReserva = 'confirmado' | 'cancelado'
 export type OrigemReserva = 'equipe_wit' | 'escola'
 
 /** Situação de um integrador: status da reserva cruzado com a data. */
-export type SituacaoIntegrador = 'realizada' | 'agendada' | 'cancelada'
+export type SituacaoIntegrador = 'realizada' | 'agendada' | 'aguardando' | 'cancelada'
 
 /** Data no formato ISO curto, "2026-08-19". Nunca um Date serializado. */
 export type DataIso = string
@@ -111,6 +111,7 @@ export type Comprovante = {
   hora_inicio: string
   hora_fim: string
   aula_titulo: string
+  status: StatusReserva
 }
 
 export type ReservaConsulta = {
@@ -225,6 +226,8 @@ export type ReservaAdmin = {
   nome_professor: string
   turma: string | null
   email_contato: string | null
+  whatsapp_contato: string | null
+  quantidade_alunos: number | null
   status: StatusReserva
   criado_em: string
   cancelado_em: string | null

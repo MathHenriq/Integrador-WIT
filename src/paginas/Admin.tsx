@@ -10,6 +10,7 @@ import { LogoWit } from '../componentes/LogoWit'
 import { RegistrarProjeto } from '../componentes/RegistrarProjeto'
 import {
   adminCancelarReserva,
+  adminConfirmarReserva,
   adminCriarEscola,
   adminListarAulas,
   adminListarEscolas,
@@ -475,6 +476,26 @@ function AbaReservas({ senha, aoErro }: { senha: string; aoErro: (e: string | nu
     return [...porEscola.values()].sort((a, b) => a.proxima.localeCompare(b.proxima))
   }, [reservas])
 
+  const pendentes = useMemo(
+    () => reservas.filter((r) => r.status === 'aguardando_confirmacao').length,
+    [reservas],
+  )
+
+  async function confirmar(reserva: ReservaAdmin) {
+    if (
+      !window.confirm(
+        `Confirmar a reserva ${reserva.protocolo}?\n\nSó confirme depois de falar com ${reserva.nome_professor} e entender como vai ser a aula.`,
+      )
+    )
+      return
+    try {
+      await adminConfirmarReserva(senha, reserva.id)
+      await carregar()
+    } catch (f) {
+      aoErro(f instanceof Error ? f.message : 'Não foi possível confirmar.')
+    }
+  }
+
   async function cancelar(reserva: ReservaAdmin) {
     const motivo = window.prompt(`Cancelar a reserva ${reserva.protocolo}?\n\nMotivo (opcional):`, '')
     if (motivo === null) return
@@ -507,6 +528,13 @@ function AbaReservas({ senha, aoErro }: { senha: string; aoErro: (e: string | nu
 
   return (
     <>
+      {pendentes > 0 && (
+        <Aviso tipo="info">
+          {pendentes} reserva{pendentes === 1 ? '' : 's'} aguardando confirmação da equipe WIT.
+          Fale com o professor ou a professora antes de confirmar.
+        </Aviso>
+      )}
+
       {reservadas.length > 0 && (
         <div className="cartao escolas-reservadas">
           <span className="rotulo">Escolas com projeto reservado</span>
@@ -557,11 +585,27 @@ function AbaReservas({ senha, aoErro }: { senha: string; aoErro: (e: string | nu
                       <span style={{ color: 'var(--texto-suave)' }}>{r.turma}</span>
                     </>
                   )}
+                  {r.quantidade_alunos != null && (
+                    <>
+                      <br />
+                      <span style={{ color: 'var(--texto-suave)' }}>
+                        {r.quantidade_alunos} aluno{r.quantidade_alunos === 1 ? '' : 's'}
+                      </span>
+                    </>
+                  )}
                   {r.email_contato && (
                     <>
                       <br />
                       <span style={{ color: 'var(--texto-fraco)', fontSize: 13 }}>
                         {r.email_contato}
+                      </span>
+                    </>
+                  )}
+                  {r.whatsapp_contato && (
+                    <>
+                      <br />
+                      <span style={{ color: 'var(--texto-fraco)', fontSize: 13 }}>
+                        {r.whatsapp_contato}
                       </span>
                     </>
                   )}
@@ -580,16 +624,22 @@ function AbaReservas({ senha, aoErro }: { senha: string; aoErro: (e: string | nu
                 </td>
                 <td>
                   <div className="acoes-linha">
+                    {r.status === 'aguardando_confirmacao' && (
+                      <button type="button" className="fantasma pequeno" onClick={() => void confirmar(r)}>
+                        Confirmar
+                      </button>
+                    )}
                     {r.status === 'confirmado' && r.ja_aconteceu && (
                       <button type="button" className="fantasma pequeno" onClick={() => void relatar(r)}>
                         {r.relato || r.fotos.length > 0 ? 'Relato e fotos' : '+ Relato e fotos'}
                       </button>
                     )}
-                    {r.status === 'confirmado' && !r.ja_aconteceu && (
-                      <button type="button" className="fantasma pequeno" onClick={() => void cancelar(r)}>
-                        Cancelar
-                      </button>
-                    )}
+                    {(r.status === 'confirmado' || r.status === 'aguardando_confirmacao') &&
+                      !r.ja_aconteceu && (
+                        <button type="button" className="fantasma pequeno" onClick={() => void cancelar(r)}>
+                          Cancelar
+                        </button>
+                      )}
                   </div>
                 </td>
               </tr>

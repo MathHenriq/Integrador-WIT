@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
   // gravado na própria reserva — não dá para redirecionar o e-mail.
   const { data: reserva } = await supabase
     .from('reservas')
-    .select('protocolo, nome_professor, turma, email_contato, status, data_aula, aula_livre, aulas(titulo), horarios(dia_semana, hora_inicio, hora_fim, escolas(nome))')
+    .select('protocolo, nome_professor, turma, email_contato, whatsapp_contato, status, data_aula, aula_livre, aulas(titulo), horarios(dia_semana, hora_inicio, hora_fim, escolas(nome))')
     .eq('protocolo', protocolo.trim().toUpperCase())
     .maybeSingle()
 
@@ -99,9 +99,10 @@ Deno.serve(async (req) => {
   const quando = `${DIAS[horario.dia_semana]}, ${dataExtensa(reserva.data_aula)}, das ${horaCurta(
     horario.hora_inicio,
   )} às ${horaCurta(horario.hora_fim)}`
+  const pendente = reserva.status === 'aguardando_confirmacao'
   const html = `
     <div style="font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#1c1917;line-height:1.6">
-      <h2 style="margin:0 0 4px">Reserva confirmada</h2>
+      <h2 style="margin:0 0 4px">${pendente ? 'Pedido de agendamento recebido' : 'Reserva confirmada'}</h2>
       <p style="margin:0 0 20px;color:#57534e">Projeto Integrador &middot; Núcleo WIT</p>
       <table cellpadding="0" cellspacing="0" style="border-collapse:collapse">
         <tr><td style="padding:4px 16px 4px 0;color:#57534e">Protocolo</td><td style="padding:4px 0"><strong>${reserva.protocolo}</strong></td></tr>
@@ -110,10 +111,18 @@ Deno.serve(async (req) => {
         <tr><td style="padding:4px 16px 4px 0;color:#57534e">Atividade</td><td style="padding:4px 0">${aula}</td></tr>
         <tr><td style="padding:4px 16px 4px 0;color:#57534e">Professor(a)</td><td style="padding:4px 0">${reserva.nome_professor}${reserva.turma ? ` &middot; ${reserva.turma}` : ''}</td></tr>
       </table>
-      <p style="margin:20px 0 0;color:#57534e;font-size:14px">
-        Esta reserva vale apenas para a data acima. Para consultar ou cancelar, use o protocolo na
-        página "Minha reserva" do site.
-      </p>
+      ${
+        pendente
+          ? `<p style="margin:20px 0 0;color:#57534e;font-size:14px">
+              Este horário está reservado para você, mas ainda <strong>aguardando confirmação da
+              equipe WIT</strong>. Alguém do Núcleo vai entrar em contato pelo e-mail ou WhatsApp
+              informado para entender a aula antes de confirmar.
+            </p>`
+          : `<p style="margin:20px 0 0;color:#57534e;font-size:14px">
+              Esta reserva vale apenas para a data acima. Para consultar ou cancelar, use o
+              protocolo na página "Minha reserva" do site.
+            </p>`
+      }
     </div>`
 
   try {
@@ -126,7 +135,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         from: remetente,
         to: destinatarios,
-        subject: `Reserva confirmada ${reserva.protocolo} — ${escola.nome}, ${dataExtensa(reserva.data_aula)}`,
+        subject: `${pendente ? 'Pedido recebido' : 'Reserva confirmada'} ${reserva.protocolo} — ${escola.nome}, ${dataExtensa(reserva.data_aula)}`,
         html,
       }),
     })

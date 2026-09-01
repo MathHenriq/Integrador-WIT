@@ -25,6 +25,8 @@ export function DialogoAgendamento({
   const [nome, setNome] = useState('')
   const [turma, setTurma] = useState('')
   const [email, setEmail] = useState('')
+  const [whatsapp, setWhatsapp] = useState('')
+  const [quantidadeAlunos, setQuantidadeAlunos] = useState('')
   const [origem, setOrigem] = useState<Origem>('catalogo')
   const [aulaId, setAulaId] = useState<string | null>(null)
   const [aulaLivre, setAulaLivre] = useState('')
@@ -71,12 +73,21 @@ export function DialogoAgendamento({
       setErro('O e-mail informado não parece válido.')
       return
     }
+    if (!email.trim() && !whatsapp.trim()) {
+      setErro('Informe um e-mail ou um WhatsApp: é como a equipe WIT confirma a aula com você.')
+      return
+    }
+    const alunos = Number(quantidadeAlunos)
+    if (!quantidadeAlunos.trim() || !Number.isInteger(alunos) || alunos < 1) {
+      setErro('Informe quantos alunos a turma tem.')
+      return
+    }
     if (origem === 'catalogo' && !aulaId) {
       setErro('Escolha uma aula do catálogo, ou mude para "Vou dar a minha aula".')
       return
     }
     if (origem === 'propria' && aulaLivre.trim().length < 3) {
-      setErro('Descreva em uma linha a aula que você quer dar.')
+      setErro('Descreva o que você pretende fazer na sala do Núcleo WIT.')
       return
     }
 
@@ -89,6 +100,8 @@ export function DialogoAgendamento({
         nomeProfessor: nome.trim(),
         turma: turma.trim() || null,
         email: email.trim() || null,
+        whatsapp: whatsapp.trim() || null,
+        quantidadeAlunos: alunos,
         aulaId: origem === 'catalogo' ? aulaId : null,
         aulaLivre: origem === 'propria' ? aulaLivre.trim() : null,
       })
@@ -137,23 +150,52 @@ export function DialogoAgendamento({
               maxLength={60}
             />
           </div>
+          <div className="campo">
+            <label htmlFor="quantidade-alunos">Quantidade de alunos</label>
+            <input
+              id="quantidade-alunos"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={999}
+              value={quantidadeAlunos}
+              onChange={(e) => setQuantidadeAlunos(e.target.value)}
+              placeholder="Ex.: 28"
+              required
+            />
+          </div>
         </div>
 
-        <div className="campo">
-          <label htmlFor="email">
-            E-mail de contato <span className="opcional">(opcional)</span>
-          </label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="voce@escola.edu.br"
-            autoComplete="email"
-            maxLength={160}
-          />
-          <p className="ajuda">Serve para a equipe WIT falar com você sobre a aula.</p>
+        <div className="linha-campos">
+          <div className="campo">
+            <label htmlFor="email">E-mail de contato</label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="voce@escola.edu.br"
+              autoComplete="email"
+              maxLength={160}
+            />
+          </div>
+          <div className="campo">
+            <label htmlFor="whatsapp">WhatsApp</label>
+            <input
+              id="whatsapp"
+              type="tel"
+              value={whatsapp}
+              onChange={(e) => setWhatsapp(e.target.value)}
+              placeholder="(11) 91234-5678"
+              autoComplete="tel"
+              maxLength={30}
+            />
+          </div>
         </div>
+        <p className="ajuda" style={{ marginTop: -10, marginBottom: 18 }}>
+          Informe pelo menos um dos dois: é como a equipe WIT confirma com você os detalhes da
+          aula antes do dia marcado.
+        </p>
 
         <fieldset>
           <legend>Qual aula vai ser dada?</legend>
@@ -222,16 +264,19 @@ export function DialogoAgendamento({
             )
           ) : (
             <div className="campo" style={{ marginBottom: 0 }}>
-              <label htmlFor="aula-livre">O que você vai trabalhar</label>
-              <input
+              <label htmlFor="aula-livre">O que você pretende fazer na sala do Núcleo WIT</label>
+              <textarea
                 id="aula-livre"
                 value={aulaLivre}
                 onChange={(e) => setAulaLivre(e.target.value)}
-                placeholder="Ex.: Revisão de frações com jogos digitais"
-                maxLength={160}
+                placeholder="Ex.: Revisão de frações com jogos digitais — a turma calcula frações de receitas e monta um cardápio no Canva."
+                maxLength={500}
+                rows={3}
               />
               <p className="ajuda">
-                A equipe WIT prepara a sala e apoia na condução. Fica registrado na vitrine de aulas
+                Conte o conteúdo que sua turma está estudando e o que gostaria de fazer com a
+                tecnologia da sala (VR, robótica, IA…). É com essa descrição que a equipe WIT
+                entende como preparar a aula com você. Fica registrado na vitrine de aulas
                 realizadas.
               </p>
             </div>
@@ -243,7 +288,7 @@ export function DialogoAgendamento({
             Cancelar
           </button>
           <button type="submit" disabled={enviando}>
-            {enviando ? 'Agendando…' : 'Confirmar agendamento'}
+            {enviando ? 'Enviando…' : 'Pedir agendamento'}
           </button>
         </div>
       </form>
@@ -259,7 +304,7 @@ export function DialogoComprovante({
   aoFechar: () => void
 }) {
   return (
-    <Modal titulo="Aula agendada!" aoFechar={aoFechar}>
+    <Modal titulo="Pedido de agendamento enviado!" aoFechar={aoFechar}>
       <div className="protocolo">
         <div className="rotulo">Seu protocolo</div>
         <div className="codigo">{comprovante.protocolo}</div>
@@ -281,9 +326,15 @@ export function DialogoComprovante({
         </dd>
       </dl>
 
+      <Aviso tipo="info">
+        O horário está reservado para você, mas ainda <strong>aguardando confirmação da equipe
+        WIT</strong>. Alguém do Núcleo vai entrar em contato pelo e-mail ou WhatsApp informado
+        para entender a aula antes de confirmar.
+      </Aviso>
+
       <p className="ajuda" style={{ marginTop: 18 }}>
-        Guarde o protocolo: é com ele que você consulta ou cancela esta reserva, em{' '}
-        <strong>Minha reserva</strong>. A equipe WIT já foi avisada.
+        Guarde o protocolo: é com ele que você acompanha, consulta ou cancela esta reserva, em{' '}
+        <strong>Minha reserva</strong>.
       </p>
 
       <div className="acoes-formulario">

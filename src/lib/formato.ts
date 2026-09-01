@@ -155,6 +155,7 @@ export const ROTULO_STATUS_HORARIO: Record<StatusHorario, string> = {
 }
 
 export const ROTULO_STATUS_RESERVA: Record<StatusReserva, string> = {
+  aguardando_confirmacao: 'Aguardando confirmação do WIT',
   confirmado: 'Confirmada',
   cancelado: 'Cancelada',
 }
@@ -162,6 +163,7 @@ export const ROTULO_STATUS_RESERVA: Record<StatusReserva, string> = {
 export const ROTULO_SITUACAO: Record<SituacaoIntegrador, string> = {
   realizada: 'Realizada',
   agendada: 'Agendada',
+  aguardando: 'Aguardando confirmação',
   cancelada: 'Cancelada',
 }
 
@@ -175,6 +177,7 @@ export function situacaoDoIntegrador(reserva: {
   ja_aconteceu: boolean
 }): SituacaoIntegrador {
   if (reserva.status === 'cancelado') return 'cancelada'
+  if (reserva.status === 'aguardando_confirmacao') return 'aguardando'
   return reserva.ja_aconteceu ? 'realizada' : 'agendada'
 }
 

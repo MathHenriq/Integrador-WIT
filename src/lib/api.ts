@@ -122,6 +122,8 @@ export async function agendar(dados: {
   nomeProfessor: string
   turma: string | null
   email: string | null
+  whatsapp: string | null
+  quantidadeAlunos: number
   aulaId: string | null
   aulaLivre: string | null
 }) {
@@ -134,6 +136,8 @@ export async function agendar(dados: {
     p_email_contato: dados.email,
     p_aula_id: dados.aulaId,
     p_aula_livre: dados.aulaLivre,
+    p_quantidade_alunos: dados.quantidadeAlunos,
+    p_whatsapp_contato: dados.whatsapp,
   })
   // Disparo do e-mail depois da reserva já estar gravada, e sem await no
   // caminho de erro: a confirmação que vale é o protocolo na tela.
@@ -314,6 +318,13 @@ export function adminCancelarReserva(senha: string, reservaId: string, motivo: s
     p_admin_token: senha,
     p_reserva_id: reservaId,
     p_motivo: motivo,
+  })
+}
+
+export function adminConfirmarReserva(senha: string, reservaId: string) {
+  return chamar<unknown>('admin_confirmar_reserva', {
+    p_admin_token: senha,
+    p_reserva_id: reservaId,
   })
 }
 

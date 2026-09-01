@@ -10,6 +10,7 @@ const VISTAS = [
   { chave: 'tudo', rotulo: 'Tudo' },
   { chave: 'realizadas', rotulo: 'Realizadas' },
   { chave: 'agendadas', rotulo: 'Agendadas' },
+  { chave: 'aguardando', rotulo: 'Aguardando confirmação' },
   { chave: 'canceladas', rotulo: 'Canceladas' },
 ] as const
 
@@ -19,6 +20,7 @@ const SITUACAO_DA_VISTA: Record<Vista, SituacaoIntegrador | null> = {
   tudo: null,
   realizadas: 'realizada',
   agendadas: 'agendada',
+  aguardando: 'aguardando',
   canceladas: 'cancelada',
 }
 

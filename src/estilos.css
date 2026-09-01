@@ -727,7 +727,10 @@ legend { font-family: var(--fonte-titulo); font-size: 14.5px; font-weight: 600; 
 }
 
 .etiqueta.vago, .etiqueta.confirmado { background: var(--sucesso-fundo); color: var(--sucesso); }
-.etiqueta.parcial { background: var(--aviso-fundo); color: var(--aviso); }
+.etiqueta.parcial, .etiqueta.aguardando_confirmacao, .etiqueta.aguardando {
+  background: var(--aviso-fundo);
+  color: var(--aviso);
+}
 .etiqueta.cheio { background: var(--superficie-alta); color: var(--texto-fraco); }
 .etiqueta.cancelado { background: var(--erro-fundo); color: var(--erro); }
 .etiqueta.materia { background: var(--superficie-alta); color: var(--texto-suave); border-color: var(--borda-solida); }
