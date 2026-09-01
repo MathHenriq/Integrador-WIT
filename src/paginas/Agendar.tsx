@@ -18,6 +18,11 @@ const CHAVE_ESCOLA = 'wit:escola'
 export function Agendar() {
   const [ctx, setCtx] = useState<ContextoPublico | null>(null)
   const [escolaId, setEscolaId] = useState<string>('')
+  // A agenda só aparece depois que a escola é confirmada de propósito —
+  // quem dá aula em mais de uma escola do Núcleo pode nem perceber que a
+  // lembrada de uma visita anterior é a errada, se a semana já vier
+  // aberta na tela.
+  const [escolaConfirmada, setEscolaConfirmada] = useState(false)
   const [semana, setSemana] = useState<DataIso | null>(null)
   const [ocorrencias, setOcorrencias] = useState<Ocorrencia[]>([])
   const [carregando, setCarregando] = useState(true)
@@ -31,11 +36,14 @@ export function Agendar() {
     carregarContexto()
       .then((dados) => {
         setCtx(dados)
-        // Lembra a última escola: quem usa o site normalmente é sempre da
-        // mesma, e escolher de novo toda visita é atrito puro.
+        // Pré-preenche com a última escola usada, só para poupar rolagem
+        // na lista — mas quem confirma a escolha continua sendo o
+        // professor, clicando em "Ver agenda desta escola".
         const lembrada = localStorage.getItem(CHAVE_ESCOLA)
         const valida = dados.escolas.find((e) => e.id === lembrada)
         setEscolaId(valida?.id ?? dados.escolas[0]?.id ?? '')
+        // Só uma escola cadastrada: não existe escolha nenhuma a fazer.
+        if (dados.escolas.length === 1) setEscolaConfirmada(true)
       })
       .catch((falha) =>
         setErro(falha instanceof Error ? falha.message : 'Não foi possível carregar as escolas.'),
@@ -47,7 +55,7 @@ export function Agendar() {
   // sexta, quase toda ela já passou. Então a primeira semana mostrada é a
   // primeira que realmente tem horário livre.
   useEffect(() => {
-    if (!ctx || !escolaId) return
+    if (!ctx || !escolaId || !escolaConfirmada) return
     let cancelado = false
 
     agendaEscola(escolaId, ctx.hoje, somarDias(ctx.hoje, 34))
@@ -63,14 +71,14 @@ export function Agendar() {
     return () => {
       cancelado = true
     }
-  }, [ctx, escolaId])
+  }, [ctx, escolaId, escolaConfirmada])
 
   useEffect(() => {
-    if (escolaId) localStorage.setItem(CHAVE_ESCOLA, escolaId)
-  }, [escolaId])
+    if (escolaId && escolaConfirmada) localStorage.setItem(CHAVE_ESCOLA, escolaId)
+  }, [escolaId, escolaConfirmada])
 
   const carregarSemana = useCallback(async () => {
-    if (!escolaId || !semana) return
+    if (!escolaId || !semana || !escolaConfirmada) return
     setCarregandoSemana(true)
     setErro(null)
     try {
@@ -81,7 +89,13 @@ export function Agendar() {
     } finally {
       setCarregandoSemana(false)
     }
-  }, [escolaId, semana])
+  }, [escolaId, semana, escolaConfirmada])
+
+  function trocarDeEscola() {
+    setEscolaConfirmada(false)
+    setSemana(null)
+    setOcorrencias([])
+  }
 
   useEffect(() => {
     void carregarSemana()
@@ -95,10 +109,7 @@ export function Agendar() {
     return mapa
   }, [ocorrencias])
 
-  // Enquanto a semana inicial não foi decidida não dá para desenhar a
-  // grade: sem data, todos os dias virariam a mesma chave inválida e o
-  // React manteria colunas velhas na tela.
-  if (carregando || (ctx && ctx.escolas.length > 0 && !semana)) {
+  if (carregando) {
     return (
       <main className="conteudo">
         <p className="carregando">Carregando…</p>
@@ -134,6 +145,62 @@ export function Agendar() {
     )
   }
 
+  // Passo 1: qual escola. Só depois de confirmar é que a agenda da
+  // semana abre — quem dá aula em mais de um Núcleo precisa escolher de
+  // propósito, em vez de cair direto na semana de uma escola errada.
+  if (ctx && !escolaConfirmada) {
+    return (
+      <main className="conteudo estreito">
+        <div className="secao-titulo" style={{ marginBottom: 6 }}>
+          <div>
+            <h1 style={{ fontSize: 'clamp(26px, 4vw, 34px)' }}>Agendar uma aula</h1>
+            <p style={{ color: 'var(--texto-suave)' }}>
+              De qual escola é a sua turma? A agenda que abre em seguida é só dessa escola.
+            </p>
+          </div>
+        </div>
+
+        {erro && <Aviso tipo="erro">{erro}</Aviso>}
+
+        <form
+          className="cartao"
+          style={{ marginTop: 20 }}
+          onSubmit={(evento) => {
+            evento.preventDefault()
+            setEscolaConfirmada(true)
+          }}
+        >
+          <div className="campo" style={{ marginBottom: 0 }}>
+            <label htmlFor="escola">Escola</label>
+            <select id="escola" value={escolaId} onChange={(e) => setEscolaId(e.target.value)}>
+              {ctx.escolas.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.nome}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="acoes-formulario">
+            <button type="submit" disabled={!escolaId}>
+              Ver agenda desta escola
+            </button>
+          </div>
+        </form>
+      </main>
+    )
+  }
+
+  // Enquanto a semana inicial não foi decidida não dá para desenhar a
+  // grade: sem data, todos os dias virariam a mesma chave inválida e o
+  // React manteria colunas velhas na tela.
+  if (!semana) {
+    return (
+      <main className="conteudo">
+        <p className="carregando">Carregando…</p>
+      </main>
+    )
+  }
+
   const escola = ctx?.escolas.find((e) => e.id === escolaId)
   const semanaAtual = semana ?? ''
   const primeiraSemana = ctx ? inicioDaSemana(ctx.hoje) : ''
@@ -147,20 +214,20 @@ export function Agendar() {
         <div>
           <h1 style={{ fontSize: 'clamp(26px, 4vw, 34px)' }}>Agendar uma aula</h1>
           <p style={{ color: 'var(--texto-suave)' }}>
-            Escolha a escola, ache um horário livre e traga a sua turma.
+            Ache um horário livre e traga a sua turma.
           </p>
         </div>
       </div>
 
-      <div className="campo" style={{ maxWidth: 420, marginTop: 20 }}>
-        <label htmlFor="escola">Escola</label>
-        <select id="escola" value={escolaId} onChange={(e) => setEscolaId(e.target.value)}>
-          {ctx?.escolas.map((e) => (
-            <option key={e.id} value={e.id}>
-              {e.nome}
-            </option>
-          ))}
-        </select>
+      <div className="escola-atual" style={{ marginTop: 20 }}>
+        <span>
+          Agenda de <strong>{escola?.nome}</strong>
+        </span>
+        {ctx && ctx.escolas.length > 1 && (
+          <button type="button" className="fantasma pequeno" onClick={trocarDeEscola}>
+            Trocar de escola
+          </button>
+        )}
       </div>
 
       {erro && <Aviso tipo="erro">{erro}</Aviso>}

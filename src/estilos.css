@@ -476,6 +476,22 @@ a:hover { text-decoration: underline; }
 .secao-titulo h2 { font-size: clamp(21px, 2.8vw, 26px); }
 .secao-titulo p { color: var(--texto-suave); font-size: 15px; }
 
+/* A escola confirmada na tela de agendar: bem visível, para quem dá aula
+   em mais de um Núcleo não confundir qual agenda está vendo. */
+.escola-atual {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  font-size: 15px;
+}
+.escola-atual strong { color: var(--texto); }
+
 /* ------------------------------------------------------------------ */
 /* Cartões                                                             */
 /* ------------------------------------------------------------------ */
