@@ -169,10 +169,6 @@ export function adminListarEscolas(senha: string) {
   return chamar<EscolaAdmin[]>('admin_listar_escolas', { p_admin_token: senha })
 }
 
-export function adminCriarEscola(senha: string, nome: string) {
-  return chamar<EscolaAdmin>('admin_criar_escola', { p_admin_token: senha, p_nome: nome })
-}
-
 export function adminRenomearEscola(senha: string, escolaId: string, nome: string) {
   return chamar<unknown>('admin_renomear_escola', {
     p_admin_token: senha,
