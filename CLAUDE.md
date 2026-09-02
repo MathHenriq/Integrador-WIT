@@ -85,6 +85,13 @@ O agendamento público exige:
 Reserva registrada pela própria equipe (aba "Registrar projeto" ou importação do Canva/documento)
 não passa por essa fila: já entra `confirmado`, porque é sempre de aula que **já aconteceu**.
 
+Na aba "Integradores", cada linha tem **Editar** e **Remover**. Editar corrige data, horário,
+professor, turma, contato e (só quando o tema não vem do catálogo) o tema/objetivos/materiais —
+usa a RPC `admin_atualizar_reserva`. Remover é diferente de cancelar: cancelar (`admin_cancelar_reserva`)
+mantém o histórico com status `cancelado`, aparece no filtro "Canceladas"; remover
+(`admin_remover_reserva`) apaga a linha de vez, com confirmação antes ("Você tem certeza que quer
+apagar o projeto integrador do dia X sobre 'tema'?").
+
 ## Escolas atendidas (18)
 
 Nomes oficiais, como na relação da Secretaria. É assim que aparecem no site e no documento —
@@ -149,8 +156,13 @@ As imagens que **se repetem em todas as páginas** são o cabeçalho/rodapé do 
 Isso já está implementado em `supabase/functions/importar-canva/` (leitor de PDF próprio, sem
 biblioteca) e na aba "Importar do Canva" do painel. Ver a seção 2.2 do `HANDOFF.md`.
 
-**Aula realizada não pergunta horário.** Ela está no site para inspirar outro professor, não para
-ocupar agenda: quem resolve o tempo é o banco, na `admin_importar_aula_realizada`.
+**Aula realizada não obriga escolher horário.** Ela está no site para inspirar outro professor, não
+para ocupar agenda: sem informar, quem resolve o tempo é o banco, na `admin_importar_aula_realizada`
+(anexa à reserva que já existe ou usa o primeiro tempo livre do dia). Mas "Registrar projeto" e a
+conferência do Canva têm um select de horário opcional — quando a equipe sabe o tempo certo, vale
+informar, porque o "primeiro tempo livre" é uma escolha arbitrária entre os horários livres daquele
+dia, sem nenhuma relação com o horário real da aula. Foi exatamente isso que causou um projeto da
+EMEF Rita de Jesus ser gravado às 07:20 quando a aula tinha sido às 09:20.
 
 **O site também gera o documento.** A aba "Novo documento" do painel tem os mesmos campos do Canva
 e devolve o PDF pronto, no mesmo desenho, com as fotos dentro — e publica a aula na mesma hora. O

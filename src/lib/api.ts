@@ -332,6 +332,52 @@ export function adminConfirmarReserva(senha: string, reservaId: string) {
   })
 }
 
+/**
+ * Corrige um projeto integrador já registrado: data, horário, professor,
+ * turma, contato e — só quando a aula não é do catálogo — tema, objetivos
+ * e materiais. Diferente de cancelar: aqui a reserva continua a mesma,
+ * só com os dados certos.
+ */
+export function adminAtualizarReserva(
+  senha: string,
+  reservaId: string,
+  dados: {
+    horarioId: string
+    dataAula: DataIso
+    nomeProfessor: string
+    turma: string | null
+    emailContato: string | null
+    whatsappContato: string | null
+    quantidadeAlunos: number | null
+    aulaLivre: string | null
+    aulaObjetivos: string | null
+    aulaMateriais: string | null
+  },
+) {
+  return chamar<unknown>('admin_atualizar_reserva', {
+    p_admin_token: senha,
+    p_reserva_id: reservaId,
+    p_horario_id: dados.horarioId,
+    p_data_aula: dados.dataAula,
+    p_nome_professor: dados.nomeProfessor,
+    p_turma: dados.turma,
+    p_email_contato: dados.emailContato,
+    p_whatsapp_contato: dados.whatsappContato,
+    p_quantidade_alunos: dados.quantidadeAlunos,
+    p_aula_livre: dados.aulaLivre,
+    p_aula_objetivos: dados.aulaObjetivos,
+    p_aula_materiais: dados.aulaMateriais,
+  })
+}
+
+/** Apaga o registro de vez — diferente de cancelar, que mantém o histórico. */
+export function adminRemoverReserva(senha: string, reservaId: string) {
+  return chamar<unknown>('admin_remover_reserva', {
+    p_admin_token: senha,
+    p_reserva_id: reservaId,
+  })
+}
+
 export function adminRegistrarRelato(
   senha: string,
   reservaId: string,
@@ -386,10 +432,13 @@ export async function importarDocumentoCanva(senha: string, arquivo: File) {
 }
 
 /**
- * Publica a aula lida do documento. O horário não é escolhido aqui: aula
- * que já aconteceu está no site para inspirar outros professores, não
- * para ocupar agenda, então o banco resolve sozinho (anexa à reserva que
- * já existe ou usa o primeiro tempo livre do dia).
+ * Publica a aula lida do documento (ou registrada direto pela equipe). O
+ * horário é opcional: aula que já aconteceu está no site para inspirar
+ * outros professores, não para ocupar agenda, então quando a equipe não
+ * sabe (ou não precisa dizer) o tempo exato, o banco resolve sozinho
+ * (anexa à reserva que já existe ou usa o primeiro tempo livre do dia).
+ * Mas se a equipe sabe o horário certo, informar aqui evita que o banco
+ * "adivinhe" errado quando mais de um tempo estava livre naquele dia.
  *
  * As partes do documento vão separadas, e não só dentro do relato,
  * porque a mesma aula abre uma atividade no catálogo: ali a descrição, os
@@ -412,6 +461,8 @@ export function adminImportarAulaRealizada(
     virarAtividade: boolean
     /** Só vale quando cria uma reserva nova. Padrão: Equipe WIT. */
     origem?: OrigemReserva
+    /** Quando a equipe sabe o horário certo. Deixe null para o banco escolher. */
+    horarioId?: string | null
   },
 ) {
   return chamar<AulaImportada>('admin_importar_aula_realizada', {
@@ -429,6 +480,7 @@ export function adminImportarAulaRealizada(
     p_materiais: dados.materiais,
     p_virar_atividade: dados.virarAtividade,
     p_origem: dados.origem ?? 'equipe_wit',
+    p_horario_id: dados.horarioId ?? null,
   })
 }
 

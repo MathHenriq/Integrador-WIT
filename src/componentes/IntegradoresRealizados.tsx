@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { EditorReserva } from './EditorReserva'
 import { EtiquetaOrigem, EtiquetaSituacao } from './Etiqueta'
-import { adminListarEscolas, adminListarReservas } from '../lib/api'
+import { adminListarEscolas, adminListarReservas, adminRemoverReserva } from '../lib/api'
 import { dataCurta, faixaHoraria, situacaoDoIntegrador } from '../lib/formato'
 import { pedirRelatoEFotos } from '../lib/relato'
 import type { EscolaAdmin, ReservaAdmin, SituacaoIntegrador } from '../lib/tipos'
@@ -38,6 +39,7 @@ export function IntegradoresRealizados({
   const [vista, setVista] = useState<Vista>('tudo')
   const [de, setDe] = useState('')
   const [ate, setAte] = useState('')
+  const [editando, setEditando] = useState<ReservaAdmin | null>(null)
 
   const carregar = useCallback(async () => {
     aoErro(null)
@@ -104,6 +106,27 @@ export function IntegradoresRealizados({
       if (await pedirRelatoEFotos(senha, reserva)) await carregar()
     } catch (f) {
       aoErro(f instanceof Error ? f.message : 'Não foi possível salvar o relato.')
+    }
+  }
+
+  async function remover(reserva: ReservaAdmin) {
+    const tema = reserva.aula_titulo ?? 'sem tema definido'
+    if (
+      !window.confirm(
+        `Você tem certeza que quer apagar o projeto integrador do dia ${dataCurta(
+          reserva.data_aula,
+        )} sobre "${tema}"?`,
+      )
+    ) {
+      return
+    }
+
+    aoErro(null)
+    try {
+      await adminRemoverReserva(senha, reserva.id)
+      await carregar()
+    } catch (f) {
+      aoErro(f instanceof Error ? f.message : 'Não foi possível remover o projeto integrador.')
     }
   }
 
@@ -241,23 +264,51 @@ export function IntegradoresRealizados({
                     <EtiquetaSituacao situacao={situacao} />
                   </td>
                   <td>
-                    {situacao === 'realizada' && (
+                    <div className="acoes-linha">
+                      {situacao === 'realizada' && (
+                        <button
+                          type="button"
+                          className="fantasma pequeno"
+                          onClick={() => void relatar(reserva)}
+                        >
+                          {reserva.relato || reserva.fotos.length > 0
+                            ? 'Relato e fotos'
+                            : '+ Relato e fotos'}
+                        </button>
+                      )}
                       <button
                         type="button"
                         className="fantasma pequeno"
-                        onClick={() => void relatar(reserva)}
+                        onClick={() => setEditando(reserva)}
                       >
-                        {reserva.relato || reserva.fotos.length > 0
-                          ? 'Relato e fotos'
-                          : '+ Relato e fotos'}
+                        Editar
                       </button>
-                    )}
+                      <button
+                        type="button"
+                        className="perigo pequeno"
+                        onClick={() => void remover(reserva)}
+                      >
+                        Remover
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+      )}
+
+      {editando && (
+        <EditorReserva
+          senha={senha}
+          reserva={editando}
+          aoFechar={() => setEditando(null)}
+          aoSalvar={() => {
+            setEditando(null)
+            void carregar()
+          }}
+        />
       )}
     </>
   )
