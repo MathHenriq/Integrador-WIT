@@ -11,7 +11,6 @@ import { RegistrarProjeto } from '../componentes/RegistrarProjeto'
 import {
   adminCancelarReserva,
   adminConfirmarReserva,
-  adminCriarEscola,
   adminListarAulas,
   adminListarEscolas,
   adminListarReservas,
@@ -317,8 +316,6 @@ function AbaAulas({
 function AbaEscolas({ senha, aoErro }: { senha: string; aoErro: (e: string | null) => void }) {
   const [escolas, setEscolas] = useState<EscolaAdmin[]>([])
   const [carregando, setCarregando] = useState(true)
-  const [nome, setNome] = useState('')
-  const [criando, setCriando] = useState(false)
   const [aberta, setAberta] = useState<string | null>(null)
 
   const carregar = useCallback(async () => {
@@ -336,22 +333,6 @@ function AbaEscolas({ senha, aoErro }: { senha: string; aoErro: (e: string | nul
     void carregar()
   }, [carregar])
 
-  async function criar(evento: React.FormEvent) {
-    evento.preventDefault()
-    setCriando(true)
-    aoErro(null)
-    try {
-      const nova = await adminCriarEscola(senha, nome.trim())
-      setNome('')
-      await carregar()
-      setAberta(nova.id)
-    } catch (f) {
-      aoErro(f instanceof Error ? f.message : 'Não foi possível criar a escola.')
-    } finally {
-      setCriando(false)
-    }
-  }
-
   async function renomear(escola: EscolaAdmin) {
     const novo = window.prompt('Novo nome da escola:', escola.nome)
     if (!novo || novo.trim() === escola.nome) return
@@ -365,27 +346,6 @@ function AbaEscolas({ senha, aoErro }: { senha: string; aoErro: (e: string | nul
 
   return (
     <>
-      <form onSubmit={criar} className="cartao" style={{ marginBottom: 20 }}>
-        <div className="campo" style={{ marginBottom: 12 }}>
-          <label htmlFor="nova-escola">Nova escola</label>
-          <input
-            id="nova-escola"
-            value={nome}
-            onChange={(e) => setNome(e.target.value)}
-            placeholder="Ex.: EMEF Paulo Freire"
-            maxLength={120}
-          />
-          <p className="ajuda">
-            A escola só aparece no site depois que tiver pelo menos um horário na grade.
-          </p>
-        </div>
-        <div className="acoes-formulario" style={{ marginTop: 0 }}>
-          <button type="submit" disabled={criando || nome.trim().length < 2}>
-            {criando ? 'Cadastrando…' : 'Cadastrar escola'}
-          </button>
-        </div>
-      </form>
-
       {carregando ? (
         <p className="carregando">Carregando…</p>
       ) : escolas.length === 0 ? (
