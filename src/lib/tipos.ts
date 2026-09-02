@@ -235,8 +235,11 @@ export type ReservaAdmin = {
   cancelado_em: string | null
   cancelado_por: string | null
   data_aula: DataIso
+  horario_id: string
   hora_inicio: string
   hora_fim: string
+  /** Só preenchido quando o tema vem de uma atividade do catálogo. */
+  aula_id: string | null
   aula_titulo: string | null
   aula_objetivos: string | null
   aula_materiais: string | null

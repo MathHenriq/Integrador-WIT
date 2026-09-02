@@ -1,10 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Aviso } from './Aviso'
-import { adminImportarAulaRealizada, adminListarEscolas, importarDocumentoCanva } from '../lib/api'
+import {
+  adminImportarAulaRealizada,
+  adminListarEscolas,
+  adminListarHorarios,
+  importarDocumentoCanva,
+} from '../lib/api'
 import { acharEscola } from '../lib/escolas.ts'
-import { dataCurta, dataExtensa, faixaHoraria } from '../lib/formato'
-import type { AulaImportada, EscolaAdmin, ImportacaoCanva, OrigemReserva } from '../lib/tipos'
+import { dataCurta, dataExtensa, faixaHoraria, paraData } from '../lib/formato'
+import type { AulaImportada, EscolaAdmin, HorarioAdmin, ImportacaoCanva, OrigemReserva } from '../lib/tipos'
 
 /**
  * Sobe o PDF que a equipe exporta do Canva e transforma em aula
@@ -170,6 +175,8 @@ function Conferencia({
 }) {
   const [escolaId, setEscolaId] = useState('')
   const [data, setData] = useState(lida.campos.data ?? '')
+  const [horarios, setHorarios] = useState<HorarioAdmin[]>([])
+  const [horarioId, setHorarioId] = useState('')
   const [professor, setProfessor] = useState(lida.campos.professor ?? '')
   const [turma, setTurma] = useState(lida.campos.turma ?? '')
   const [titulo, setTitulo] = useState(lida.campos.tema ?? '')
@@ -184,6 +191,29 @@ function Conferencia({
   useEffect(() => {
     if (escolas.length > 0) setEscolaId((atual) => atual || acharEscola(escolas, lida.campos.escola))
   }, [escolas, lida.campos.escola])
+
+  useEffect(() => {
+    if (!escolaId) {
+      setHorarios([])
+      return
+    }
+    adminListarHorarios(senha, escolaId)
+      .then(setHorarios)
+      .catch(() => setHorarios([]))
+  }, [senha, escolaId])
+
+  // Trocar de escola ou de data invalida o horário escolhido antes — ele
+  // pode nem existir na escola nova, ou cair num dia da semana diferente.
+  useEffect(() => {
+    setHorarioId('')
+  }, [escolaId, data])
+
+  /** Só os horários ativos que caem no dia da semana da data escolhida. */
+  const horariosDoDia = useMemo(() => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return []
+    const diaSemana = paraData(data).getDay()
+    return horarios.filter((h) => h.ativo && h.dia_semana === diaSemana)
+  }, [horarios, data])
 
   const c = lida.campos
   const lidos = CAMPOS_DO_DOCUMENTO.filter((campo) => c[campo]).length
@@ -216,6 +246,7 @@ function Conferencia({
           materiais: lida.campos.materiais,
           virarAtividade,
           origem,
+          horarioId: horarioId || null,
         }),
       )
     } catch (falha) {
@@ -285,6 +316,27 @@ function Conferencia({
                 Não entendi a data “{c.data_lida}” do documento — escolha no calendário.
               </p>
             )}
+          </div>
+
+          <div className="campo">
+            <label htmlFor="imp-horario">Horário (se souber)</label>
+            <select
+              id="imp-horario"
+              value={horarioId}
+              onChange={(e) => setHorarioId(e.target.value)}
+              disabled={horariosDoDia.length === 0}
+            >
+              <option value="">Deixar o sistema escolher</option>
+              {horariosDoDia.map((h) => (
+                <option key={h.id} value={h.id}>
+                  {faixaHoraria(h.hora_inicio, h.hora_fim)}
+                </option>
+              ))}
+            </select>
+            <p className="ajuda">
+              O documento não traz o horário. Sem escolher aqui, o sistema usa o primeiro tempo
+              livre do dia — informe se souber qual foi de verdade.
+            </p>
           </div>
         </div>
 
