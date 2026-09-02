@@ -169,14 +169,6 @@ export function adminListarEscolas(senha: string) {
   return chamar<EscolaAdmin[]>('admin_listar_escolas', { p_admin_token: senha })
 }
 
-export function adminRenomearEscola(senha: string, escolaId: string, nome: string) {
-  return chamar<unknown>('admin_renomear_escola', {
-    p_admin_token: senha,
-    p_escola_id: escolaId,
-    p_nome: nome,
-  })
-}
-
 export function adminListarHorarios(senha: string, escolaId: string) {
   return chamar<HorarioAdmin[]>('admin_listar_horarios', {
     p_admin_token: senha,
