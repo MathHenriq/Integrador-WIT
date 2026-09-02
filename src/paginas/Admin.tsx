@@ -16,7 +16,6 @@ import {
   adminListarReservas,
   adminRemoverAula,
   adminRemoverHabilidade,
-  adminRenomearEscola,
   adminSalvarHabilidade,
   carregarContexto,
   listarHabilidades,
@@ -333,17 +332,6 @@ function AbaEscolas({ senha, aoErro }: { senha: string; aoErro: (e: string | nul
     void carregar()
   }, [carregar])
 
-  async function renomear(escola: EscolaAdmin) {
-    const novo = window.prompt('Novo nome da escola:', escola.nome)
-    if (!novo || novo.trim() === escola.nome) return
-    try {
-      await adminRenomearEscola(senha, escola.id, novo.trim())
-      await carregar()
-    } catch (f) {
-      aoErro(f instanceof Error ? f.message : 'Não foi possível renomear.')
-    }
-  }
-
   return (
     <>
       {carregando ? (
@@ -374,9 +362,6 @@ function AbaEscolas({ senha, aoErro }: { senha: string; aoErro: (e: string | nul
                   </p>
                 </div>
                 <div className="acoes-linha">
-                  <button type="button" className="fantasma pequeno" onClick={() => void renomear(escola)}>
-                    Renomear
-                  </button>
                   <button
                     type="button"
                     className="secundario pequeno"
