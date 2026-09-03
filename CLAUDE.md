@@ -65,7 +65,7 @@ acima):
 
 Grupo W: **Complexo Educacional Professor Carlos Osmarinho de Lima**, **EMEF Professor Ézio
 Berzaghi**, **EMEF Renato Rosa**, **EMEIEF Professor Eneias Raimundo da Silva**, **EMEF Professor
-Alfredo do Carmo**.
+Alfredo do Carmo**, **EMEF Prefeito Nestor de Camargo**.
 
 Caso à parte: **EMEF Professor Egídio Costa** só muda a 3ª aula (13:00 – 14:40); a 2ª continua no
 horário padrão (09:20 – 10:50).
