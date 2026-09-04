@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Aviso } from './Aviso'
+import { EscolherFotos } from './EscolherFotos'
 import { adminImportarAulaRealizada, adminListarEscolas, adminListarHorarios } from '../lib/api'
 import { dataExtensa, faixaHoraria, paraData } from '../lib/formato'
 import type { AulaImportada, EscolaAdmin, HorarioAdmin, OrigemReserva } from '../lib/tipos'
@@ -45,6 +46,7 @@ export function RegistrarProjeto({
   const [objetivos, setObjetivos] = useState('')
   const [materiais, setMateriais] = useState('')
   const [fotosTexto, setFotosTexto] = useState('')
+  const [fotosAnexadas, setFotosAnexadas] = useState<string[]>([])
   const [virarAtividade, setVirarAtividade] = useState(true)
   const [registrando, setRegistrando] = useState(false)
   const [registrado, setRegistrado] = useState<AulaImportada | null>(null)
@@ -81,12 +83,14 @@ export function RegistrarProjeto({
   const hoje = useMemo(() => new Date().toISOString().slice(0, 10), [])
 
   const fotos = useMemo(
-    () =>
-      fotosTexto
+    () => [
+      ...fotosTexto
         .split('\n')
         .map((f) => f.trim())
         .filter(Boolean),
-    [fotosTexto],
+      ...fotosAnexadas,
+    ],
+    [fotosTexto, fotosAnexadas],
   )
 
   /** O relato da vitrine, no mesmo formato que o gerador de documento monta. */
@@ -151,6 +155,7 @@ export function RegistrarProjeto({
           setObjetivos('')
           setMateriais('')
           setFotosTexto('')
+          setFotosAnexadas([])
         }}
       />
     )
@@ -326,8 +331,20 @@ export function RegistrarProjeto({
 
       <div className="cartao" style={{ marginBottom: 20 }}>
         <h3 style={{ fontSize: 17, marginBottom: 6 }}>Fotos da aula</h3>
-        <div className="campo" style={{ marginBottom: 0 }}>
-          <label htmlFor="reg-fotos">Endereços das fotos, um por linha</label>
+        <p className="ajuda" style={{ marginBottom: 14 }}>
+          Elas aparecem na vitrine e na página da atividade. Anexe do celular ou do computador
+          quando a foto ainda não está em lugar nenhum, ou cole o link quando já estiver.
+        </p>
+
+        <EscolherFotos
+          senha={senha}
+          valor={fotosAnexadas}
+          aoMudar={setFotosAnexadas}
+          aoErro={aoErro}
+        />
+
+        <div className="campo" style={{ marginTop: 14, marginBottom: 0 }}>
+          <label htmlFor="reg-fotos">Ou cole o endereço das fotos, um por linha</label>
           <textarea
             id="reg-fotos"
             value={fotosTexto}
@@ -335,7 +352,6 @@ export function RegistrarProjeto({
             rows={3}
             placeholder="Cole o link direto da imagem (Drive, Storage do Supabase, etc.)"
           />
-          <p className="ajuda">Elas aparecem na vitrine e na página da atividade.</p>
         </div>
       </div>
 

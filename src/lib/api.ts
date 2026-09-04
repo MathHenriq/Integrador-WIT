@@ -10,6 +10,7 @@ import type {
   Habilidade,
   HorarioAdmin,
   Comprovante,
+  FotosEnviadas,
   ImportacaoCanva,
   Ocorrencia,
   OrigemReserva,
@@ -415,6 +416,39 @@ export async function importarDocumentoCanva(senha: string, arquivo: File) {
 
   const corpo = data as ImportacaoCanva & { ok?: boolean; mensagem?: string }
   if (corpo?.ok === false) throw new ErroApi(corpo.mensagem ?? 'Não consegui ler este documento.')
+
+  return corpo
+}
+
+/**
+ * Sobe fotos soltas — anexadas do celular ou do computador de quem está
+ * no painel — para o mesmo balde das fotos do Canva. Existe pela mesma
+ * razão da `importarDocumentoCanva`: o painel não tem login de verdade,
+ * então só a Edge Function (service role) pode escrever no Storage; o
+ * navegador nunca fala com o balde direto.
+ */
+export async function subirFotos(senha: string, arquivos: File[]) {
+  const formulario = new FormData()
+  formulario.append('senha', senha)
+  for (const arquivo of arquivos) formulario.append('arquivo', arquivo)
+
+  const { data, error } = await supabase.functions.invoke('subir-fotos', { body: formulario })
+
+  if (error) {
+    let mensagem = ''
+    const contexto = (error as { context?: Response }).context
+    if (contexto && typeof contexto.json === 'function') {
+      try {
+        mensagem = ((await contexto.json()) as { mensagem?: string }).mensagem ?? ''
+      } catch {
+        mensagem = ''
+      }
+    }
+    throw new ErroApi(mensagem || 'Não foi possível enviar as fotos. Confira a conexão e tente de novo.')
+  }
+
+  const corpo = data as FotosEnviadas & { ok?: boolean; mensagem?: string }
+  if (corpo?.ok === false) throw new ErroApi(corpo.mensagem ?? 'Não consegui guardar as fotos.')
 
   return corpo
 }

@@ -43,6 +43,11 @@ existir uma aula realizada** — o front já lê esse campo. Rode `0004_fotos_da
 repositório mas **nunca subiu** — a confirmação por e-mail continua desligada, o que não quebra
 nada (o protocolo na tela é a confirmação que vale).
 
+`subir-fotos` é nova e **ainda não foi deployada**: `supabase functions deploy subir-fotos`. Sem
+isso, o botão "+ Anexar fotos do celular ou computador" (Registrar projeto e Relato e fotos)
+aparece na tela mas falha ao enviar — o campo de link continua funcionando normalmente enquanto
+isso, porque não depende de Edge Function nenhuma.
+
 ### Ordem de execução das migrations
 
 Da `0002` em diante todos os arquivos reexecutam à vontade, **em ordem**. A `0001` só reexecuta em
@@ -205,7 +210,9 @@ lista das aulas.
 | onde | o quê |
 | --- | --- |
 | `src/componentes/IntegradoresRealizados.tsx` | a aba inteira |
-| `src/lib/relato.ts` | o relato e as fotos perguntados no navegador, usados por duas abas |
+| `src/componentes/RelatarAula.tsx` | o modal de relato e fotos, usado por esta aba e pela de Reservas |
+| `src/componentes/EscolherFotos.tsx` | o botão de anexar foto do dispositivo, usado aqui e no Registrar projeto |
+| `supabase/functions/subir-fotos/` | Edge Function que hospeda a foto anexada — mesmo balde do Canva |
 | `0013_fotos_na_lista_de_reservas.sql` | a coluna que faltava na `admin_listar_reservas` |
 
 **Filtros no topo**, antes de qualquer coisa: escola, período (de/até) e situação — Tudo,
@@ -267,15 +274,19 @@ na caixa, em vez de transbordar como acontece no Canva quando alguém escreve de
 ## 3. Decisões tomadas que não devem ser revertidas sem conversa
 
 ### 3.1 Quem escreve no Storage é a Edge Function, nunca o navegador
-No relato manual as fotos continuam entrando como **URL de imagem já hospedada**: o painel não tem
-login de verdade, e dar escrita ao papel `anon` deixaria qualquer um subir arquivo.
+No relato manual, no registro rápido e no anexo de fotos, o campo continua aceitando **URL de
+imagem já hospedada** como alternativa: o painel não tem login de verdade, e dar escrita ao papel
+`anon` deixaria qualquer um subir arquivo.
 
-O importador do Canva é a exceção construída para isso — o balde `fotos-aulas` é **público na
-leitura** (a vitrine precisa abrir a foto) e **não tem policy nenhuma de escrita**, então só a
-service role da Edge Function grava. Conferido: com o `anon key`, subir arquivo no balde dá
-`new row violates row-level security policy`.
+O importador do Canva foi a primeira exceção construída para isso — o balde `fotos-aulas` é
+**público na leitura** (a vitrine precisa abrir a foto) e **não tem policy nenhuma de escrita**,
+então só a service role da Edge Function grava. Conferido: com o `anon key`, subir arquivo no
+balde dá `new row violates row-level security policy`.
 
-Se um dia aparecer upload em outra tela, é por esse caminho — nunca abrindo o balde.
+`subir-fotos` é a segunda: mesmo balde, mesma senha conferida por `admin_conferir_senha` antes de
+qualquer upload, mesma service role gravando. É o caminho que o botão "+ Anexar fotos do celular
+ou computador" usa em `RegistrarProjeto.tsx` e `RelatarAula.tsx` (via `EscolherFotos.tsx`) —
+**nunca** abrindo o balde para o navegador escrever direto.
 
 ### 3.2 O site é público
 Não existem mais links por escola. Qualquer um agenda; cancelar exige o protocolo recebido no

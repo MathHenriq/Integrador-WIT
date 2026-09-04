@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { EditorReserva } from './EditorReserva'
 import { EtiquetaOrigem, EtiquetaSituacao } from './Etiqueta'
+import { RelatarAula } from './RelatarAula'
 import { adminListarEscolas, adminListarReservas, adminRemoverReserva } from '../lib/api'
 import { dataCurta, faixaHoraria, situacaoDoIntegrador } from '../lib/formato'
-import { pedirRelatoEFotos } from '../lib/relato'
 import type { EscolaAdmin, ReservaAdmin, SituacaoIntegrador } from '../lib/tipos'
 
 /** Os recortes da lista, na ordem em que aparecem como filtro. */
@@ -40,6 +40,7 @@ export function IntegradoresRealizados({
   const [de, setDe] = useState('')
   const [ate, setAte] = useState('')
   const [editando, setEditando] = useState<ReservaAdmin | null>(null)
+  const [relatando, setRelatando] = useState<ReservaAdmin | null>(null)
 
   const carregar = useCallback(async () => {
     aoErro(null)
@@ -99,14 +100,6 @@ export function IntegradoresRealizados({
     setVista('tudo')
     setDe('')
     setAte('')
-  }
-
-  async function relatar(reserva: ReservaAdmin) {
-    try {
-      if (await pedirRelatoEFotos(senha, reserva)) await carregar()
-    } catch (f) {
-      aoErro(f instanceof Error ? f.message : 'Não foi possível salvar o relato.')
-    }
   }
 
   async function remover(reserva: ReservaAdmin) {
@@ -269,7 +262,7 @@ export function IntegradoresRealizados({
                         <button
                           type="button"
                           className="fantasma pequeno"
-                          onClick={() => void relatar(reserva)}
+                          onClick={() => setRelatando(reserva)}
                         >
                           {reserva.relato || reserva.fotos.length > 0
                             ? 'Relato e fotos'
@@ -306,6 +299,18 @@ export function IntegradoresRealizados({
           aoFechar={() => setEditando(null)}
           aoSalvar={() => {
             setEditando(null)
+            void carregar()
+          }}
+        />
+      )}
+
+      {relatando && (
+        <RelatarAula
+          senha={senha}
+          reserva={relatando}
+          aoFechar={() => setRelatando(null)}
+          aoSalvar={() => {
+            setRelatando(null)
             void carregar()
           }}
         />

@@ -8,6 +8,7 @@ import { ImportarCanva } from '../componentes/ImportarCanva'
 import { IntegradoresRealizados } from '../componentes/IntegradoresRealizados'
 import { LogoWit } from '../componentes/LogoWit'
 import { RegistrarProjeto } from '../componentes/RegistrarProjeto'
+import { RelatarAula } from '../componentes/RelatarAula'
 import {
   adminCancelarReserva,
   adminConfirmarReserva,
@@ -21,7 +22,6 @@ import {
   listarHabilidades,
 } from '../lib/api'
 import { ANOS_ESCOLARES, dataCurta, faixaHoraria, rotuloAnos } from '../lib/formato'
-import { pedirRelatoEFotos } from '../lib/relato'
 import type { AulaAdmin, EscolaAdmin, Habilidade, Materia, ReservaAdmin } from '../lib/tipos'
 
 const CHAVE = 'wit:senha-admin'
@@ -386,6 +386,7 @@ function AbaEscolas({ senha, aoErro }: { senha: string; aoErro: (e: string | nul
 function AbaReservas({ senha, aoErro }: { senha: string; aoErro: (e: string | null) => void }) {
   const [reservas, setReservas] = useState<ReservaAdmin[]>([])
   const [carregando, setCarregando] = useState(true)
+  const [relatando, setRelatando] = useState<ReservaAdmin | null>(null)
 
   const carregar = useCallback(async () => {
     aoErro(null)
@@ -449,14 +450,6 @@ function AbaReservas({ senha, aoErro }: { senha: string; aoErro: (e: string | nu
       await carregar()
     } catch (f) {
       aoErro(f instanceof Error ? f.message : 'Não foi possível cancelar.')
-    }
-  }
-
-  async function relatar(reserva: ReservaAdmin) {
-    try {
-      if (await pedirRelatoEFotos(senha, reserva)) await carregar()
-    } catch (f) {
-      aoErro(f instanceof Error ? f.message : 'Não foi possível salvar o relato.')
     }
   }
 
@@ -592,7 +585,7 @@ function AbaReservas({ senha, aoErro }: { senha: string; aoErro: (e: string | nu
                       </button>
                     )}
                     {r.status === 'confirmado' && r.ja_aconteceu && (
-                      <button type="button" className="fantasma pequeno" onClick={() => void relatar(r)}>
+                      <button type="button" className="fantasma pequeno" onClick={() => setRelatando(r)}>
                         {r.relato || r.fotos.length > 0 ? 'Relato e fotos' : '+ Relato e fotos'}
                       </button>
                     )}
@@ -609,6 +602,18 @@ function AbaReservas({ senha, aoErro }: { senha: string; aoErro: (e: string | nu
           </tbody>
         </table>
       </div>
+
+      {relatando && (
+        <RelatarAula
+          senha={senha}
+          reserva={relatando}
+          aoFechar={() => setRelatando(null)}
+          aoSalvar={() => {
+            setRelatando(null)
+            void carregar()
+          }}
+        />
+      )}
     </>
   )
 }

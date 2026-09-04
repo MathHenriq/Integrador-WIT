@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Aviso } from './Aviso'
 import { adminImportarAulaRealizada, adminListarEscolas, importarDocumentoCanva } from '../lib/api'
 import { dataExtensa, faixaHoraria } from '../lib/formato'
+import { paraJpeg } from '../lib/imagem'
 import type { AulaImportada, EscolaAdmin, OrigemReserva } from '../lib/tipos'
 
 /** Os cinco cursos do Núcleo. O campo aceita outro, se for o caso. */
@@ -13,38 +14,6 @@ const CURSOS = [
   'Ambientes Inteligentes (IoT)',
   'Comunicação Digital',
 ]
-
-/** Foto grande demais atrasa o envio e não melhora o documento. */
-const LADO_MAXIMO = 1600
-
-/**
- * Toda foto vira JPEG antes de sair do navegador: é o formato que entra
- * no PDF sem conversão nenhuma do outro lado, e o mesmo arquivo que sobe
- * para o site é o que vai para dentro do documento.
- */
-async function paraJpeg(arquivo: File): Promise<Blob> {
-  const desenho = await createImageBitmap(arquivo)
-  const escala = Math.min(1, LADO_MAXIMO / Math.max(desenho.width, desenho.height))
-  const tela = document.createElement('canvas')
-  tela.width = Math.round(desenho.width * escala)
-  tela.height = Math.round(desenho.height * escala)
-
-  const pincel = tela.getContext('2d')
-  if (!pincel) throw new Error('Este navegador não conseguiu preparar a foto.')
-  // Fundo branco: PNG com transparência viraria preto no JPEG.
-  pincel.fillStyle = '#ffffff'
-  pincel.fillRect(0, 0, tela.width, tela.height)
-  pincel.drawImage(desenho, 0, 0, tela.width, tela.height)
-  desenho.close()
-
-  return await new Promise<Blob>((resolver, recusar) => {
-    tela.toBlob(
-      (blob) => (blob ? resolver(blob) : recusar(new Error('Não consegui preparar a foto.'))),
-      'image/jpeg',
-      0.82,
-    )
-  })
-}
 
 type FotoEscolhida = { nome: string; blob: Blob; previa: string }
 

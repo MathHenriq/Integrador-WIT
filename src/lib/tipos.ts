@@ -186,6 +186,11 @@ export type CamposCanva = {
   materiais: string | null
 }
 
+export type FotosEnviadas = {
+  fotos: string[]
+  avisos: string[]
+}
+
 export type ImportacaoCanva = {
   importacao_id: string | null
   campos: CamposCanva
