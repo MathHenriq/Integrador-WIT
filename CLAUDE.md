@@ -92,6 +92,20 @@ mantém o histórico com status `cancelado`, aparece no filtro "Canceladas"; rem
 (`admin_remover_reserva`) apaga a linha de vez, com confirmação antes ("Você tem certeza que quer
 apagar o projeto integrador do dia X sobre 'tema'?").
 
+### Horário fechado fecha agendamento, não fecha registro
+
+Desativar um horário na aba "Horários" (fica "Fora da grade") tira o tempo do calendário público.
+É assim que a equipe marca o tempo que é da **turma do próprio Núcleo**: ninguém agenda uma turma
+parceira em cima dela.
+
+Isso **não** vale para registrar o que já aconteceu. Quando a turma do Núcleo vem com pouca gente,
+sobra sala e o profissional WIT faz o projeto integrador ali mesmo — e essa aula precisa entrar no
+site. Por isso "Registrar projeto", "Importar do Canva" e "Editar" listam **todos** os tempos da
+escola naquele dia da semana, com os fora da grade no fim da lista e marcados `· fora da grade`.
+A escolha automática do banco (quando ninguém informa o horário) segue a mesma régua: prefere
+tempo aberto e só cai no fechado se não sobrou nenhum. Registro retroativo descreve o passado; não
+ocupa agenda.
+
 ## Escolas atendidas (18)
 
 Nomes oficiais, como na relação da Secretaria. É assim que aparecem no site e no documento —

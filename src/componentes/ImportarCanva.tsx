@@ -8,7 +8,7 @@ import {
   importarDocumentoCanva,
 } from '../lib/api'
 import { acharEscola } from '../lib/escolas.ts'
-import { dataCurta, dataExtensa, faixaHoraria, paraData } from '../lib/formato'
+import { dataCurta, dataExtensa, faixaHoraria, faixaHorariaNaGrade, paraData } from '../lib/formato'
 import type { AulaImportada, EscolaAdmin, HorarioAdmin, ImportacaoCanva, OrigemReserva } from '../lib/tipos'
 
 /**
@@ -208,11 +208,17 @@ function Conferencia({
     setHorarioId('')
   }, [escolaId, data])
 
-  /** Só os horários ativos que caem no dia da semana da data escolhida. */
+  /**
+   * Os horários do dia da semana da data escolhida, inclusive os que estão
+   * fora da grade: o documento é de aula que já aconteceu, e ela acontece
+   * também no tempo fechado da turma do Núcleo. Abertos primeiro.
+   */
   const horariosDoDia = useMemo(() => {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return []
     const diaSemana = paraData(data).getDay()
-    return horarios.filter((h) => h.ativo && h.dia_semana === diaSemana)
+    return horarios
+      .filter((h) => h.dia_semana === diaSemana)
+      .sort((a, b) => Number(b.ativo) - Number(a.ativo))
   }, [horarios, data])
 
   const c = lida.campos
@@ -329,13 +335,14 @@ function Conferencia({
               <option value="">Deixar o sistema escolher</option>
               {horariosDoDia.map((h) => (
                 <option key={h.id} value={h.id}>
-                  {faixaHoraria(h.hora_inicio, h.hora_fim)}
+                  {faixaHorariaNaGrade(h)}
                 </option>
               ))}
             </select>
             <p className="ajuda">
               O documento não traz o horário. Sem escolher aqui, o sistema usa o primeiro tempo
-              livre do dia — informe se souber qual foi de verdade.
+              livre do dia — informe se souber qual foi de verdade. Tempo fora da grade também
+              vale: a aula já aconteceu.
             </p>
           </div>
         </div>

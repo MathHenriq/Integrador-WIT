@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { adminAtualizarReserva, adminListarHorarios } from '../lib/api'
-import { faixaHoraria, paraData } from '../lib/formato'
+import { faixaHorariaNaGrade, paraData } from '../lib/formato'
 import type { HorarioAdmin, ReservaAdmin } from '../lib/tipos'
 import { Aviso } from './Aviso'
 import { Modal } from './Modal'
@@ -52,12 +52,16 @@ export function EditorReserva({ senha, reserva, aoFechar, aoSalvar }: Props) {
   const diaSemana = useMemo(() => paraData(data).getDay(), [data])
 
   /**
-   * Só os horários do dia da semana da data escolhida — e sempre com o
-   * que já está selecionado na lista, mesmo desativado ou de outro dia,
-   * senão o select "perde" o valor da reserva assim que abre.
+   * Os horários do dia da semana da data escolhida, fora da grade
+   * inclusive — corrigir o registro de uma aula que já aconteceu não é
+   * abrir vaga nova. E sempre com o que já está selecionado na lista,
+   * mesmo de outro dia, senão o select "perde" o valor da reserva assim
+   * que abre.
    */
   const horariosVisiveis = useMemo(() => {
-    const doDia = horarios.filter((h) => h.dia_semana === diaSemana && h.ativo)
+    const doDia = horarios
+      .filter((h) => h.dia_semana === diaSemana)
+      .sort((a, b) => Number(b.ativo) - Number(a.ativo))
     if (doDia.some((h) => h.id === horarioId)) return doDia
     const atual = horarios.find((h) => h.id === horarioId)
     return atual ? [atual, ...doDia] : doDia
@@ -140,8 +144,7 @@ export function EditorReserva({ senha, reserva, aoFechar, aoSalvar }: Props) {
               {horariosVisiveis.length === 0 && <option value="">Nenhum horário neste dia</option>}
               {horariosVisiveis.map((h) => (
                 <option key={h.id} value={h.id}>
-                  {faixaHoraria(h.hora_inicio, h.hora_fim)}
-                  {!h.ativo ? ' (desativado)' : ''}
+                  {faixaHorariaNaGrade(h)}
                 </option>
               ))}
             </select>

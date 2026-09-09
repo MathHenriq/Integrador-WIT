@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Aviso } from './Aviso'
 import { adminImportarAulaRealizada, adminListarEscolas, adminListarHorarios } from '../lib/api'
-import { dataExtensa, faixaHoraria, paraData } from '../lib/formato'
+import { dataExtensa, faixaHoraria, faixaHorariaNaGrade, paraData } from '../lib/formato'
 import type { AulaImportada, EscolaAdmin, HorarioAdmin, OrigemReserva } from '../lib/tipos'
 
 /** Os cinco cursos do Núcleo. O campo aceita outro, se for o caso. */
@@ -71,11 +71,19 @@ export function RegistrarProjeto({
     setHorarioId('')
   }, [escolaId, data])
 
-  /** Só os horários ativos que caem no dia da semana da data escolhida. */
+  /**
+   * Os horários que caem no dia da semana da data escolhida — inclusive os
+   * que estão fora da grade. Aqui não se está reservando nada: a aula já
+   * aconteceu, e ela acontece também em tempo fechado (o tempo em que a
+   * equipe atende a própria turma do Núcleo). Os abertos vêm primeiro
+   * porque são o caso comum; os fechados ficam no fim, marcados.
+   */
   const horariosDoDia = useMemo(() => {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return []
     const diaSemana = paraData(data).getDay()
-    return horarios.filter((h) => h.ativo && h.dia_semana === diaSemana)
+    return horarios
+      .filter((h) => h.dia_semana === diaSemana)
+      .sort((a, b) => Number(b.ativo) - Number(a.ativo))
   }, [horarios, data])
 
   const hoje = useMemo(() => new Date().toISOString().slice(0, 10), [])
@@ -201,7 +209,7 @@ export function RegistrarProjeto({
               <option value="">Deixar o sistema escolher</option>
               {horariosDoDia.map((h) => (
                 <option key={h.id} value={h.id}>
-                  {faixaHoraria(h.hora_inicio, h.hora_fim)}
+                  {faixaHorariaNaGrade(h)}
                 </option>
               ))}
             </select>
@@ -210,7 +218,7 @@ export function RegistrarProjeto({
                 ? 'Escolha a escola primeiro.'
                 : horariosDoDia.length === 0
                   ? 'Escolha a data para ver os horários deste dia.'
-                  : 'Sem horário, o sistema usa o primeiro tempo livre do dia — informe se souber qual foi de verdade.'}
+                  : 'Sem horário, o sistema usa o primeiro tempo livre do dia — informe se souber qual foi de verdade. Tempo fora da grade também vale: a aula já aconteceu.'}
             </p>
           </div>
         </div>

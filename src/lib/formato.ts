@@ -42,6 +42,20 @@ export function faixaHoraria(inicio: string, fim: string) {
   return `${hora(inicio)} às ${hora(fim)}`
 }
 
+/**
+ * O horário como ele aparece nas telas que registram aula já dada. Tempo
+ * fora da grade continua na lista, só avisado: o que fecha o horário para
+ * agendamento novo não tem por que apagar a aula que já aconteceu nele.
+ */
+export function faixaHorariaNaGrade(horario: {
+  hora_inicio: string
+  hora_fim: string
+  ativo: boolean
+}) {
+  const faixa = faixaHoraria(horario.hora_inicio, horario.hora_fim)
+  return horario.ativo ? faixa : `${faixa} · fora da grade`
+}
+
 export function dataHora(iso: string | null) {
   if (!iso) return '—'
   return new Date(iso).toLocaleString('pt-BR', {
