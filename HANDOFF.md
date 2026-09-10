@@ -262,6 +262,19 @@ que o gerador escreve, os dois lados falam do mesmo documento.
 **Uma liberdade em relação ao original:** o texto sempre cabe. O bloco diminui a letra até entrar
 na caixa, em vez de transbordar como acontece no Canva quando alguém escreve demais.
 
+**E o tamanho é decidido em grupo, não caixa a caixa.** Enquanto cada caixa encolhia sozinha, o
+documento saía com descrição em 14, objetivos em 11 e o nome do professor em 8 — texto grande e
+pequeno na mesma folha. Agora as três caixas do corpo medem juntas e usam o maior tamanho em que
+todas cabem (`letraDoCorpo`), e os cinco campos do cabeçalho fazem o mesmo (`letraDoCabecalho`). O
+tema acompanha o corpo, mas título comprido demais encolhe só ele: a faixa do tema é baixa, e uma
+segunda linha ali levaria a página inteira ao piso sem necessidade.
+
+**O filete do logo sai na extração.** O logo da Micro Ka vinha do Canva com uma linha vertical
+colada na borda direita da imagem, que no papel aparecia como um risco solto ao lado do cabeçalho.
+`extrair-modelo.mts` apara essa faixa (tinta grudada na última coluna, com branco antes dela) e
+`montar.ts` tira a largura do desenho da própria imagem, para o logo não esticar e ocupar o lugar
+de onde a linha estava.
+
 ---
 
 ## 3. Decisões tomadas que não devem ser revertidas sem conversa
