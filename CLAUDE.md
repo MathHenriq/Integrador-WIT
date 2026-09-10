@@ -72,19 +72,24 @@ horário padrão (09:20 – 10:50).
 ### EMEF Professor Alfredo do Carmo
 
 Escola integral, mas a sala do Núcleo lá não segue nem a grade padrão nem a do Grupo W: **muda de
-dia para dia**, tem dia com um tempo só e blocos de duração diferente. São nove tempos na semana,
+dia para dia**, tem dia com um tempo só e blocos de duração diferente. São dez tempos na semana,
 não vinte:
 
-| Dia | | |
-| --- | --- | --- |
-| Segunda | 08:00 – 09:00 | |
-| Terça | 08:00 – 09:00 | 16:00 – 17:00 |
-| Quarta | 11:00 – 12:00 | 15:00 – 16:00 |
-| Quinta | 08:00 – 09:00 | 15:00 – 18:00 |
-| Sexta | 08:00 – 09:00 | 15:00 – 17:00 |
+| Dia | | | |
+| --- | --- | --- | --- |
+| Segunda | 08:00 – 09:00 | | |
+| Terça | 08:00 – 09:00 | 16:00 – 17:00 | |
+| Quarta | 11:00 – 12:00 | 15:00 – 16:00 | |
+| Quinta | 08:00 – 09:00 | 15:00 – 16:30 | 16:30 – 18:00 |
+| Sexta | 08:00 – 09:00 | 15:00 – 17:00 | |
 
 Ela é a prova de que "toda escola tem os quatro tempos" (a regra da `0023`) é o caso comum, não uma
 lei: a grade de cada escola é a que está no banco. Ver `supabase/migrations/0026_grade_propria_da_alfredo_do_carmo.sql`.
+
+A tarde de quinta veio da escola como um bloco de 15:00 às 18:00 e está cadastrada como **dois
+tempos de 1h30** (`0027`). Três horas num horário só significaria que a primeira reserva trancava a
+tarde inteira — quem chegasse depois veria "Reservada" com a sala livre da metade em diante. Vale a
+regra geral: bloco longo demais para uma aula só é dois tempos, não um.
 
 ### Não existe mais botão "Criar grade padrão"
 
