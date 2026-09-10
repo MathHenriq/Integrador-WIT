@@ -86,6 +86,14 @@ não vinte:
 Ela é a prova de que "toda escola tem os quatro tempos" (a regra da `0023`) é o caso comum, não uma
 lei: a grade de cada escola é a que está no banco. Ver `supabase/migrations/0026_grade_propria_da_alfredo_do_carmo.sql`.
 
+### Não existe mais botão "Criar grade padrão"
+
+O painel tinha um botão que enchia a escola aberta com os quatro tempos padrão, de segunda a sexta.
+Ele foi tirado: quem clicasse com a Alfredo (ou com uma escola do Grupo W, ou a Egídio Costa) na
+tela colocava a grade errada por cima da certa, sem aviso. Cadastro de horário agora é um por um,
+no formulário do lado — que é o que a equipe faz na prática. Se um dia voltar, tem que oferecer a
+grade **daquela** escola, não uma só para todas; as três grades estão na `0023`.
+
 ## Reservas
 
 Quando o professor da escola agenda pelo site, a reserva **não nasce confirmada** — nasce
