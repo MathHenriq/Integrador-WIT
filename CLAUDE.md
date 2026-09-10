@@ -64,11 +64,27 @@ acima):
 | 3ª aula | 13:00 – 14:40 |
 
 Grupo W: **Complexo Educacional Professor Carlos Osmarinho de Lima**, **EMEF Professor Ézio
-Berzaghi**, **EMEF Renato Rosa**, **EMEIEF Professor Eneias Raimundo da Silva**, **EMEF Professor
-Alfredo do Carmo**.
+Berzaghi**, **EMEF Renato Rosa**, **EMEIEF Professor Eneias Raimundo da Silva**.
 
 Caso à parte: **EMEF Professor Egídio Costa** só muda a 3ª aula (13:00 – 14:40); a 2ª continua no
 horário padrão (09:20 – 10:50).
+
+### EMEF Professor Alfredo do Carmo
+
+Escola integral, mas a sala do Núcleo lá não segue nem a grade padrão nem a do Grupo W: **muda de
+dia para dia**, tem dia com um tempo só e blocos de duração diferente. São nove tempos na semana,
+não vinte:
+
+| Dia | | |
+| --- | --- | --- |
+| Segunda | 08:00 – 09:00 | |
+| Terça | 08:00 – 09:00 | 16:00 – 17:00 |
+| Quarta | 11:00 – 12:00 | 15:00 – 16:00 |
+| Quinta | 08:00 – 09:00 | 15:00 – 18:00 |
+| Sexta | 08:00 – 09:00 | 15:00 – 17:00 |
+
+Ela é a prova de que "toda escola tem os quatro tempos" (a regra da `0023`) é o caso comum, não uma
+lei: a grade de cada escola é a que está no banco. Ver `supabase/migrations/0026_grade_propria_da_alfredo_do_carmo.sql`.
 
 ## Reservas
 
