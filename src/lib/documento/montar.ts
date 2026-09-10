@@ -84,6 +84,18 @@ const PASSO_CAMPO = 0.25
 /** Entrelinha como proporção da letra — a mesma em todas as caixas. */
 const ENTRELINHA = 1.36
 
+// O bloco fica no meio da caixa, e não pendurado no topo: a caixa é
+// desenhada do tamanho do template, o texto quase nunca a preenche, e
+// antes toda a sobra caía embaixo. Centralizado, a sobra se divide em
+// cima e embaixo.
+
+/** Respiro mínimo entre o texto e a borda, em cima e embaixo. */
+const RESPIRO = 6
+
+/** Quanto a letra sobe da base e quanto o rabo dela desce. */
+const ALTURA_DA_LETRA = 0.7
+const RABO_DA_LETRA = 0.3
+
 export type DadosDoDocumento = {
   escola: string
   /** "AAAA-MM-DD"; sai no documento como "DD/MM/AAAA". */
@@ -124,7 +136,6 @@ type Bloco = {
   /** Já sem espaço sobrando nas pontas. */
   texto: string
   recuoX: number
-  recuoTopo: number
   marcadores?: boolean
 }
 
@@ -133,18 +144,23 @@ function larguraUtil(bloco: Bloco) {
   return bloco.caixa.largura - bloco.recuoX - RECUO
 }
 
-/** Quanta altura o bloco ocupa se for escrito neste tamanho. */
-function alturaDoBloco(bloco: Bloco, tamanho: number) {
+/** Quantas linhas o texto ocupa depois de quebrado na largura da caixa. */
+function linhasDoBloco(bloco: Bloco, tamanho: number) {
   const largura = larguraUtil(bloco)
-  const linhas = bloco.texto
+  return bloco.texto
     .split('\n')
     .filter((l) => l.trim() !== '')
     .reduce(
       (soma, paragrafo) => soma + quebrarLinhas(paragrafo, tamanho, bloco.marcadores ? largura - 9 : largura).length,
       0,
     )
-  // Da primeira base até a última, mais o rabo das letras que descem.
-  return bloco.recuoTopo + (linhas - 1) * tamanho * ENTRELINHA + tamanho * 0.3
+}
+
+/** Do alto da primeira linha ao rabo da última. */
+function alturaDoBloco(bloco: Bloco, tamanho: number) {
+  const linhas = linhasDoBloco(bloco, tamanho)
+  if (linhas === 0) return 0
+  return (linhas - 1) * tamanho * ENTRELINHA + tamanho * (ALTURA_DA_LETRA + RABO_DA_LETRA)
 }
 
 /**
@@ -158,16 +174,22 @@ function alturaDoBloco(bloco: Bloco, tamanho: number) {
 function tamanhoQueCabe(bloco: Bloco) {
   let tamanho = TAMANHO_CORPO
   for (; tamanho > MENOR_CORPO; tamanho -= PASSO_CORPO) {
-    if (alturaDoBloco(bloco, tamanho) <= bloco.caixa.altura) break
+    if (alturaDoBloco(bloco, tamanho) <= bloco.caixa.altura - 2 * RESPIRO) break
   }
   return tamanho
 }
 
 function escreverBloco(conteudo: Conteudo, bloco: Bloco, tamanho: number) {
   if (bloco.texto === '') return
+
+  // A sobra da caixa dividida em duas, e a primeira base uma altura de
+  // letra abaixo do alto do bloco.
+  const sobra = Math.max(0, bloco.caixa.altura - alturaDoBloco(bloco, tamanho))
+  const alto = bloco.caixa.y + bloco.caixa.altura - sobra / 2
+
   conteudo.bloco(
     bloco.caixa.x + bloco.recuoX,
-    bloco.caixa.y + bloco.caixa.altura - bloco.recuoTopo,
+    alto - tamanho * ALTURA_DA_LETRA,
     tamanho,
     larguraUtil(bloco),
     tamanho * ENTRELINHA,
@@ -181,8 +203,6 @@ type CampoDoCabecalho = {
   caixa: Caixa
   rotulo: string
   valor: string
-  /** Altura da base do texto dentro da caixa, medida no original. */
-  base: number
 }
 
 /**
@@ -203,7 +223,10 @@ function letraQueCabeNoCabecalho(campos: CampoDoCabecalho[]) {
 }
 
 function campo(conteudo: Conteudo, c: CampoDoCabecalho, tamanho: number) {
-  const y = c.caixa.y + c.base
+  // Uma linha só: o meio da caixa, pela mesma conta dos blocos.
+  const sobra = c.caixa.altura - tamanho * (ALTURA_DA_LETRA + RABO_DA_LETRA)
+  const y = c.caixa.y + sobra / 2 + tamanho * RABO_DA_LETRA
+
   conteudo.texto(c.caixa.x + RECUO, y, tamanho, c.rotulo)
   conteudo.texto(c.caixa.x + RECUO + larguraDoTexto(c.rotulo, tamanho), y, tamanho, c.valor)
 }
@@ -223,21 +246,21 @@ export function montarDocumento(dados: DadosDoDocumento, fotos: FotoParaDocument
   capa.imagem(marca.apelido, MARCA.x, MARCA.y, MARCA.largura, MARCA.altura)
 
   const cabecalho: CampoDoCabecalho[] = [
-    { caixa: CAIXAS.escola, rotulo: 'Escola: ', valor: dados.escola, base: 10.7 },
-    { caixa: CAIXAS.data, rotulo: 'Data: ', valor: dataCurta(dados.data), base: 9.3 },
-    { caixa: CAIXAS.turma, rotulo: 'Turma: ', valor: dados.turma, base: 11.1 },
-    { caixa: CAIXAS.curso, rotulo: 'Curso: ', valor: dados.curso, base: 11.3 },
-    { caixa: CAIXAS.professor, rotulo: 'Prof.: ', valor: dados.professor, base: 11.8 },
+    { caixa: CAIXAS.escola, rotulo: 'Escola: ', valor: dados.escola },
+    { caixa: CAIXAS.data, rotulo: 'Data: ', valor: dataCurta(dados.data) },
+    { caixa: CAIXAS.turma, rotulo: 'Turma: ', valor: dados.turma },
+    { caixa: CAIXAS.curso, rotulo: 'Curso: ', valor: dados.curso },
+    { caixa: CAIXAS.professor, rotulo: 'Prof.: ', valor: dados.professor },
   ]
 
   const letraDoCabecalho = letraQueCabeNoCabecalho(cabecalho)
   for (const c of cabecalho) campo(capa, c, letraDoCabecalho)
 
-  const tema: Bloco = { caixa: CAIXAS.tema, texto: dados.tema.trim(), recuoX: RECUO, recuoTopo: 19.6 }
+  const tema: Bloco = { caixa: CAIXAS.tema, texto: dados.tema.trim(), recuoX: RECUO }
   const corpo: Bloco[] = [
-    { caixa: CAIXAS.objetivos, texto: dados.objetivos.trim(), recuoX: 27.5, recuoTopo: 13.7, marcadores: true },
-    { caixa: CAIXAS.descricao, texto: dados.descricao.trim(), recuoX: 12.5, recuoTopo: 19.3 },
-    { caixa: CAIXAS.materiais, texto: dados.materiais.trim(), recuoX: 27.5, recuoTopo: 17.5, marcadores: true },
+    { caixa: CAIXAS.objetivos, texto: dados.objetivos.trim(), recuoX: 27.5, marcadores: true },
+    { caixa: CAIXAS.descricao, texto: dados.descricao.trim(), recuoX: 12.5 },
+    { caixa: CAIXAS.materiais, texto: dados.materiais.trim(), recuoX: 27.5, marcadores: true },
   ]
 
   // Manda a caixa mais apertada: as três saem no tamanho da que menos

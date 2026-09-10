@@ -262,6 +262,15 @@ que o gerador escreve, os dois lados falam do mesmo documento.
 **Uma liberdade em relação ao original:** o texto sempre cabe. O bloco diminui a letra até entrar
 na caixa, em vez de transbordar como acontece no Canva quando alguém escreve demais.
 
+**O texto fica no meio da caixa.** As caixas têm o tamanho do template e o texto quase nunca as
+preenche; enquanto o bloco era pendurado no topo (`recuoTopo`, medido no Canva), toda a sobra caía
+embaixo e a caixa parecia vazia pela metade. Agora a sobra é dividida em cima e embaixo, nas quatro
+caixas do corpo e nos cinco campos do cabeçalho — a conta é a mesma: alto do bloco = `(linhas-1) ×
+entrelinha + letra`, e a base da primeira linha desce uma altura de letra a partir daí. Texto que
+não cabe nem no piso de 7,5 pt começa no alto e transborda só para baixo, como antes: transbordar
+para cima bateria no rótulo da seção. O alinhamento horizontal continua à esquerda — centralizar a
+linha estragaria a lista de marcadores.
+
 **E o tamanho é decidido em grupo, não caixa a caixa.** Enquanto cada caixa encolhia sozinha, o
 documento saía com descrição em 14, objetivos em 11 e o nome do professor em 8 — texto grande e
 pequeno na mesma folha. Agora as três caixas do corpo medem juntas e usam o maior tamanho em que
