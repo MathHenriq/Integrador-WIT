@@ -32,6 +32,10 @@ const LADO_MINIMO = 100
 // Ela faz parte da imagem, e no documento gerado aparecia solta no meio
 // do papel. Sai aqui, na extração, e não à mão no modelo: assim não
 // volta quando o template for atualizado.
+//
+// Junto com o filete sai a faixa branca que ele deixa: o desenho é
+// opaco, e esse branco chegava a cobrir o canto da caixa do tema, que
+// saía com a borda comida.
 const FILETE_MAXIMO = 5
 const RESPIRO_MINIMO = 10
 
@@ -163,9 +167,12 @@ if (pasta) {
 }
 
 /**
- * A peça sem o filete da borda direita: uma faixa estreita de tinta
- * grudada na última coluna, com branco antes dela. Peça cujo desenho
- * encosta na borda não tem esse branco, e volta intacta.
+ * A peça sem o filete da borda direita — uma faixa estreita de tinta
+ * grudada na última coluna, com branco antes dela — e sem o branco que
+ * ficou sobrando depois dele. Peça cujo desenho encosta na borda não
+ * tem esse branco, não tem filete, e volta intacta: é o caso da marca
+ * d'água, que é posicionada por medida fixa e não pode mudar de
+ * tamanho.
  */
 function semFilete(p: Peca): Peca {
   const temTinta = (x: number) => {
@@ -184,14 +191,20 @@ function semFilete(p: Peca): Peca {
     if (x < 0 || temTinta(x)) return p
   }
 
-  const largura = p.largura - filete
+  // Depois do filete vem o branco que ele separava do desenho. Ele
+  // também sai: é branco opaco, e apaga o que estiver embaixo.
+  let largura = p.largura - filete
+  while (largura > 1 && !temTinta(largura - 1)) largura--
+
   const amostras = new Uint8Array(largura * p.altura * p.cores)
   for (let y = 0; y < p.altura; y++) {
     const de = y * p.largura * p.cores
     amostras.set(p.amostras.subarray(de, de + largura * p.cores), y * largura * p.cores)
   }
 
-  console.log(`objeto ${p.num}: aparado o filete de ${filete}px da direita (${p.largura} -> ${largura})`)
+  console.log(
+    `objeto ${p.num}: aparado o filete de ${filete}px e o branco depois dele (${p.largura} -> ${largura})`,
+  )
   return { ...p, largura, amostras }
 }
 

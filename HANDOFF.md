@@ -271,9 +271,12 @@ segunda linha ali levaria a página inteira ao piso sem necessidade.
 
 **O filete do logo sai na extração.** O logo da Micro Ka vinha do Canva com uma linha vertical
 colada na borda direita da imagem, que no papel aparecia como um risco solto ao lado do cabeçalho.
-`extrair-modelo.mts` apara essa faixa (tinta grudada na última coluna, com branco antes dela) e
-`montar.ts` tira a largura do desenho da própria imagem, para o logo não esticar e ocupar o lugar
-de onde a linha estava.
+`extrair-modelo.mts` apara essa faixa (tinta grudada na última coluna, com branco antes dela) **e o
+branco que sobra depois dela**: a imagem é opaca, e esse branco chegava em x=125 pt, por cima do
+canto da caixa do tema (que começa em x=115,51) — a caixa saía com a borda comida. Sem ele o logo
+termina em x=109,8 e a caixa fecha. `montar.ts` tira a largura do desenho da própria imagem, para o
+logo não esticar e ocupar o lugar de onde a linha estava. A marca d'água não passa por corte
+nenhum: não tem filete, e a posição dela é medida fixa.
 
 ---
 
