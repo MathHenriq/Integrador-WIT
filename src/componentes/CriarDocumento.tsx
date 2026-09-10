@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Aviso } from './Aviso'
 import { adminImportarAulaRealizada, adminListarEscolas, importarDocumentoCanva } from '../lib/api'
-import { dataExtensa, faixaHoraria } from '../lib/formato'
+import { dataCurta, dataExtensa, faixaHoraria } from '../lib/formato'
 import type { AulaImportada, EscolaAdmin, OrigemReserva } from '../lib/tipos'
 
 /** Os cinco cursos do Núcleo. O campo aceita outro, se for o caso. */
@@ -151,7 +151,10 @@ export function CriarDocumento({
         ),
       )
 
-      const nome = `Projeto Integrador - ${escolaEscolhida.nome} - ${data}.pdf`
+      // O nome do arquivo é a primeira coisa que a escola lê ao receber o
+      // documento — então vai com a data como se escreve aqui (DD-MM-AAAA),
+      // e não no formato de máquina AAAA-MM-DD em que a data anda por dentro.
+      const nome = `Projeto Integrador - ${escolaEscolhida.nome} - ${dataCurta(data).replace(/\//g, '-')}.pdf`
       const arquivo = new File([bytes as BlobPart], nome, { type: 'application/pdf' })
 
       // O importador devolve as fotos já hospedadas, prontas para a vitrine.
