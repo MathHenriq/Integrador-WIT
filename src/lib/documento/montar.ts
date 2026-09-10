@@ -24,8 +24,21 @@ import { LOGO_MICRO_KA, MARCA_DAGUA_WIT } from './modelo.ts'
 
 const PAGINA = { largura: 595.5, altura: 842.2 }
 
-/** O logo entra sangrando na margem esquerda, como no original. */
-const LOGO = { x: -7.1, y: 748.1, largura: 133.6, altura: 96 }
+/**
+ * O logo entra sangrando na margem esquerda, como no original. No Canva
+ * ele vinha com um filete vertical colado na direita, que no papel
+ * aparecia como um risco solto ao lado do cabeçalho; a extração apara
+ * esse filete, e por isso a largura sai da imagem — o desenho não pode
+ * esticar para ocupar o lugar de onde a linha estava. A escala é a do
+ * documento original: 320 px do logo ocupavam 133,6 pt de papel.
+ */
+const PONTOS_POR_PIXEL_DO_LOGO = 133.6 / 320
+const LOGO = {
+  x: -7.1,
+  y: 748.1,
+  largura: LOGO_MICRO_KA.largura * PONTOS_POR_PIXEL_DO_LOGO,
+  altura: 96,
+}
 const MARCA = { x: 404.2, y: 57.5, largura: 165.8, altura: 123.8 }
 const MARCA_DAS_FOTOS = { x: 402.1, y: 50.2, largura: 165.8, altura: 123.8 }
 
@@ -51,6 +64,37 @@ const QUADRO = { largura: 252.8, altura: 189.8, esquerda: 26.2, direita: 315.4, 
 const RECUO = 6.4
 const TAMANHO_ROTULO = 12
 const TAMANHO_CAMPO = 11
+
+// O documento sai com uma letra só. No Canva cada caixa era escrita à
+// mão, e o arquivo terminava com a descrição maior que os objetivos e o
+// nome do professor menor que a turma — texto grande e pequeno na mesma
+// folha. Aqui o tamanho é decidido para o grupo inteiro: o corpo mede as
+// três caixas juntas e usa o maior tamanho em que TODAS cabem; o
+// cabeçalho faz o mesmo com os cinco campos.
+
+/** Tamanho de partida do corpo, e o piso de onde ele não desce. */
+const TAMANHO_CORPO = 12
+const MENOR_CORPO = 7.5
+const PASSO_CORPO = 0.5
+
+/** Piso e passo do cabeçalho, que parte de TAMANHO_CAMPO. */
+const MENOR_CAMPO = 6
+const PASSO_CAMPO = 0.25
+
+/** Entrelinha como proporção da letra — a mesma em todas as caixas. */
+const ENTRELINHA = 1.36
+
+// O bloco fica no meio da caixa, e não pendurado no topo: a caixa é
+// desenhada do tamanho do template, o texto quase nunca a preenche, e
+// antes toda a sobra caía embaixo. Centralizado, a sobra se divide em
+// cima e embaixo.
+
+/** Respiro mínimo entre o texto e a borda, em cima e embaixo. */
+const RESPIRO = 6
+
+/** Quanto a letra sobe da base e quanto o rabo dela desce. */
+const ALTURA_DA_LETRA = 0.7
+const RABO_DA_LETRA = 0.3
 
 export type DadosDoDocumento = {
   escola: string
@@ -87,63 +131,104 @@ function imagemDoModelo(apelido: string, peca: typeof LOGO_MICRO_KA): ImagemPdf 
   }
 }
 
+type Bloco = {
+  caixa: Caixa
+  /** Já sem espaço sobrando nas pontas. */
+  texto: string
+  recuoX: number
+  marcadores?: boolean
+}
+
+/** A largura de linha que sobra dentro da caixa. */
+function larguraUtil(bloco: Bloco) {
+  return bloco.caixa.largura - bloco.recuoX - RECUO
+}
+
+/** Quantas linhas o texto ocupa depois de quebrado na largura da caixa. */
+function linhasDoBloco(bloco: Bloco, tamanho: number) {
+  const largura = larguraUtil(bloco)
+  return bloco.texto
+    .split('\n')
+    .filter((l) => l.trim() !== '')
+    .reduce(
+      (soma, paragrafo) => soma + quebrarLinhas(paragrafo, tamanho, bloco.marcadores ? largura - 9 : largura).length,
+      0,
+    )
+}
+
+/** Do alto da primeira linha ao rabo da última. */
+function alturaDoBloco(bloco: Bloco, tamanho: number) {
+  const linhas = linhasDoBloco(bloco, tamanho)
+  if (linhas === 0) return 0
+  return (linhas - 1) * tamanho * ENTRELINHA + tamanho * (ALTURA_DA_LETRA + RABO_DA_LETRA)
+}
+
 /**
- * Escreve o bloco dentro da caixa, diminuindo a letra até caber. O
- * documento do Canva quebra quando o professor escreve demais — aqui o
- * texto sempre entra, e é a única liberdade que este arquivo toma em
- * relação ao original.
+ * O maior tamanho, de TAMANHO_CORPO para baixo, em que o bloco cabe na
+ * caixa. Quem chama compara o resultado das outras caixas e usa o menor:
+ * é isso que faz a página inteira sair com uma letra só. O documento do
+ * Canva quebrava quando o professor escrevia demais — aqui o texto
+ * sempre entra, e é a única liberdade que este arquivo toma em relação
+ * ao original.
  */
-function blocoQueCabe(
-  conteudo: Conteudo,
-  caixa: Caixa,
-  texto: string,
-  opcoes: { tamanho: number; entrelinha: number; recuoX: number; recuoTopo: number; marcadores?: boolean },
-) {
-  const limpo = texto.trim()
-  if (limpo === '') return
-
-  const largura = caixa.largura - opcoes.recuoX - RECUO
-
-  let tamanho = opcoes.tamanho
-  let entrelinha = opcoes.entrelinha
-  for (; tamanho > 7.5; tamanho -= 0.5, entrelinha = (opcoes.entrelinha / opcoes.tamanho) * tamanho) {
-    const linhas = limpo
-      .split('\n')
-      .filter((l) => l.trim() !== '')
-      .reduce(
-        (soma, paragrafo) =>
-          soma + quebrarLinhas(paragrafo, tamanho, opcoes.marcadores ? largura - 9 : largura).length,
-        0,
-      )
-    // Da primeira base até a última, mais o rabo das letras que descem.
-    const precisa = opcoes.recuoTopo + (linhas - 1) * entrelinha + tamanho * 0.3
-    if (precisa <= caixa.altura) break
+function tamanhoQueCabe(bloco: Bloco) {
+  let tamanho = TAMANHO_CORPO
+  for (; tamanho > MENOR_CORPO; tamanho -= PASSO_CORPO) {
+    if (alturaDoBloco(bloco, tamanho) <= bloco.caixa.altura - 2 * RESPIRO) break
   }
+  return tamanho
+}
+
+function escreverBloco(conteudo: Conteudo, bloco: Bloco, tamanho: number) {
+  if (bloco.texto === '') return
+
+  // A sobra da caixa dividida em duas, e a primeira base uma altura de
+  // letra abaixo do alto do bloco.
+  const sobra = Math.max(0, bloco.caixa.altura - alturaDoBloco(bloco, tamanho))
+  const alto = bloco.caixa.y + bloco.caixa.altura - sobra / 2
 
   conteudo.bloco(
-    caixa.x + opcoes.recuoX,
-    caixa.y + caixa.altura - opcoes.recuoTopo,
+    bloco.caixa.x + bloco.recuoX,
+    alto - tamanho * ALTURA_DA_LETRA,
     tamanho,
-    largura,
-    entrelinha,
-    limpo,
-    opcoes.marcadores,
+    larguraUtil(bloco),
+    tamanho * ENTRELINHA,
+    bloco.texto,
+    bloco.marcadores,
   )
 }
 
-/** Um campo do cabeçalho: o rótulo em negrito e o valor na sequência. */
-function campo(conteudo: Conteudo, caixa: Caixa, rotulo: string, valor: string, alturaDaLinha: number) {
-  const y = caixa.y + alturaDaLinha
-  conteudo.texto(caixa.x + RECUO, y, TAMANHO_CAMPO, rotulo)
+/** Um campo do cabeçalho: o rótulo e, na sequência, o valor. */
+type CampoDoCabecalho = {
+  caixa: Caixa
+  rotulo: string
+  valor: string
+}
 
-  const inicio = caixa.x + RECUO + larguraDoTexto(rotulo, TAMANHO_CAMPO)
-  const sobra = caixa.x + caixa.largura - RECUO - inicio
+/**
+ * O maior tamanho em que os cinco campos cabem. Nome de escola ou de
+ * professor comprido não pode sair da caixa; antes ele encolhia sozinho
+ * e ficava menor que os vizinhos, e é justamente isso que o cabeçalho
+ * decidido em conjunto resolve.
+ */
+function letraQueCabeNoCabecalho(campos: CampoDoCabecalho[]) {
+  const cabe = (c: CampoDoCabecalho, tamanho: number) =>
+    larguraDoTexto(c.rotulo + c.valor, tamanho) <= c.caixa.largura - 2 * RECUO
 
-  // Nome de escola comprido não pode sair da caixa nem empurrar o
-  // vizinho: encolhe a letra até caber, como o Canva faz na mão.
   let tamanho = TAMANHO_CAMPO
-  while (tamanho > 6 && larguraDoTexto(valor, tamanho) > sobra) tamanho -= 0.25
-  conteudo.texto(inicio, y, tamanho, valor)
+  for (; tamanho > MENOR_CAMPO; tamanho -= PASSO_CAMPO) {
+    if (campos.every((c) => cabe(c, tamanho))) break
+  }
+  return tamanho
+}
+
+function campo(conteudo: Conteudo, c: CampoDoCabecalho, tamanho: number) {
+  // Uma linha só: o meio da caixa, pela mesma conta dos blocos.
+  const sobra = c.caixa.altura - tamanho * (ALTURA_DA_LETRA + RABO_DA_LETRA)
+  const y = c.caixa.y + sobra / 2 + tamanho * RABO_DA_LETRA
+
+  conteudo.texto(c.caixa.x + RECUO, y, tamanho, c.rotulo)
+  conteudo.texto(c.caixa.x + RECUO + larguraDoTexto(c.rotulo, tamanho), y, tamanho, c.valor)
 }
 
 export function montarDocumento(dados: DadosDoDocumento, fotos: FotoParaDocumento[]) {
@@ -160,48 +245,46 @@ export function montarDocumento(dados: DadosDoDocumento, fotos: FotoParaDocument
   capa.imagem(logo.apelido, LOGO.x, LOGO.y, LOGO.largura, LOGO.altura)
   capa.imagem(marca.apelido, MARCA.x, MARCA.y, MARCA.largura, MARCA.altura)
 
-  campo(capa, CAIXAS.escola, 'Escola: ', dados.escola, 10.7)
-  campo(capa, CAIXAS.data, 'Data: ', dataCurta(dados.data), 9.3)
-  campo(capa, CAIXAS.turma, 'Turma: ', dados.turma, 11.1)
-  campo(capa, CAIXAS.curso, 'Curso: ', dados.curso, 11.3)
-  campo(capa, CAIXAS.professor, 'Prof.: ', dados.professor, 11.8)
+  const cabecalho: CampoDoCabecalho[] = [
+    { caixa: CAIXAS.escola, rotulo: 'Escola: ', valor: dados.escola },
+    { caixa: CAIXAS.data, rotulo: 'Data: ', valor: dataCurta(dados.data) },
+    { caixa: CAIXAS.turma, rotulo: 'Turma: ', valor: dados.turma },
+    { caixa: CAIXAS.curso, rotulo: 'Curso: ', valor: dados.curso },
+    { caixa: CAIXAS.professor, rotulo: 'Prof.: ', valor: dados.professor },
+  ]
+
+  const letraDoCabecalho = letraQueCabeNoCabecalho(cabecalho)
+  for (const c of cabecalho) campo(capa, c, letraDoCabecalho)
+
+  const tema: Bloco = { caixa: CAIXAS.tema, texto: dados.tema.trim(), recuoX: RECUO }
+  const corpo: Bloco[] = [
+    { caixa: CAIXAS.objetivos, texto: dados.objetivos.trim(), recuoX: 27.5, marcadores: true },
+    { caixa: CAIXAS.descricao, texto: dados.descricao.trim(), recuoX: 12.5 },
+    { caixa: CAIXAS.materiais, texto: dados.materiais.trim(), recuoX: 27.5, marcadores: true },
+  ]
+
+  // Manda a caixa mais apertada: as três saem no tamanho da que menos
+  // couber. O tema acompanha o corpo, mas título comprido demais encolhe
+  // só ele — a faixa do tema é baixa, e uma segunda linha ali levaria a
+  // página inteira para o piso sem necessidade.
+  const letraDoCorpo = Math.min(TAMANHO_CORPO, ...corpo.filter((b) => b.texto !== '').map(tamanhoQueCabe))
+  const letraDoTema = Math.min(letraDoCorpo, tamanhoQueCabe(tema))
 
   capa.texto(19, CAIXAS.tema.y + 13.6, TAMANHO_ROTULO, 'TEMA DA AULA:')
-  blocoQueCabe(capa, CAIXAS.tema, dados.tema, {
-    tamanho: TAMANHO_ROTULO,
-    entrelinha: 14,
-    recuoX: RECUO,
-    recuoTopo: 19.6,
-  })
+  escreverBloco(capa, tema, letraDoTema)
 
   const rotuloDaSecao = (caixa: Caixa, texto: string) =>
     capa.texto(19, caixa.y + caixa.altura + 9.3, TAMANHO_ROTULO, texto)
 
-  rotuloDaSecao(CAIXAS.objetivos, 'OBJETIVOS DE APRENDIZAGEM')
-  blocoQueCabe(capa, CAIXAS.objetivos, dados.objetivos, {
-    tamanho: TAMANHO_CAMPO,
-    entrelinha: 15,
-    recuoX: 27.5,
-    recuoTopo: 13.7,
-    marcadores: true,
-  })
+  const [objetivos, descricao, materiais] = corpo
+  rotuloDaSecao(objetivos.caixa, 'OBJETIVOS DE APRENDIZAGEM')
+  escreverBloco(capa, objetivos, letraDoCorpo)
 
-  rotuloDaSecao(CAIXAS.descricao, 'DESCRIÇÃO DA AULA')
-  blocoQueCabe(capa, CAIXAS.descricao, dados.descricao, {
-    tamanho: 14,
-    entrelinha: 19.5,
-    recuoX: 12.5,
-    recuoTopo: 19.3,
-  })
+  rotuloDaSecao(descricao.caixa, 'DESCRIÇÃO DA AULA')
+  escreverBloco(capa, descricao, letraDoCorpo)
 
-  rotuloDaSecao(CAIXAS.materiais, 'MATERIAIS E RECURSOS NECESSÁRIOS')
-  blocoQueCabe(capa, CAIXAS.materiais, dados.materiais, {
-    tamanho: TAMANHO_CAMPO,
-    entrelinha: 15,
-    recuoX: 27.5,
-    recuoTopo: 17.5,
-    marcadores: true,
-  })
+  rotuloDaSecao(materiais.caixa, 'MATERIAIS E RECURSOS NECESSÁRIOS')
+  escreverBloco(capa, materiais, letraDoCorpo)
 
   rotuloDaSecao(CAIXAS.fotos, 'FOTOS')
 

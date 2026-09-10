@@ -27,6 +27,18 @@ import { Documento, ehDic, nomeDe, numeroDe } from '../supabase/functions/import
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const LADO_MINIMO = 100
 
+// O logo da Micro Ka vem do Canva com um filete vertical colado na
+// borda direita — a linha que separa o logo dos campos do cabeçalho.
+// Ela faz parte da imagem, e no documento gerado aparecia solta no meio
+// do papel. Sai aqui, na extração, e não à mão no modelo: assim não
+// volta quando o template for atualizado.
+//
+// Junto com o filete sai a faixa branca que ele deixa: o desenho é
+// opaco, e esse branco chegava a cobrir o canto da caixa do tema, que
+// saía com a borda comida.
+const FILETE_MAXIMO = 5
+const RESPIRO_MINIMO = 10
+
 const caminho = process.argv[2]
 if (!caminho) {
   console.error('Diga qual é o PDF do Canva.')
@@ -113,7 +125,7 @@ if (pecas.length !== 2) {
 
 // A de cima é a que aparece mais alta na página. Sem entrar no fluxo de
 // conteúdo: o logo da Micro Ka é o mais largo em relação à altura.
-const [primeira, segunda] = pecas
+const [primeira, segunda] = pecas.map(semFilete)
 const logo = primeira.altura <= segunda.altura ? primeira : segunda
 const marca = logo === primeira ? segunda : primeira
 
@@ -152,6 +164,48 @@ if (pasta) {
     writeFileSync(join(pasta, `${nome}.png`), montarPng(p.largura, p.altura, p.cores, p.amostras))
     console.log(`conferência: ${join(pasta, `${nome}.png`)}`)
   }
+}
+
+/**
+ * A peça sem o filete da borda direita — uma faixa estreita de tinta
+ * grudada na última coluna, com branco antes dela — e sem o branco que
+ * ficou sobrando depois dele. Peça cujo desenho encosta na borda não
+ * tem esse branco, não tem filete, e volta intacta: é o caso da marca
+ * d'água, que é posicionada por medida fixa e não pode mudar de
+ * tamanho.
+ */
+function semFilete(p: Peca): Peca {
+  const temTinta = (x: number) => {
+    for (let y = 0; y < p.altura; y++) {
+      const k = (y * p.largura + x) * p.cores
+      for (let c = 0; c < p.cores; c++) if (p.amostras[k + c] < 245) return true
+    }
+    return false
+  }
+
+  let filete = 0
+  while (filete < FILETE_MAXIMO && temTinta(p.largura - 1 - filete)) filete++
+  if (filete === 0 || filete === FILETE_MAXIMO) return p
+
+  for (let x = p.largura - filete - RESPIRO_MINIMO; x < p.largura - filete; x++) {
+    if (x < 0 || temTinta(x)) return p
+  }
+
+  // Depois do filete vem o branco que ele separava do desenho. Ele
+  // também sai: é branco opaco, e apaga o que estiver embaixo.
+  let largura = p.largura - filete
+  while (largura > 1 && !temTinta(largura - 1)) largura--
+
+  const amostras = new Uint8Array(largura * p.altura * p.cores)
+  for (let y = 0; y < p.altura; y++) {
+    const de = y * p.largura * p.cores
+    amostras.set(p.amostras.subarray(de, de + largura * p.cores), y * largura * p.cores)
+  }
+
+  console.log(
+    `objeto ${p.num}: aparado o filete de ${filete}px e o branco depois dele (${p.largura} -> ${largura})`,
+  )
+  return { ...p, largura, amostras }
 }
 
 async function sobreBranco(
