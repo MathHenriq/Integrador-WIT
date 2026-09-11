@@ -411,10 +411,18 @@ async function mensagemDaFuncao(erro: unknown): Promise<string> {
  * `anon key` que vai no bundle (ver a seção 3.1 do HANDOFF), e é assim
  * que continua.
  */
-export async function subirFotosDaAula(senha: string, fotos: { blob: Blob; nome: string }[]) {
+export async function subirFotosDaAula(
+  senha: string,
+  envio: { fotos?: { blob: Blob; nome: string }[]; links?: string[] },
+) {
   const formulario = new FormData()
   formulario.append('senha', senha)
-  for (const foto of fotos) formulario.append('arquivo', foto.blob, foto.nome)
+  for (const foto of envio.fotos ?? []) formulario.append('arquivo', foto.blob, foto.nome)
+  // O link não fica guardado como link: a função baixa a foto e hospeda
+  // no balde do site. Link de Drive morre no dia em que o arquivo sair
+  // de "qualquer pessoa com o link" — e foi assim que oito fotos da
+  // vitrine ficaram quebradas.
+  for (const link of envio.links ?? []) formulario.append('link', link)
 
   const { data, error } = await supabase.functions.invoke('subir-fotos', { body: formulario })
 

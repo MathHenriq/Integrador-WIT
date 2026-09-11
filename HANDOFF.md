@@ -296,10 +296,25 @@ nenhum: não tem filete, e a posição dela é medida fixa.
 ### 3.1 Quem escreve no Storage é a Edge Function, nunca o navegador
 O painel não tem login de verdade, e dar escrita ao papel `anon` deixaria qualquer um subir
 arquivo. Quem grava é sempre uma Edge Function que confere a senha e usa a service role: a
-`importar-canva` (fotos de dentro do PDF) e a `subir-fotos` (fotos escolhidas no aparelho, na aba
-"+ Registrar projeto"). O relato rápido do `window.prompt` (`src/lib/relato.ts`, abas Reservas e
-Integradores realizados) é o único lugar que ainda pede **URL de imagem já hospedada** — caixa de
-`prompt` não anexa arquivo; quando ela virar tela de verdade, usa a `subir-fotos`.
+`importar-canva` (fotos de dentro do PDF) e a `subir-fotos` (fotos anexadas do aparelho **ou
+trazidas de um link**, na aba "+ Registrar projeto"). O relato rápido do `window.prompt`
+(`src/lib/relato.ts`, abas Reservas e Integradores realizados) é o único lugar que ainda guarda
+**URL de imagem hospedada em outro serviço** — caixa de `prompt` não anexa arquivo; quando ela
+virar tela de verdade, usa a `subir-fotos`.
+
+### 3.1.1 Link de foto não é guardado como link
+Antes, a foto colada como endereço ficava gravada daquele jeito, e a vitrine apontava para fora.
+Isso não funcionou uma única vez: as oito fotos por link que existiam em produção eram o link de
+**compartilhamento** do Drive (`drive.google.com/file/d/<id>/view`), que é uma página HTML, não uma
+imagem — e, pior, arquivos **restritos à conta**: o Drive responde com a tela de login do Google
+para qualquer visitante. Nenhum formato de endereço resolveria isso.
+
+Por isso a `subir-fotos` **baixa** o que o link aponta e hospeda no balde, igual a um anexo:
+converte o link de compartilhamento do Drive no endereço direto (`drive.usercontent.google.com`,
+com `lh3.googleusercontent.com` de reserva), exige `content-type` de imagem e teto de 10 MB, e
+recusa endereço que não seja da internet pública (localhost, IP de rede interna, metadados da
+nuvem). Quando o arquivo do Drive está restrito, a mensagem diz exatamente isso — a foto quebrada
+na vitrine era o pior resultado possível, porque ninguém descobria que tinha dado errado.
 
 O importador do Canva é a exceção construída para isso — o balde `fotos-aulas` é **público na
 leitura** (a vitrine precisa abrir a foto) e **não tem policy nenhuma de escrita**, então só a
@@ -406,6 +421,10 @@ agendamento prévio (ver 2.2). Nenhuma função nova no banco para isso: só o p
   temporário. O que ficou no repositório é a conferência do extrator do Canva
   (`ferramentas/conferir-extrator.mts`), que roda em Node sem banco e sem deploy — é o começo do
   que faltava.
+- **Oito fotos de três aulas continuam quebradas na vitrine** (reservas de 25/08, 01/09 e 11/09):
+  são links do Drive restritos à conta, gravados antes da `subir-fotos`. Não dá para recuperá-las
+  do servidor — o Drive pede login. O conserto é reabrir a aula no painel e anexar as fotos, ou
+  soltar os arquivos no Drive como "qualquer pessoa com o link" e colar o link de novo.
 - **Sobraram 4 fotos de teste no balde `fotos-aulas`**, na pasta `add0e69c70723d50/`, de um teste
   feito contra a produção, mais o pixel `enviadas/cb0501d6c1250017af030077.jpg`, da conferência da
   `subir-fotos`. Não estão ligadas a aula nenhuma. O Storage não deixa apagar por SQL; dá para
