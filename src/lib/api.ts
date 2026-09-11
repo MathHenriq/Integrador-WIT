@@ -388,6 +388,49 @@ export function adminRegistrarRelato(
  * dentro do arquivo e precisam ir para o Storage, e só o servidor tem
  * permissão de escrever lá (ver `supabase/functions/importar-canva`).
  */
+/**
+ * A Edge Function devolve a frase pronta no corpo, inclusive quando
+ * responde 4xx; sem ler o corpo o usuário veria só "Edge Function
+ * returned a non-2xx status code".
+ */
+async function mensagemDaFuncao(erro: unknown): Promise<string> {
+  const contexto = (erro as { context?: Response }).context
+  if (!contexto || typeof contexto.json !== 'function') return ''
+  try {
+    return ((await contexto.json()) as { mensagem?: string }).mensagem ?? ''
+  } catch {
+    return ''
+  }
+}
+
+/**
+ * Sobe as fotos da aula e devolve os endereços já hospedados, mais os
+ * avisos das que ficaram de fora (uma foto grande demais no meio de dez
+ * não derruba o envio inteiro). Quem grava é a Edge Function, com
+ * service role: o balde `fotos-aulas` não tem policy de escrita para o
+ * `anon key` que vai no bundle (ver a seção 3.1 do HANDOFF), e é assim
+ * que continua.
+ */
+export async function subirFotosDaAula(senha: string, fotos: { blob: Blob; nome: string }[]) {
+  const formulario = new FormData()
+  formulario.append('senha', senha)
+  for (const foto of fotos) formulario.append('arquivo', foto.blob, foto.nome)
+
+  const { data, error } = await supabase.functions.invoke('subir-fotos', { body: formulario })
+
+  if (error) {
+    throw new ErroApi(
+      (await mensagemDaFuncao(error)) ||
+        'Não foi possível enviar as fotos. Confira a conexão e tente de novo.',
+    )
+  }
+
+  const corpo = data as { ok?: boolean; mensagem?: string; fotos?: string[]; avisos?: string[] }
+  if (corpo?.ok === false) throw new ErroApi(corpo.mensagem ?? 'Não consegui guardar as fotos.')
+
+  return { fotos: corpo?.fotos ?? [], avisos: corpo?.avisos ?? [] }
+}
+
 export async function importarDocumentoCanva(senha: string, arquivo: File) {
   const formulario = new FormData()
   formulario.append('senha', senha)
@@ -396,19 +439,8 @@ export async function importarDocumentoCanva(senha: string, arquivo: File) {
   const { data, error } = await supabase.functions.invoke('importar-canva', { body: formulario })
 
   if (error) {
-    // A função devolve a frase pronta no corpo, inclusive quando responde
-    // 4xx; sem isto o usuário veria só "Edge Function returned a non-2xx".
-    let mensagem = ''
-    const contexto = (error as { context?: Response }).context
-    if (contexto && typeof contexto.json === 'function') {
-      try {
-        mensagem = ((await contexto.json()) as { mensagem?: string }).mensagem ?? ''
-      } catch {
-        mensagem = ''
-      }
-    }
     throw new ErroApi(
-      mensagem ||
+      (await mensagemDaFuncao(error)) ||
         'Não foi possível falar com o importador. Confira a conexão e tente de novo.',
     )
   }

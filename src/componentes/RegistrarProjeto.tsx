@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Aviso } from './Aviso'
+import { SeletorDeFotos } from './SeletorDeFotos'
 import { adminImportarAulaRealizada, adminListarEscolas, adminListarHorarios } from '../lib/api'
 import { dataExtensa, faixaHoraria, faixaHorariaNaGrade, paraData } from '../lib/formato'
 import type { AulaImportada, EscolaAdmin, HorarioAdmin, OrigemReserva } from '../lib/tipos'
@@ -44,7 +45,8 @@ export function RegistrarProjeto({
   const [descricao, setDescricao] = useState('')
   const [objetivos, setObjetivos] = useState('')
   const [materiais, setMateriais] = useState('')
-  const [fotosTexto, setFotosTexto] = useState('')
+  const [fotos, setFotos] = useState<string[]>([])
+  const [enviandoFotos, setEnviandoFotos] = useState(false)
   const [virarAtividade, setVirarAtividade] = useState(true)
   const [registrando, setRegistrando] = useState(false)
   const [registrado, setRegistrado] = useState<AulaImportada | null>(null)
@@ -88,15 +90,6 @@ export function RegistrarProjeto({
 
   const hoje = useMemo(() => new Date().toISOString().slice(0, 10), [])
 
-  const fotos = useMemo(
-    () =>
-      fotosTexto
-        .split('\n')
-        .map((f) => f.trim())
-        .filter(Boolean),
-    [fotosTexto],
-  )
-
   /** O relato da vitrine, no mesmo formato que o gerador de documento monta. */
   const relato = useMemo(() => {
     const partes: string[] = []
@@ -112,6 +105,7 @@ export function RegistrarProjeto({
     /^\d{4}-\d{2}-\d{2}$/.test(data) &&
     professor.trim().length >= 3 &&
     tema.trim().length >= 3 &&
+    !enviandoFotos &&
     !registrando
 
   async function registrar() {
@@ -158,7 +152,7 @@ export function RegistrarProjeto({
           setDescricao('')
           setObjetivos('')
           setMateriais('')
-          setFotosTexto('')
+          setFotos([])
         }}
       />
     )
@@ -334,17 +328,18 @@ export function RegistrarProjeto({
 
       <div className="cartao" style={{ marginBottom: 20 }}>
         <h3 style={{ fontSize: 17, marginBottom: 6 }}>Fotos da aula</h3>
-        <div className="campo" style={{ marginBottom: 0 }}>
-          <label htmlFor="reg-fotos">Endereços das fotos, um por linha</label>
-          <textarea
-            id="reg-fotos"
-            value={fotosTexto}
-            onChange={(e) => setFotosTexto(e.target.value)}
-            rows={3}
-            placeholder="Cole o link direto da imagem (Drive, Storage do Supabase, etc.)"
-          />
-          <p className="ajuda">Elas aparecem na vitrine e na página da atividade.</p>
-        </div>
+        <p className="ajuda" style={{ marginBottom: 14 }}>
+          Escolha as fotos direto do computador ou do celular. Elas aparecem na vitrine e na página
+          da atividade.
+        </p>
+
+        <SeletorDeFotos
+          senha={senha}
+          fotos={fotos}
+          aoMudar={setFotos}
+          aoErro={aoErro}
+          aoOcupado={setEnviandoFotos}
+        />
       </div>
 
       <div className="cartao" style={{ marginBottom: 20 }}>

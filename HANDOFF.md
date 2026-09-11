@@ -39,9 +39,11 @@ existir uma aula realizada** — o front já lê esse campo. Rode `0004_fotos_da
 
 ### Edge Functions
 
-`importar-canva` **está deployada e testada em produção**. A `enviar-confirmacao` existe no
-repositório mas **nunca subiu** — a confirmação por e-mail continua desligada, o que não quebra
-nada (o protocolo na tela é a confirmação que vale).
+`importar-canva` e `subir-fotos` **estão deployadas e testadas em produção** (a `subir-fotos` é
+quem hospeda as fotos que a equipe anexa na aba "+ Registrar projeto"; conferida contra produção:
+senha errada 401, arquivo que não é imagem 400, JPEG sobe e abre público). A `enviar-confirmacao`
+existe no repositório mas **nunca subiu** — a confirmação por e-mail continua desligada, o que não
+quebra nada (o protocolo na tela é a confirmação que vale).
 
 ### Ordem de execução das migrations
 
@@ -292,8 +294,12 @@ nenhum: não tem filete, e a posição dela é medida fixa.
 ## 3. Decisões tomadas que não devem ser revertidas sem conversa
 
 ### 3.1 Quem escreve no Storage é a Edge Function, nunca o navegador
-No relato manual as fotos continuam entrando como **URL de imagem já hospedada**: o painel não tem
-login de verdade, e dar escrita ao papel `anon` deixaria qualquer um subir arquivo.
+O painel não tem login de verdade, e dar escrita ao papel `anon` deixaria qualquer um subir
+arquivo. Quem grava é sempre uma Edge Function que confere a senha e usa a service role: a
+`importar-canva` (fotos de dentro do PDF) e a `subir-fotos` (fotos escolhidas no aparelho, na aba
+"+ Registrar projeto"). O relato rápido do `window.prompt` (`src/lib/relato.ts`, abas Reservas e
+Integradores realizados) é o único lugar que ainda pede **URL de imagem já hospedada** — caixa de
+`prompt` não anexa arquivo; quando ela virar tela de verdade, usa a `subir-fotos`.
 
 O importador do Canva é a exceção construída para isso — o balde `fotos-aulas` é **público na
 leitura** (a vitrine precisa abrir a foto) e **não tem policy nenhuma de escrita**, então só a
@@ -363,7 +369,8 @@ etiqueta na aba Reservas e na aba Integradores realizados.
 do painel, e a aba com que ele abre. É o pedido que fechava a lacuna real: até aqui, registrar um
 projeto integrador que a equipe fechou direto com o professor (sem passar pelo agendamento do
 site) exigia montar um documento inteiro no Canva ou no gerador do site. A tela nova pede só o
-essencial — escola, data, professor, tema, origem, fotos por link — e chama a mesma
+essencial — escola, data, professor, tema, origem, fotos escolhidas no próprio aparelho — e chama
+a mesma
 `admin_importar_aula_realizada` que já sabia criar a reserva sozinha quando não existe
 agendamento prévio (ver 2.2). Nenhuma função nova no banco para isso: só o parâmetro `p_origem`.
 
@@ -400,8 +407,9 @@ agendamento prévio (ver 2.2). Nenhuma função nova no banco para isso: só o p
   (`ferramentas/conferir-extrator.mts`), que roda em Node sem banco e sem deploy — é o começo do
   que faltava.
 - **Sobraram 4 fotos de teste no balde `fotos-aulas`**, na pasta `add0e69c70723d50/`, de um teste
-  feito contra a produção. Não estão ligadas a aula nenhuma. O Storage não deixa apagar por SQL;
-  dá para removê-las pelo painel do Supabase (Storage → `fotos-aulas`).
+  feito contra a produção, mais o pixel `enviadas/cb0501d6c1250017af030077.jpg`, da conferência da
+  `subir-fotos`. Não estão ligadas a aula nenhuma. O Storage não deixa apagar por SQL; dá para
+  removê-las pelo painel do Supabase (Storage → `fotos-aulas`).
 
 ---
 
