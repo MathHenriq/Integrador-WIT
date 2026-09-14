@@ -99,12 +99,31 @@ function limpar(valor: string, bloco: boolean) {
   return texto || null
 }
 
+/**
+ * Os campos de uma linha vêm com dois-pontos no documento ("Escola:",
+ * "Prof.:"), e é isso que separa o rótulo da palavra solta no meio de um
+ * valor. Sem essa âncora, "EMEF **Professor** Ézio Berzaghi" era lido
+ * como o rótulo do professor: a escola virava "EMEF", o professor virava
+ * "Ézio Berzaghi" e o nome de quem deu a aula sumia. Dez das dezoito
+ * escolas atendidas têm "Professor" ou "Professora" no nome.
+ *
+ * A busca sem os dois-pontos continua existindo como segunda tentativa,
+ * para o documento antigo que não os traga.
+ */
+function acharRotulo(rotulo: Rotulo, chave: string) {
+  if (!rotulo.bloco) {
+    const comDoisPontos = new RegExp(`${rotulo.marca.source}\\s*:`).exec(chave)
+    if (comDoisPontos) return comDoisPontos
+  }
+  return rotulo.marca.exec(chave)
+}
+
 function lerCampos(texto: string) {
   const chave = chaveDeBusca(texto)
 
   const achados: { rotulo: Rotulo; inicio: number; fim: number }[] = []
   for (const rotulo of ROTULOS) {
-    const marca = rotulo.marca.exec(chave)
+    const marca = acharRotulo(rotulo, chave)
     if (marca) achados.push({ rotulo, inicio: marca.index, fim: marca.index + marca[0].length })
   }
 
