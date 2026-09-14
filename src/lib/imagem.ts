@@ -17,7 +17,10 @@ const LADO_MAXIMO = 1600
  * conta (o sistema decodifica por baixo) — e é a diferença entre a
  * equipe conseguir mandar a foto do celular ou não.
  */
-async function decodificar(arquivo: File): Promise<CanvasImageSource & { width: number; height: number }> {
+async function decodificar(
+  arquivo: Blob,
+  nome: string,
+): Promise<CanvasImageSource & { width: number; height: number }> {
   try {
     return await createImageBitmap(arquivo)
   } catch {
@@ -28,7 +31,7 @@ async function decodificar(arquivo: File): Promise<CanvasImageSource & { width: 
       await desenho.decode()
       return desenho
     } catch {
-      throw new Error(`Não consegui abrir "${arquivo.name}". Tente exportar como JPEG.`)
+      throw new Error(`Não consegui abrir "${nome}". Tente exportar como JPEG.`)
     } finally {
       // Só depois do desenho na tela é que dava para soltar, mas o
       // navegador mantém a imagem já decodificada; revogar aqui evita
@@ -38,8 +41,16 @@ async function decodificar(arquivo: File): Promise<CanvasImageSource & { width: 
   }
 }
 
-export async function paraJpeg(arquivo: File): Promise<Blob> {
-  const desenho = await decodificar(arquivo)
+/**
+ * `Blob` e não `File` porque a foto nem sempre vem do seletor de
+ * arquivos: a exportação do documento busca a que já está hospedada no
+ * site, e blob buscado não tem nome.
+ */
+export async function paraJpeg(
+  arquivo: Blob,
+  nome = arquivo instanceof File ? arquivo.name : 'a imagem',
+): Promise<Blob> {
+  const desenho = await decodificar(arquivo, nome)
   const escala = Math.min(1, LADO_MAXIMO / Math.max(desenho.width, desenho.height))
   const tela = document.createElement('canvas')
   tela.width = Math.round(desenho.width * escala)

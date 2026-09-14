@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Aviso } from './Aviso'
 import { adminImportarAulaRealizada, adminListarEscolas, importarDocumentoCanva } from '../lib/api'
+import { montarRelato, nomeDoDocumento } from '../lib/documento/dados'
 import { dataExtensa, faixaHoraria } from '../lib/formato'
 import { paraJpeg } from '../lib/imagem'
 import type { AulaImportada, EscolaAdmin, OrigemReserva } from '../lib/tipos'
@@ -61,14 +62,16 @@ export function CriarDocumento({
     !gerando &&
     !preparando
 
-  /** O relato da vitrine, montado como o importador do Canva monta. */
-  const relato = useMemo(() => {
-    const partes: string[] = []
-    if (descricao.trim()) partes.push(descricao.trim())
-    if (objetivos.trim()) partes.push(`Objetivos de aprendizagem\n${objetivos.trim()}`)
-    if (materiais.trim()) partes.push(`Materiais e recursos\n${materiais.trim()}`)
-    return partes.join('\n\n')
-  }, [descricao, objetivos, materiais])
+  /**
+   * O relato da vitrine, montado como o importador do Canva monta. O
+   * curso entra junto porque é o único lugar onde ele fica guardado —
+   * sem isso, exportar o documento desta aula depois traria o campo
+   * "Curso" em branco.
+   */
+  const relato = useMemo(
+    () => montarRelato({ curso, descricao, objetivos, materiais }),
+    [curso, descricao, objetivos, materiais],
+  )
 
   async function receberFotos(lista: FileList | null) {
     if (!lista || lista.length === 0) return
@@ -120,7 +123,7 @@ export function CriarDocumento({
         ),
       )
 
-      const nome = `Projeto Integrador - ${escolaEscolhida.nome} - ${data}.pdf`
+      const nome = nomeDoDocumento(escolaEscolhida.nome, data)
       const arquivo = new File([bytes as BlobPart], nome, { type: 'application/pdf' })
 
       // O importador devolve as fotos já hospedadas, prontas para a vitrine.

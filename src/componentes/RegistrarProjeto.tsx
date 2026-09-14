@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Aviso } from './Aviso'
 import { SeletorDeFotos } from './SeletorDeFotos'
 import { adminImportarAulaRealizada, adminListarEscolas, adminListarHorarios } from '../lib/api'
+import { montarRelato } from '../lib/documento/dados'
 import { dataExtensa, faixaHoraria, faixaHorariaNaGrade, paraData } from '../lib/formato'
 import type { AulaImportada, EscolaAdmin, HorarioAdmin, OrigemReserva } from '../lib/tipos'
 
@@ -91,14 +92,10 @@ export function RegistrarProjeto({
   const hoje = useMemo(() => new Date().toISOString().slice(0, 10), [])
 
   /** O relato da vitrine, no mesmo formato que o gerador de documento monta. */
-  const relato = useMemo(() => {
-    const partes: string[] = []
-    if (curso.trim()) partes.push(`Curso: ${curso.trim()}`)
-    if (descricao.trim()) partes.push(descricao.trim())
-    if (objetivos.trim()) partes.push(`Objetivos de aprendizagem\n${objetivos.trim()}`)
-    if (materiais.trim()) partes.push(`Materiais e recursos\n${materiais.trim()}`)
-    return partes.join('\n\n')
-  }, [curso, descricao, objetivos, materiais])
+  const relato = useMemo(
+    () => montarRelato({ curso, descricao, objetivos, materiais }),
+    [curso, descricao, objetivos, materiais],
+  )
 
   const podeRegistrar =
     !!escolaId &&

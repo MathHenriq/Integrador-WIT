@@ -85,7 +85,8 @@ O agendamento público exige:
 Reserva registrada pela própria equipe (aba "Registrar projeto" ou importação do Canva/documento)
 não passa por essa fila: já entra `confirmado`, porque é sempre de aula que **já aconteceu**.
 
-Na aba "Integradores", cada linha tem **Editar** e **Remover**. Editar corrige data, horário,
+Na aba "Integradores", cada linha tem **Editar**, **Remover** e — nas aulas já realizadas —
+**Baixar documento**. Editar corrige data, horário,
 professor, turma, contato e (só quando o tema não vem do catálogo) o tema/objetivos/materiais —
 usa a RPC `admin_atualizar_reserva`. Remover é diferente de cancelar: cancelar (`admin_cancelar_reserva`)
 mantém o histórico com status `cancelado`, aparece no filtro "Canceladas"; remover
@@ -182,6 +183,14 @@ EMEF Rita de Jesus ser gravado às 07:20 quando a aula tinha sido às 09:20.
 e devolve o PDF pronto, no mesmo desenho, com as fotos dentro — e publica a aula na mesma hora. O
 PDF é montado no navegador (`src/lib/documento/`) e sobe pelo mesmo caminho de um arquivo do Canva.
 Quando o template mudar no Canva, rode `ferramentas/extrair-modelo.mts` com um documento exportado.
+
+**Toda aula realizada dá para baixar como documento.** O botão "Baixar documento" na aba
+"Integradores" refaz o PDF no desenho do Canva, com as fotos dentro — inclusive das aulas que
+entraram pela aba "Registrar projeto" e nunca tiveram arquivo nenhum. O site não guarda PDF de
+ninguém: o documento é remontado com o que ficou gravado (o relato da aula, os campos da reserva
+e, no que faltar, a atividade do catálogo). O campo "Curso" só sai preenchido quando quem
+registrou informou o curso — o documento do Canva não guarda isso em lugar que o site leia, e
+inventar o curso seria pior que deixar em branco.
 
 **O documento importado vale duas vezes.** Além de registrar o que a turma fez, ele **abre a
 atividade no catálogo** (tema, descrição, objetivos, materiais e o ano da turma), para outro

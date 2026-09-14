@@ -1,10 +1,15 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { EditorReserva } from './EditorReserva'
 import { EtiquetaOrigem, EtiquetaSituacao } from './Etiqueta'
-import { adminListarEscolas, adminListarReservas, adminRemoverReserva } from '../lib/api'
+import {
+  adminListarAulas,
+  adminListarEscolas,
+  adminListarReservas,
+  adminRemoverReserva,
+} from '../lib/api'
 import { dataCurta, faixaHoraria, situacaoDoIntegrador } from '../lib/formato'
 import { pedirRelatoEFotos } from '../lib/relato'
-import type { EscolaAdmin, ReservaAdmin, SituacaoIntegrador } from '../lib/tipos'
+import type { AulaAdmin, EscolaAdmin, ReservaAdmin, SituacaoIntegrador } from '../lib/tipos'
 
 /** Os recortes da lista, na ordem em que aparecem como filtro. */
 const VISTAS = [
@@ -40,6 +45,11 @@ export function IntegradoresRealizados({
   const [de, setDe] = useState('')
   const [ate, setAte] = useState('')
   const [editando, setEditando] = useState<ReservaAdmin | null>(null)
+  const [exportando, setExportando] = useState<string | null>(null)
+  // O catálogo só é buscado quando alguém exporta, e uma vez só: ele
+  // completa o documento da aula que veio de uma atividade e não tem
+  // texto próprio. Abrir a aba não precisa pagar por isso.
+  const catalogo = useRef<AulaAdmin[] | null>(null)
 
   const carregar = useCallback(async () => {
     aoErro(null)
@@ -106,6 +116,55 @@ export function IntegradoresRealizados({
       if (await pedirRelatoEFotos(senha, reserva)) await carregar()
     } catch (f) {
       aoErro(f instanceof Error ? f.message : 'Não foi possível salvar o relato.')
+    }
+  }
+
+  /**
+   * O documento da aula, remontado e baixado. O site não guarda o PDF
+   * de ninguém — nem o que veio do Canva — então o arquivo é gerado
+   * aqui, pelo mesmo gerador da aba "Novo documento", com o que ficou
+   * gravado na aula.
+   */
+  async function exportar(reserva: ReservaAdmin) {
+    aoErro(null)
+    setExportando(reserva.id)
+    try {
+      if (reserva.aula_id && catalogo.current === null) {
+        // Sem catálogo o documento ainda sai, só com menos texto. Não é
+        // motivo para derrubar a exportação inteira.
+        try {
+          catalogo.current = await adminListarAulas(senha)
+        } catch {
+          /* segue sem ele */
+        }
+      }
+
+      const doCatalogo =
+        (reserva.aula_id && catalogo.current?.find((a) => a.id === reserva.aula_id)) || null
+
+      const { exportarDocumento } = await import('../lib/documento/exportar.ts')
+      const documento = await exportarDocumento(reserva, doCatalogo)
+
+      const endereco = URL.createObjectURL(
+        new Blob([documento.bytes as BlobPart], { type: 'application/pdf' }),
+      )
+      const gatilho = document.createElement('a')
+      gatilho.href = endereco
+      gatilho.download = documento.nome
+      gatilho.click()
+      setTimeout(() => URL.revokeObjectURL(endereco), 10_000)
+
+      if (documento.perdidas > 0) {
+        window.alert(
+          `O documento saiu sem ${documento.perdidas} foto${
+            documento.perdidas === 1 ? '' : 's'
+          }: o link delas não é do site e não deixou baixar. As fotos que a equipe envia pelo painel entram sempre.`,
+        )
+      }
+    } catch (f) {
+      aoErro(f instanceof Error ? f.message : 'Não foi possível gerar o documento desta aula.')
+    } finally {
+      setExportando(null)
     }
   }
 
@@ -274,6 +333,16 @@ export function IntegradoresRealizados({
                           {reserva.relato || reserva.fotos.length > 0
                             ? 'Relato e fotos'
                             : '+ Relato e fotos'}
+                        </button>
+                      )}
+                      {situacao === 'realizada' && reserva.aula_titulo && (
+                        <button
+                          type="button"
+                          className="fantasma pequeno"
+                          disabled={exportando !== null}
+                          onClick={() => void exportar(reserva)}
+                        >
+                          {exportando === reserva.id ? 'Montando…' : 'Baixar documento'}
                         </button>
                       )}
                       <button

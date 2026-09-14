@@ -208,6 +208,9 @@ lista das aulas.
 | --- | --- |
 | `src/componentes/IntegradoresRealizados.tsx` | a aba inteira |
 | `src/lib/relato.ts` | o relato e as fotos perguntados no navegador, usados por duas abas |
+| `src/lib/documento/dados.ts` | o relato escrito e lido de volta; os campos do documento |
+| `src/lib/documento/exportar.ts` | busca as fotos e remonta o PDF da aula |
+| `ferramentas/conferir-exportacao.mts` | a prova, no Node, sem navegador |
 | `0013_fotos_na_lista_de_reservas.sql` | a coluna que faltava na `admin_listar_reservas` |
 
 **Filtros no topo**, antes de qualquer coisa: escola, período (de/até) e situação — Tudo,
@@ -218,6 +221,31 @@ igual ao resto do site; `new Date` mostraria o dia anterior.
 tela quando não há nenhuma — um "0 de 17" não diz nada a ninguém. Quem tem projeto reservado
 aparece na aba de reservas, e quem não tem não aparece em lugar nenhum: panorama escola por escola
 foi tentado e reprovado, junto com "escola parada" e "falta o registro".
+
+**"Baixar documento" refaz o PDF, não busca um guardado.** Nenhum PDF é guardado em lugar
+nenhum: do documento do Canva o site guarda o hash, as fotos e os campos lidos, e quem registrou
+pela aba "Registrar projeto" nunca teve arquivo. Então o botão **remonta** o documento com o
+gerador da 2.4, a partir do que ficou gravado — e por isso o `montar.ts` (99 KB) continua num
+pedaço separado do bundle, carregado só no clique.
+
+De onde sai cada campo, e por que nesta ordem (`dadosDoDocumento`, em `dados.ts`):
+
+1. o **relato da vitrine**, desmontado — é o texto *daquela turma*;
+2. `aula_objetivos` / `aula_materiais` **da reserva** — o que a professora escreveu ao agendar;
+3. a **atividade do catálogo** — é o texto *do tema*, e duas turmas podem ter feito a mesma
+   proposta: a atividade guarda a descrição da primeira delas, então ela entra por último.
+
+O **curso** pode sair em branco, e é honesto que saia: quem importa do Canva não guarda esse campo
+em lugar nenhum que o site leia. Quem registra pelo painel guarda — o `montarRelato` escreve
+`Curso: …` na abertura do relato, e o `partesDoRelato` o lê de volta. As três telas que gravam
+relato (gerador de documento, registro rápido e importador do Canva) escrevem pelo mesmo
+`montarRelato`, justamente para o caminho de volta não quebrar em silêncio.
+
+**Foto que não é do site pode ficar de fora.** A caixinha "Relato e fotos" aceita link de qualquer
+lugar (Drive e afins), e link de fora costuma recusar download de outra origem. A exportação pula
+a que não vier e avisa quantas ficaram de fora, em vez de derrubar o documento inteiro; foto
+enviada pelo painel está no Storage do projeto e entra sempre. JPEG entra no PDF inteiro, sem
+reconversão; o que não for JPEG passa pelo `paraJpeg` antes.
 
 **O bug que apagava a tela** (`0013`): `admin_listar_reservas` nunca devolveu `fotos`, e a tela lê
 `reserva.fotos.length` em toda linha. A aba de reservas só toca nesse campo em aula confirmada que
@@ -393,6 +421,15 @@ agendamento prévio (ver 2.2). Nenhuma função nova no banco para isso: só o p
 
 ## 5. Dívida técnica conhecida
 
+- **A `importar-canva` no ar está uma versão atrás de novo.** O `extrair.ts` do repositório ganhou
+  a âncora dos dois-pontos no rótulo (`acharRotulo`) e a função deployada ainda não. Sem ela,
+  **`Prof.` casa com a palavra "Professor" dentro do nome da escola**: importar um documento da
+  EMEF Professor Ézio Berzaghi lia escola "EMEF", professor "Ézio Berzaghi" e o curso engolindo o
+  nome de quem deu a aula. São **dez das dezoito** escolas atendidas com "Professor"/"Professora"
+  no nome. Quem for subir, releia as duas armadilhas do item abaixo. Nada mais depende disso: a
+  exportação do documento não passa pelo extrator, e o gerador só usa a função para hospedar as
+  fotos.
+
 - ~~A `importar-canva` no ar estava uma versão atrás do repositório~~ — **resolvido**. A versão 5 da
   função é byte a byte a da pasta `supabase/functions/importar-canva/`, com a tabela do **WinAnsi**
   em `texto.ts` e a retirada do **marcador de lista** em `extrair.ts`. Conferida em produção com um
@@ -451,6 +488,16 @@ Vários bugs desta obra só apareceram no navegador, nunca no typecheck: colunas
 botão de tema invisível no tema claro, a agenda abrindo numa semana sem vaga, o desenho do
 Projetos WIT decepado pela capa, `.rodape-cartao` sem regra nenhuma e a aba sob o mouse ficando
 verde-escura com texto escuro no tema claro. **Olhe a tela.**
+
+### O documento exportado de uma aula já registrada
+
+```
+node --experimental-strip-types ferramentas/conferir-exportacao.mts /tmp/exportado.pdf
+```
+
+Confere as duas metades: o relato escrito pelas telas do painel volta inteiro quando é lido de
+trás para frente, e o documento remontado passa pelo importador do Canva com os campos no lugar.
+Sai zero quando está tudo certo.
 
 ### O extrator do Canva, sem banco e sem deploy
 
