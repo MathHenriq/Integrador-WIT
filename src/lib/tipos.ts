@@ -157,7 +157,6 @@ export type MembroEquipe = {
   id: string
   nome: string
   email: string
-  whatsapp: string | null
   grupos: GrupoWit[]
   ativo: boolean
   criado_em: string

@@ -568,7 +568,6 @@ export function adminSalvarMembroEquipe(
     id: string | null
     nome: string
     email: string
-    whatsapp: string | null
     grupos: GrupoWit[]
     ativo: boolean
   },
@@ -578,7 +577,6 @@ export function adminSalvarMembroEquipe(
     p_id: dados.id,
     p_nome: dados.nome,
     p_email: dados.email,
-    p_whatsapp: dados.whatsapp,
     p_grupos: dados.grupos,
     p_ativo: dados.ativo,
   })

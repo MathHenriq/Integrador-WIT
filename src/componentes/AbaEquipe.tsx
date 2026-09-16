@@ -21,12 +21,11 @@ type Rascunho = {
   id: string | null
   nome: string
   email: string
-  whatsapp: string
   grupos: GrupoWit[]
   ativo: boolean
 }
 
-const VAZIO: Rascunho = { id: null, nome: '', email: '', whatsapp: '', grupos: [], ativo: true }
+const VAZIO: Rascunho = { id: null, nome: '', email: '', grupos: [], ativo: true }
 
 const ROTULO_STATUS: Record<NotificacaoAdmin['status'], string> = {
   pendente: 'Na fila',
@@ -102,7 +101,6 @@ export function AbaEquipe({ senha, aoErro }: Props) {
         id: rascunho.id,
         nome: rascunho.nome.trim(),
         email: rascunho.email.trim(),
-        whatsapp: rascunho.whatsapp.trim() || null,
         grupos: rascunho.grupos,
         ativo: rascunho.ativo,
       })
@@ -198,22 +196,7 @@ export function AbaEquipe({ senha, aoErro }: Props) {
           </div>
         </div>
 
-        <div className="linha-campos">
-          <div className="campo">
-            <label htmlFor="eq-whatsapp">
-              WhatsApp <span className="opcional">(opcional)</span>
-            </label>
-            <input
-              id="eq-whatsapp"
-              value={rascunho.whatsapp}
-              onChange={(e) => setRascunho({ ...rascunho, whatsapp: e.target.value })}
-              placeholder="(11) 90000-0000"
-              maxLength={30}
-            />
-            <p className="ajuda">
-              Fica guardado para quando existir envio por WhatsApp. Hoje o aviso sai só por e-mail.
-            </p>
-          </div>
+        <div>
           <div className="campo">
             <label>Grupos da rotação</label>
             <div className="chips">
@@ -307,7 +290,6 @@ export function AbaEquipe({ senha, aoErro }: Props) {
                   </h3>
                   <p style={{ color: 'var(--texto-suave)', fontSize: 14, marginTop: 4 }}>
                     {membro.email}
-                    {membro.whatsapp ? ` · ${membro.whatsapp}` : ''}
                   </p>
                   <p style={{ color: 'var(--texto-fraco)', fontSize: 14, marginTop: 4 }}>
                     {membro.grupos.length > 0
@@ -326,7 +308,6 @@ export function AbaEquipe({ senha, aoErro }: Props) {
                         id: membro.id,
                         nome: membro.nome,
                         email: membro.email,
-                        whatsapp: membro.whatsapp ?? '',
                         grupos: membro.grupos,
                         ativo: membro.ativo,
                       })

@@ -84,13 +84,14 @@ update public.escolas e
 -- conferida em `_exigir_admin`. Esta tabela é uma agenda de contatos —
 -- para onde mandar o aviso, e de quem é cada grupo.
 
+-- Só e-mail. O canal é um só de propósito: campo que ninguém preenche
+-- (ou que o sistema não usa) vira dado velho e confunde quem cadastra.
+-- O WhatsApp que importa aqui é o do professor DA ESCOLA, que vem na
+-- reserva e vai dentro do aviso — é por ele que a equipe faz contato.
 create table if not exists public.equipe_wit (
   id         uuid primary key default gen_random_uuid(),
   nome       text not null check (length(btrim(nome)) >= 3),
   email      text not null check (email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$'),
-  -- Guardado para quando existir envio por WhatsApp. Hoje nada lê esta
-  -- coluna: o único canal implementado é o e-mail.
-  whatsapp   text,
   grupos     public.grupo_wit[] not null default '{}',
   -- Desligar sem apagar: o professor sai da rotação e o histórico de
   -- avisos que ele recebeu continua fazendo sentido.
@@ -159,7 +160,7 @@ alter table public.notificacoes force row level security;
 
 -- Deny-all como todo o resto do projeto: o `anon key` está no bundle do
 -- navegador, então nenhuma destas tabelas pode ser lida direto. E-mail
--- e telefone de professor não vazam nem para quem abrir o DevTools.
+-- de professor não vaza nem para quem abrir o DevTools.
 revoke all on public.equipe_wit   from anon, authenticated;
 revoke all on public.notificacoes from anon, authenticated;
 
@@ -429,12 +430,13 @@ begin
 end;
 $$;
 
+drop function if exists public.admin_listar_equipe(text);
+
 create or replace function public.admin_listar_equipe(p_admin_token text)
 returns table (
   id            uuid,
   nome          text,
   email         text,
-  whatsapp      text,
   grupos        text[],
   ativo         boolean,
   criado_em     timestamptz,
@@ -449,7 +451,7 @@ begin
   perform public._exigir_admin(p_admin_token);
 
   return query
-    select m.id, m.nome, m.email, m.whatsapp,
+    select m.id, m.nome, m.email,
            array(select g::text from unnest(m.grupos) g),
            m.ativo, m.criado_em,
            (select count(*)
@@ -462,12 +464,13 @@ begin
 end;
 $$;
 
+drop function if exists public.admin_salvar_membro_equipe(text, uuid, text, text, text, text[], boolean);
+
 create or replace function public.admin_salvar_membro_equipe(
   p_admin_token text,
   p_id          uuid,
   p_nome        text,
   p_email       text,
-  p_whatsapp    text,
   p_grupos      text[],
   p_ativo       boolean
 )
@@ -493,17 +496,15 @@ begin
   end;
 
   if p_id is null then
-    insert into public.equipe_wit (nome, email, whatsapp, grupos, ativo)
-    values (btrim(p_nome), lower(btrim(p_email)), nullif(btrim(coalesce(p_whatsapp, '')), ''),
-            v_grupos, coalesce(p_ativo, true))
+    insert into public.equipe_wit (nome, email, grupos, ativo)
+    values (btrim(p_nome), lower(btrim(p_email)), v_grupos, coalesce(p_ativo, true))
     returning id into v_id;
   else
     update public.equipe_wit
-       set nome     = btrim(p_nome),
-           email    = lower(btrim(p_email)),
-           whatsapp = nullif(btrim(coalesce(p_whatsapp, '')), ''),
-           grupos   = v_grupos,
-           ativo    = coalesce(p_ativo, true)
+       set nome   = btrim(p_nome),
+           email  = lower(btrim(p_email)),
+           grupos = v_grupos,
+           ativo  = coalesce(p_ativo, true)
      where id = p_id
     returning id into v_id;
 
@@ -657,7 +658,7 @@ $$;
 grant execute on function public.admin_listar_escolas(text)                              to anon, authenticated;
 grant execute on function public.admin_definir_grupo_escola(text, uuid, text)            to anon, authenticated;
 grant execute on function public.admin_listar_equipe(text)                               to anon, authenticated;
-grant execute on function public.admin_salvar_membro_equipe(text, uuid, text, text, text, text[], boolean) to anon, authenticated;
+grant execute on function public.admin_salvar_membro_equipe(text, uuid, text, text, text[], boolean) to anon, authenticated;
 grant execute on function public.admin_remover_membro_equipe(text, uuid)                 to anon, authenticated;
 grant execute on function public.admin_listar_notificacoes(text, int)                    to anon, authenticated;
 grant execute on function public.admin_reenfileirar_notificacao(text, uuid)              to anon, authenticated;

@@ -102,6 +102,11 @@ A rotação tem três grupos, e **cada escola pertence a um**: `W` (as integrais
 professores do Núcleo ficam na aba "Equipe", cada um com e-mail e os grupos que cobre (pode ser
 mais de um); desmarcar "Recebendo avisos" pausa sem apagar.
 
+**O canal é só e-mail.** O professor da equipe tem e-mail e mais nada — não existe WhatsApp no
+cadastro dele, e campo assim não deve ser "deixado para o futuro": vira dado velho que ninguém
+preenche. O WhatsApp que existe no sistema é outro, o do professor **da escola**, que vem na
+reserva e vai dentro do aviso — é por ele que a equipe faz contato.
+
 Escola sem grupo, ou grupo sem ninguém ativo, manda para a equipe inteira. É de propósito: o
 problema que isso resolve é reserva que ninguém viu, então nunca pode existir aviso sem
 destinatário.

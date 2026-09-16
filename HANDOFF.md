@@ -412,7 +412,10 @@ escola.
    **I e T nascem em branco de propósito**: quem sabe a divisão é a equipe, e aloca na aba
    "Escolas" — um select em cada linha, muda na hora.
 2. `equipe_wit` — os professores do Núcleo, na aba "Equipe". Cada um com e-mail e os grupos que
-   cobre (dá para marcar mais de um). `ativo` desmarcado pausa sem apagar o cadastro.
+   cobre (dá para marcar mais de um). `ativo` desmarcado pausa sem apagar o cadastro. **Só
+   e-mail**: não há WhatsApp no cadastro da equipe, e não deve haver enquanto não existir envio
+   por esse canal. O `whatsapp_contato` que aparece no aviso é o do professor da escola, que vem
+   da reserva.
 3. `notificacoes` — a fila. Um trigger em `reservas` enfileira toda reserva de origem `escola`
    com status `aguardando_confirmacao`. Registro da própria equipe não entra: nasce `confirmado`
    e descreve aula que já aconteceu.
