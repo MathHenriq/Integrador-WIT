@@ -512,6 +512,25 @@ função depois de agendar. Pôr a service_role numa linha de tabela para acorda
 guardar a chave mais poderosa do projeto sem ganhar nada: quem decide o que a função faz é o
 código dela, não quem a acorda.
 
+**Ordem de deploy: a função ANTES da migration.** Custou um e-mail errado numa caixa de verdade.
+A 0029 foi aplicada primeiro; o cron roda de minuto em minuto, pegou a janela de 46 segundos até o
+deploy da função e mandou o comprovante novo com o corpo do aviso da equipe — um professor de
+escola recebeu um texto mandando confirmar no painel administrativo. A regra vale sempre aqui: o
+código novo tolera dado velho (o `tipo` que ele não conhece cai no `else`), o contrário não. Se
+der para escolher, **desative o cron** enquanto troca as duas peças:
+
+```sql
+update cron.job set active = false where jobname = 'notificar-equipe-wit';
+-- deploy da função, depois a migration, depois:
+update cron.job set active = true  where jobname = 'notificar-equipe-wit';
+```
+
+Nada se perde com o cron parado: a fila acumula e sai na primeira varredura depois.
+
+**Endereço do painel:** `https://integrador-wit.vercel.app/admin`. É o valor do secret `SITE_URL`
+(sem `/admin` — a função acrescenta), que coloca o botão "Abrir o painel" dentro do e-mail da
+equipe.
+
 **Quando não chegar e-mail, olhe nesta ordem:**
 
 | Onde | O que significa |
