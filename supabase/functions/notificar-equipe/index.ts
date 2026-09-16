@@ -17,12 +17,29 @@
 // leva. E-mail repetido é o jeito mais rápido de ensinar a equipe a
 // ignorar o aviso.
 //
-// Variáveis de ambiente (supabase secrets set ...):
-//   RESEND_API_KEY   - chave da Resend. Ausente => a função não toca na
-//                      fila (nada se perde; sai quando configurar).
-//   EMAIL_REMETENTE  - ex: "Núcleo WIT <avisos@seudominio.com.br>"
+// Dois provedores, e o motivo de serem dois:
+//
+//   BREVO_API_KEY    - Brevo. Verifica UM endereço de e-mail (um Gmail
+//                      serve), sem exigir domínio próprio. É o que dá
+//                      para o Núcleo usar sem comprar domínio.
+//   RESEND_API_KEY   - Resend. Exige domínio verificado, e por isso é o
+//                      destino quando o Núcleo tiver o dele: e-mail
+//                      institucional cai menos em spam.
+//
+// A função usa a que estiver configurada (Brevo primeiro, se as duas
+// estiverem). Trocar de provedor é trocar o secret, sem mexer no
+// código — que é justamente o ponto: a decisão de provedor não estava
+// tomada quando isto foi escrito.
+//
+//   EMAIL_REMETENTE  - obrigatório, no formato
+//                      "Núcleo WIT <avisos@exemplo.com>". Precisa ser o
+//                      endereço verificado no provedor, senão ele aceita
+//                      a chamada e não entrega.
 //   SITE_URL         - opcional. Endereço do site, para o link do
 //                      painel dentro do e-mail.
+//
+// Sem chave ou sem remetente a função NÃO toca na fila: nada se perde,
+// tudo sai na primeira varredura depois de configurar.
 //
 // Chamada: POST, sem corpo. Responde com o que aconteceu na varredura.
 // =====================================================================
@@ -177,19 +194,98 @@ function montarEmail(aviso: Aviso, siteUrl: string | undefined) {
   return { html, assunto }
 }
 
+/** "Núcleo WIT <avisos@exemplo.com>" -> as duas partes separadas. A
+ *  Resend aceita a linha inteira; a Brevo quer nome e endereço em
+ *  campos diferentes. Sem os sinais de menor/maior, a linha toda é o
+ *  endereço. */
+function separarRemetente(linha: string) {
+  const casou = linha.match(/^\s*(.*?)\s*<([^>]+)>\s*$/)
+  if (!casou) return { nome: 'Núcleo WIT', email: linha.trim() }
+  return { nome: casou[1].replace(/^"|"$/g, '').trim() || 'Núcleo WIT', email: casou[2].trim() }
+}
+
+type Envio = {
+  destinatarios: string[]
+  assunto: string
+  html: string
+  responderPara: string | null
+}
+
+type Provedor = {
+  nome: string
+  enviar(envio: Envio): Promise<Response>
+}
+
+/** Escolhe o provedor pelo secret que existir. Devolve `null` quando
+ *  não há nenhum — e aí quem chama nem encosta na fila. */
+function escolherProvedor(remetente: string): Provedor | null {
+  const brevo = Deno.env.get('BREVO_API_KEY')
+  const resend = Deno.env.get('RESEND_API_KEY')
+  const de = separarRemetente(remetente)
+
+  if (brevo) {
+    return {
+      nome: 'brevo',
+      enviar: (envio) =>
+        fetch('https://api.brevo.com/v3/smtp/email', {
+          method: 'POST',
+          headers: {
+            'api-key': brevo,
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          body: JSON.stringify({
+            sender: { name: de.nome, email: de.email },
+            to: envio.destinatarios.map((email) => ({ email })),
+            subject: envio.assunto,
+            htmlContent: envio.html,
+            ...(envio.responderPara ? { replyTo: { email: envio.responderPara } } : {}),
+          }),
+        }),
+    }
+  }
+
+  if (resend) {
+    return {
+      nome: 'resend',
+      enviar: (envio) =>
+        fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${resend}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: remetente,
+            to: envio.destinatarios,
+            subject: envio.assunto,
+            html: envio.html,
+            ...(envio.responderPara ? { reply_to: envio.responderPara } : {}),
+          }),
+        }),
+    }
+  }
+
+  return null
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
-  const chaveResend = Deno.env.get('RESEND_API_KEY')
   const remetente = Deno.env.get('EMAIL_REMETENTE')
   const siteUrl = Deno.env.get('SITE_URL')
+  const provedor = remetente ? escolherProvedor(remetente) : null
 
   // Conferido ANTES de encostar na fila, de propósito. Se reivindicasse
   // primeiro, cada aviso gastaria tentativa contra uma chave que ainda
   // nem existe e morreria como "falhou" antes de a equipe terminar de
   // configurar o provedor.
-  if (!chaveResend || !remetente) {
-    return responder({ ok: true, enviados: 0, motivo: 'email_nao_configurado' })
+  if (!provedor) {
+    return responder({
+      ok: true,
+      enviados: 0,
+      motivo: !remetente ? 'falta_o_remetente' : 'falta_a_chave_do_provedor',
+    })
   }
 
   const supabase = createClient(
@@ -227,31 +323,26 @@ Deno.serve(async (req) => {
     const { html, assunto } = montarEmail(aviso, siteUrl)
 
     try {
-      const resposta = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${chaveResend}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: remetente,
-          to: aviso.destinatarios,
-          subject: assunto,
-          // Responder o e-mail cai direto no professor da escola, que é
-          // o que o professor do dia precisa fazer a seguir.
-          ...(aviso.email_contato ? { reply_to: aviso.email_contato } : {}),
-          html,
-        }),
+      const resposta = await provedor.enviar({
+        destinatarios: aviso.destinatarios,
+        assunto,
+        html,
+        // Responder o e-mail cai direto no professor da escola, que é
+        // o que o professor do dia precisa fazer a seguir.
+        responderPara: aviso.email_contato,
       })
 
       if (!resposta.ok) {
         const detalhe = await resposta.text()
-        console.error('Resend respondeu', resposta.status, detalhe)
+        console.error(provedor.nome, 'respondeu', resposta.status, detalhe)
         falhas++
+        // O erro do provedor vai inteiro para o painel: "remetente não
+        // verificado" e "chave inválida" são as duas causas prováveis, e
+        // só ele sabe dizer qual é.
         await supabase.rpc('concluir_notificacao', {
           p_id: aviso.id,
           p_ok: false,
-          p_erro: `Resend ${resposta.status}: ${detalhe.slice(0, 300)}`,
+          p_erro: `${provedor.nome} ${resposta.status}: ${detalhe.slice(0, 300)}`,
         })
         continue
       }
@@ -259,7 +350,7 @@ Deno.serve(async (req) => {
       enviados++
       await supabase.rpc('concluir_notificacao', { p_id: aviso.id, p_ok: true, p_erro: null })
     } catch (erro) {
-      console.error('Falha ao chamar a Resend', erro)
+      console.error(`Falha ao chamar a ${provedor.nome}`, erro)
       falhas++
       await supabase.rpc('concluir_notificacao', {
         p_id: aviso.id,
@@ -269,5 +360,5 @@ Deno.serve(async (req) => {
     }
   }
 
-  return responder({ ok: true, enviados, adiados, falhas })
+  return responder({ ok: true, provedor: provedor.nome, enviados, adiados, falhas })
 })

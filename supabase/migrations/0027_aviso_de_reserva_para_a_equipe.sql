@@ -362,7 +362,8 @@ end;
 $$;
 
 -- Falta de configuração não é falha de envio. Enquanto não houver chave
--- da Resend ou ninguém cadastrado na equipe, o aviso não tem como sair —
+-- do provedor de e-mail ou ninguém cadastrado na equipe, o aviso não
+-- tem como sair —
 -- mas ele não pode morrer por isso. `adiar` devolve a linha para a fila
 -- e DESFAZ a tentativa que a reivindicação contou, senão os primeiros
 -- pedidos da escola gastariam as três tentativas contra um problema que
@@ -586,7 +587,7 @@ end;
 $$;
 
 -- Devolver para a fila o que falhou, depois de arrumar a causa (chave
--- errada, domínio não verificado). Sem isto, corrigir a configuração
+-- errada, remetente não verificado). Sem isto, corrigir a configuração
 -- não traria de volta o aviso perdido.
 create or replace function public.admin_reenfileirar_notificacao(
   p_admin_token text,
@@ -683,18 +684,27 @@ on conflict (reserva_id, tipo) do nothing;
 -- =====================================================================
 --
 -- Esta migration monta a fila. Ela não manda e-mail nenhum — quem manda
--- é a Edge Function `notificar-equipe`, e ela precisa de três coisas
--- que são de fora do banco. Enquanto elas não existirem, a fila só
--- acumula (nada se perde, mas nada chega).
+-- é a Edge Function `notificar-equipe`. Enquanto o envio não estiver
+-- configurado, a fila só acumula: nada se perde, e tudo sai na primeira
+-- varredura depois de pronto.
 --
--- (a) Implantar a função e dar a ela a chave do provedor:
+-- (a) Implantar a função e dar a ela o provedor de e-mail. São dois
+--     caminhos, e o certo depende de o Núcleo ter domínio próprio:
 --
 --       supabase functions deploy notificar-equipe
---       supabase secrets set RESEND_API_KEY=re_xxxxxxxx
---       supabase secrets set EMAIL_REMETENTE="Núcleo WIT <avisos@seudominio.com.br>"
+--       supabase secrets set EMAIL_REMETENTE="Núcleo WIT <avisos@exemplo.com>"
 --
---     O remetente precisa ser de um domínio verificado na Resend. Com
---     domínio não verificado a Resend aceita a chamada e não entrega.
+--     Sem domínio próprio — Brevo, que verifica um endereço só (um
+--     Gmail serve):
+--       supabase secrets set BREVO_API_KEY=xkeysib-xxxxxxxx
+--
+--     Com domínio próprio — Resend, que exige o domínio verificado:
+--       supabase secrets set RESEND_API_KEY=re_xxxxxxxx
+--
+--     Em qualquer um dos dois, o `EMAIL_REMETENTE` precisa ser o
+--     endereço verificado no provedor. Endereço não verificado é a
+--     falha mais comum aqui: o provedor aceita a chamada, responde 200
+--     e não entrega nada.
 --
 -- (b) Ligar as extensões do agendador (uma vez, no painel do Supabase
 --     em Database > Extensions, ou aqui):
@@ -702,38 +712,37 @@ on conflict (reserva_id, tipo) do nothing;
 --       create extension if not exists pg_cron with schema cron;
 --       create extension if not exists pg_net;
 --
--- (c) Guardar a service_role key no Vault e agendar a varredura. Estas
---     linhas NÃO estão na migration de propósito: elas carregam segredo
---     e o ref do projeto, e migration versionada não é lugar de chave.
---     Rode uma vez no SQL Editor, trocando os dois valores:
---
---       select vault.create_secret(
---         'SUA_SERVICE_ROLE_KEY', 'service_role_key',
---         'Usada pelo cron para acordar a notificar-equipe'
---       );
+-- (c) Agendar a varredura. Fica fora da migration porque carrega o ref
+--     do projeto e a chave da chamada — migration versionada não é
+--     lugar disso. Rode uma vez no SQL Editor:
 --
 --       select cron.schedule(
 --         'notificar-equipe-wit',
 --         '* * * * *',
 --         $cron$
 --         select net.http_post(
---           url     := 'https://mdwqwwdohwixxotyeiua.supabase.co/functions/v1/notificar-equipe',
+--           url     := 'https://SEU_REF.supabase.co/functions/v1/notificar-equipe',
 --           headers := jsonb_build_object(
 --             'Content-Type', 'application/json',
---             'Authorization', 'Bearer ' || (
---               select decrypted_secret from vault.decrypted_secrets
---                where name = 'service_role_key'
---             )
+--             'Authorization', 'Bearer SUA_ANON_KEY'
 --           ),
 --           body    := '{}'::jsonb
 --         );
 --         $cron$
 --       );
 --
+--     É a **anon key**, não a service_role. A função só precisa de um
+--     JWT válido para deixar a chamada entrar, e a anon key já é
+--     pública — está no bundle do navegador, e é com ela que o próprio
+--     site chama esta função depois de agendar. Usar a service_role
+--     aqui seria guardar a chave mais poderosa do projeto dentro de uma
+--     linha de tabela para não ganhar nada: quem manda no que a função
+--     faz é o código dela, não quem a acorda.
+--
 --     Para conferir depois:
 --       select * from cron.job;
 --       select * from cron.job_run_details order by start_time desc limit 10;
 --
 -- O passo a passo completo, com o que checar quando não chegar e-mail,
--- está na seção "Aviso de reserva para a equipe" do HANDOFF.md.
+-- está na seção 2.7 do HANDOFF.md.
 -- =====================================================================

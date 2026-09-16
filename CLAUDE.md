@@ -102,6 +102,12 @@ A rotação tem três grupos, e **cada escola pertence a um**: `W` (as integrais
 professores do Núcleo ficam na aba "Equipe", cada um com e-mail e os grupos que cobre (pode ser
 mais de um); desmarcar "Recebendo avisos" pausa sem apagar.
 
+O envio sai por um provedor de e-mail configurado em secret da função — **Brevo** enquanto o
+Núcleo não tiver domínio próprio (ela verifica um endereço só, um Gmail serve), **Resend** quando
+tiver (exige domínio verificado). Trocar é trocar o secret, não o código. O `EMAIL_REMETENTE`
+precisa ser o endereço verificado: se não for, o provedor responde 200 e não entrega — falha que
+parece sucesso.
+
 **O canal é só e-mail.** O professor da equipe tem e-mail e mais nada — não existe WhatsApp no
 cadastro dele, e campo assim não deve ser "deixado para o futuro": vira dado velho que ninguém
 preenche. O WhatsApp que existe no sistema é outro, o do professor **da escola**, que vem na

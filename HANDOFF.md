@@ -47,7 +47,7 @@ quebra nada (o protocolo na tela é a confirmação que vale).
 
 A `notificar-equipe` (atualização 27) **também ainda não subiu**, e essa faz falta: é ela que
 avisa a equipe de reserva nova. O passo a passo está na seção 2.7. Enquanto ela não estiver no ar
-com a chave da Resend, os avisos **ficam parados na fila sem se perder** — nenhum é descartado, e
+com o provedor de e-mail configurado, os avisos **ficam parados na fila sem se perder** — nenhum é descartado, e
 todos saem na primeira varredura depois da configuração.
 
 ### Ordem de execução das migrations
@@ -419,7 +419,8 @@ escola.
 3. `notificacoes` — a fila. Um trigger em `reservas` enfileira toda reserva de origem `escola`
    com status `aguardando_confirmacao`. Registro da própria equipe não entra: nasce `confirmado`
    e descreve aula que já aconteceu.
-4. `supabase/functions/notificar-equipe/` — drena a fila e manda pela Resend.
+4. `supabase/functions/notificar-equipe/` — drena a fila e manda pelo provedor de e-mail (Brevo
+   ou Resend, ver abaixo).
 
 **Por que fila, e não envio direto no `agendar()`:** se o provedor de e-mail estiver fora do ar,
 quem não pode falhar é a **reserva** — ela é o dado; o e-mail é recado. E o disparo pelo navegador
@@ -433,10 +434,27 @@ ignorar o aviso.
 ninguém ativo, **cai para a equipe inteira** — antes e-mail demais do que reserva invisível de
 novo, que é o problema que a atualização existe para resolver.
 
-**Falta de configuração não gasta tentativa.** Sem chave da Resend a função nem encosta na fila;
+**Falta de configuração não gasta tentativa.** Sem chave do provedor a função nem encosta na fila;
 sem ninguém cadastrado na equipe, o aviso volta para a fila com `adiar_notificacao`, que desfaz a
 tentativa contada. Só falha de envio de verdade conta — três tentativas e a linha vira `falhou`,
 com o erro do provedor à vista na aba "Equipe" e um botão "Tentar de novo".
+
+**O provedor de e-mail, e por que não é "só mandar":** código nenhum manda e-mail sozinho —
+precisa de um serviço que faça a entrega. Os dois que a função aceita se diferenciam num ponto só,
+e é o ponto que decide qual usar:
+
+| | Verifica o quê | Quando usar |
+| --- | --- | --- |
+| **Brevo** | **um endereço** (um Gmail serve) | Enquanto o Núcleo não tiver domínio |
+| **Resend** | um **domínio** inteiro | Quando tiver — e-mail institucional, menos spam |
+
+A função escolhe pela chave que existir (`BREVO_API_KEY` ou `RESEND_API_KEY`), Brevo primeiro.
+Migrar de uma para a outra é trocar o secret, sem tocar no código.
+
+**O erro mais comum é o remetente.** O `EMAIL_REMETENTE` precisa ser exatamente o endereço
+verificado no provedor. Se não for, o provedor responde 200, a função marca como enviado e **nada
+chega** — o pior tipo de falha, porque parece sucesso. Conferir o endereço verificado antes de
+culpar o código.
 
 **O que falta fazer (nesta ordem):**
 
@@ -446,8 +464,8 @@ com o erro do provedor à vista na aba "Equipe" e um botão "Tentar de novo".
 
 # 2. a função
 supabase functions deploy notificar-equipe
-supabase secrets set RESEND_API_KEY=re_xxxxxxxx
-supabase secrets set EMAIL_REMETENTE="Núcleo WIT <avisos@seudominio.com.br>"
+supabase secrets set EMAIL_REMETENTE="Núcleo WIT <avisos@exemplo.com>"
+supabase secrets set BREVO_API_KEY=xkeysib-xxxxxxxx     # ou RESEND_API_KEY=re_...
 supabase secrets set SITE_URL=https://o-endereco-do-site   # opcional, vira o botão do e-mail
 ```
 
@@ -456,24 +474,17 @@ supabase secrets set SITE_URL=https://o-endereco-do-site   # opcional, vira o bo
 create extension if not exists pg_cron with schema cron;
 create extension if not exists pg_net;
 
--- 4. a chave no Vault e a varredura de minuto em minuto.
---    Fora da migration de propósito: carrega segredo e o ref do projeto.
-select vault.create_secret(
-  'SUA_SERVICE_ROLE_KEY', 'service_role_key',
-  'Usada pelo cron para acordar a notificar-equipe'
-);
-
+-- 4. a varredura de minuto em minuto. Fora da migration porque carrega
+--    o ref do projeto e a chave da chamada.
 select cron.schedule(
   'notificar-equipe-wit',
   '* * * * *',
   $cron$
   select net.http_post(
-    url     := 'https://mdwqwwdohwixxotyeiua.supabase.co/functions/v1/notificar-equipe',
+    url     := 'https://SEU_REF.supabase.co/functions/v1/notificar-equipe',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
-      'Authorization', 'Bearer ' || (
-        select decrypted_secret from vault.decrypted_secrets where name = 'service_role_key'
-      )
+      'Authorization', 'Bearer SUA_ANON_KEY'
     ),
     body    := '{}'::jsonb
   );
@@ -481,10 +492,11 @@ select cron.schedule(
 );
 ```
 
-**O remetente é o passo que costuma faltar.** A Resend aceita a chamada e não entrega se o
-domínio do `EMAIL_REMETENTE` não estiver verificado na conta. Sem domínio próprio dá para testar
-com o remetente de teste da Resend, que só entrega para o e-mail dono da conta — serve para
-conferir o caminho inteiro, não para uso real.
+É a **anon key**, não a service_role. A função só precisa de um JWT válido para a chamada entrar,
+e a anon key já é pública — está no bundle do navegador, e é com ela que o próprio site chama esta
+função depois de agendar. Pôr a service_role numa linha de tabela para acordar um cron seria
+guardar a chave mais poderosa do projeto sem ganhar nada: quem decide o que a função faz é o
+código dela, não quem a acorda.
 
 **Quando não chegar e-mail, olhe nesta ordem:**
 
@@ -493,7 +505,7 @@ conferir o caminho inteiro, não para uso real.
 | Aba "Equipe", lista "Últimos avisos" | Vazia = o trigger não enfileirou (a reserva era da equipe?). "Na fila" parado = o cron não está rodando. "Falhou" = o erro do provedor está escrito ali. |
 | `select * from cron.job;` | A varredura existe? |
 | `select * from cron.job_run_details order by start_time desc limit 10;` | Ela está rodando e com que resultado. |
-| Logs da função no painel do Supabase | O que a Resend respondeu. |
+| Logs da função no painel do Supabase | O que o provedor respondeu. |
 
 ---
 
