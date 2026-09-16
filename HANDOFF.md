@@ -394,7 +394,7 @@ a mesma
 `admin_importar_aula_realizada` que já sabia criar a reserva sozinha quando não existe
 agendamento prévio (ver 2.2). Nenhuma função nova no banco para isso: só o parâmetro `p_origem`.
 
-### 2.7 Aviso de reserva para a equipe — **construído, falta configurar o envio**
+### 2.7 Aviso de reserva para a equipe — **no ar**
 
 O problema: o agendamento pelo site funcionou, as escolas começaram a reservar, e **a equipe não
 ficava sabendo**. A reserva nasce `aguardando_confirmacao` justamente para o professor do dia
@@ -456,7 +456,21 @@ verificado no provedor. Se não for, o provedor responde 200, a função marca c
 chega** — o pior tipo de falha, porque parece sucesso. Conferir o endereço verificado antes de
 culpar o código.
 
-**O que falta fazer (nesta ordem):**
+**Estado em produção (16/09/2026):** migration aplicada, função implantada, `pg_cron` e `pg_net`
+ligados, cron `notificar-equipe-wit` rodando de minuto em minuto com a anon key, secrets
+`EMAIL_REMETENTE` e `BREVO_API_KEY` gravados, remetente verificado na Brevo. As 18 escolas estão
+alocadas (W 7, I 5, T 6). Primeiro envio real conferido: `{"provedor":"brevo","enviados":1}`.
+
+Foi possível ver a virada nos logs, e ela serve de referência para diagnosticar depois: antes dos
+secrets a função respondia `{"motivo":"falta_o_remetente"}` sem tocar na fila; com os secrets e a
+equipe ainda vazia, `{"adiados":1}` e o aviso voltou para a fila com `tentativas: 0`; com um
+destinatário cadastrado, `{"enviados":1}`.
+
+**Falta a equipe de verdade.** Só existe cadastrado o `nucleowit.integrador@gmail.com` como
+"Núcleo WIT (caixa geral)", nos três grupos — serviu de teste e fica como arquivo. Os professores
+entram **ao lado** dele, pela aba "Equipe", cada um no seu grupo.
+
+**Setup, para refazer em outro ambiente (ou conferir este):**
 
 ```bash
 # 1. a migration
