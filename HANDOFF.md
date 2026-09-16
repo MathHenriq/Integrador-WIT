@@ -45,6 +45,11 @@ senha errada 401, arquivo que não é imagem 400, JPEG sobe e abre público). A 
 existe no repositório mas **nunca subiu** — a confirmação por e-mail continua desligada, o que não
 quebra nada (o protocolo na tela é a confirmação que vale).
 
+A `notificar-equipe` (atualização 27) **também ainda não subiu**, e essa faz falta: é ela que
+avisa a equipe de reserva nova. O passo a passo está na seção 2.7. Enquanto ela não estiver no ar
+com a chave da Resend, os avisos **ficam parados na fila sem se perder** — nenhum é descartado, e
+todos saem na primeira varredura depois da configuração.
+
 ### Ordem de execução das migrations
 
 Da `0002` em diante todos os arquivos reexecutam à vontade, **em ordem**. A `0001` só reexecuta em
@@ -388,6 +393,104 @@ essencial — escola, data, professor, tema, origem, fotos escolhidas no própri
 a mesma
 `admin_importar_aula_realizada` que já sabia criar a reserva sozinha quando não existe
 agendamento prévio (ver 2.2). Nenhuma função nova no banco para isso: só o parâmetro `p_origem`.
+
+### 2.7 Aviso de reserva para a equipe — **construído, falta configurar o envio**
+
+O problema: o agendamento pelo site funcionou, as escolas começaram a reservar, e **a equipe não
+ficava sabendo**. A reserva nasce `aguardando_confirmacao` justamente para o professor do dia
+entrar em contato antes; só que ninguém sabia que havia o que confirmar, porque a informação só
+existia dentro do painel e dependia de alguém lembrar de abrir. Professor apareceu com a turma e
+a equipe descobriu na hora.
+
+A atualização 27 inverte o sentido: reserva nova vira e-mail para os professores WIT daquela
+escola.
+
+**Como funciona, em quatro peças:**
+
+1. `escolas.grupo` — a rotação `W` / `I` / `T`. O Grupo W já existia de fato (as cinco integrais,
+   com grade própria desde a 0019) mas só no texto das migrations; agora é coluna e vem semeado.
+   **I e T nascem em branco de propósito**: quem sabe a divisão é a equipe, e aloca na aba
+   "Escolas" — um select em cada linha, muda na hora.
+2. `equipe_wit` — os professores do Núcleo, na aba "Equipe". Cada um com e-mail e os grupos que
+   cobre (dá para marcar mais de um). `ativo` desmarcado pausa sem apagar o cadastro.
+3. `notificacoes` — a fila. Um trigger em `reservas` enfileira toda reserva de origem `escola`
+   com status `aguardando_confirmacao`. Registro da própria equipe não entra: nasce `confirmado`
+   e descreve aula que já aconteceu.
+4. `supabase/functions/notificar-equipe/` — drena a fila e manda pela Resend.
+
+**Por que fila, e não envio direto no `agendar()`:** se o provedor de e-mail estiver fora do ar,
+quem não pode falhar é a **reserva** — ela é o dado; o e-mail é recado. E o disparo pelo navegador
+sozinho não garante nada: bastava o professor fechar a aba. O site chama a função para o e-mail
+sair em segundos, mas quem **garante** é o cron, de minuto em minuto, sobre a mesma fila. As duas
+chamadas podem cair na mesma linha ao mesmo tempo — `reivindicar_notificacoes` resolve com
+`for update skip locked`, porque e-mail repetido é o jeito mais curto de ensinar a equipe a
+ignorar o aviso.
+
+**Quem recebe:** os professores ativos do grupo daquela escola. Escola sem grupo, ou grupo sem
+ninguém ativo, **cai para a equipe inteira** — antes e-mail demais do que reserva invisível de
+novo, que é o problema que a atualização existe para resolver.
+
+**Falta de configuração não gasta tentativa.** Sem chave da Resend a função nem encosta na fila;
+sem ninguém cadastrado na equipe, o aviso volta para a fila com `adiar_notificacao`, que desfaz a
+tentativa contada. Só falha de envio de verdade conta — três tentativas e a linha vira `falhou`,
+com o erro do provedor à vista na aba "Equipe" e um botão "Tentar de novo".
+
+**O que falta fazer (nesta ordem):**
+
+```bash
+# 1. a migration
+#    cole supabase/migrations/0027_aviso_de_reserva_para_a_equipe.sql no SQL Editor
+
+# 2. a função
+supabase functions deploy notificar-equipe
+supabase secrets set RESEND_API_KEY=re_xxxxxxxx
+supabase secrets set EMAIL_REMETENTE="Núcleo WIT <avisos@seudominio.com.br>"
+supabase secrets set SITE_URL=https://o-endereco-do-site   # opcional, vira o botão do e-mail
+```
+
+```sql
+-- 3. as extensões do agendador (Database > Extensions, ou aqui)
+create extension if not exists pg_cron with schema cron;
+create extension if not exists pg_net;
+
+-- 4. a chave no Vault e a varredura de minuto em minuto.
+--    Fora da migration de propósito: carrega segredo e o ref do projeto.
+select vault.create_secret(
+  'SUA_SERVICE_ROLE_KEY', 'service_role_key',
+  'Usada pelo cron para acordar a notificar-equipe'
+);
+
+select cron.schedule(
+  'notificar-equipe-wit',
+  '* * * * *',
+  $cron$
+  select net.http_post(
+    url     := 'https://mdwqwwdohwixxotyeiua.supabase.co/functions/v1/notificar-equipe',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer ' || (
+        select decrypted_secret from vault.decrypted_secrets where name = 'service_role_key'
+      )
+    ),
+    body    := '{}'::jsonb
+  );
+  $cron$
+);
+```
+
+**O remetente é o passo que costuma faltar.** A Resend aceita a chamada e não entrega se o
+domínio do `EMAIL_REMETENTE` não estiver verificado na conta. Sem domínio próprio dá para testar
+com o remetente de teste da Resend, que só entrega para o e-mail dono da conta — serve para
+conferir o caminho inteiro, não para uso real.
+
+**Quando não chegar e-mail, olhe nesta ordem:**
+
+| Onde | O que significa |
+| --- | --- |
+| Aba "Equipe", lista "Últimos avisos" | Vazia = o trigger não enfileirou (a reserva era da equipe?). "Na fila" parado = o cron não está rodando. "Falhou" = o erro do provedor está escrito ali. |
+| `select * from cron.job;` | A varredura existe? |
+| `select * from cron.job_run_details order by start_time desc limit 10;` | Ela está rodando e com que resultado. |
+| Logs da função no painel do Supabase | O que a Resend respondeu. |
 
 ---
 

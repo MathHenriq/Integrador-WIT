@@ -132,13 +132,57 @@ export type ReservaConsulta = {
 
 // --------------------------------------------------------------- admin
 
+/** Os três grupos da rotação da equipe WIT. O W é o das escolas de
+ *  período integral; I e T são as outras duas divisões. Quem decide
+ *  qual escola cai em qual é a equipe, pela aba "Escolas". */
+export type GrupoWit = 'W' | 'I' | 'T'
+
+export const GRUPOS_WIT: GrupoWit[] = ['W', 'I', 'T']
+
 export type EscolaAdmin = {
   id: string
   nome: string
+  /** `null` = ainda não alocada na rotação. O aviso de reserva nova
+   *  dessa escola vai para a equipe inteira até alguém alocar. */
+  grupo: GrupoWit | null
   criado_em: string
   total_horarios: number
   horarios_ativos: number
   reservas_futuras: number
+}
+
+/** Professor do Núcleo WIT que recebe o aviso de reserva nova. Não é
+ *  login: o painel continua com senha única. É agenda de contato. */
+export type MembroEquipe = {
+  id: string
+  nome: string
+  email: string
+  whatsapp: string | null
+  grupos: GrupoWit[]
+  ativo: boolean
+  criado_em: string
+  /** Quantos avisos chegaram nesse e-mail nos últimos 30 dias — a
+   *  resposta rápida para "será que está funcionando?". */
+  avisos_30dias: number
+}
+
+export type StatusNotificacao = 'pendente' | 'enviando' | 'enviado' | 'falhou' | 'dispensado'
+
+/** Uma linha da fila de avisos. Existe no painel para que "não chegou
+ *  e-mail" deixe de ser adivinhação entre reserva, fila e provedor. */
+export type NotificacaoAdmin = {
+  id: string
+  status: StatusNotificacao
+  tentativas: number
+  destinatarios: string[]
+  ultimo_erro: string | null
+  criado_em: string
+  enviado_em: string | null
+  protocolo: string
+  escola: string
+  grupo: GrupoWit | null
+  data_aula: DataIso
+  nome_professor: string
 }
 
 export type HorarioAdmin = {

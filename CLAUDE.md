@@ -92,6 +92,30 @@ mantém o histórico com status `cancelado`, aparece no filtro "Canceladas"; rem
 (`admin_remover_reserva`) apaga a linha de vez, com confirmação antes ("Você tem certeza que quer
 apagar o projeto integrador do dia X sobre 'tema'?").
 
+### Aviso de reserva nova (rotação W / I / T)
+
+A equipe não vai atrás da reserva: a reserva vai atrás da equipe. Pedido feito pelo site vira
+e-mail na hora para os professores WIT responsáveis por aquela escola.
+
+A rotação tem três grupos, e **cada escola pertence a um**: `W` (as integrais, já semeado), `I` e
+`T`. A divisão de I e T é da equipe — ela aloca pelo select de cada linha na aba "Escolas". Os
+professores do Núcleo ficam na aba "Equipe", cada um com e-mail e os grupos que cobre (pode ser
+mais de um); desmarcar "Recebendo avisos" pausa sem apagar.
+
+Escola sem grupo, ou grupo sem ninguém ativo, manda para a equipe inteira. É de propósito: o
+problema que isso resolve é reserva que ninguém viu, então nunca pode existir aviso sem
+destinatário.
+
+O envio não acontece dentro da reserva. Um trigger enfileira em `notificacoes` e quem manda é a
+Edge Function `notificar-equipe`, acordada pelo cron de minuto em minuto — e também pelo site logo
+depois de agendar, só para chegar mais rápido. Se o provedor de e-mail cair, quem não pode falhar
+é a reserva. Reserva registrada pela própria equipe não gera aviso: nasce `confirmado` e é aula
+que já aconteceu.
+
+Detalhe que não deve ser "simplificado": a reivindicação da fila usa `for update skip locked`
+porque os dois disparos podem cair na mesma linha. E-mail repetido é o caminho mais curto para a
+equipe aprender a ignorar o aviso.
+
 ### Horário fechado fecha agendamento, não fecha registro
 
 Desativar um horário na aba "Horários" (fica "Fora da grade") tira o tempo do calendário público.

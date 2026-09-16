@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { AbaEquipe } from '../componentes/AbaEquipe'
 import { AdminHorarios } from '../componentes/AdminHorarios'
 import { Aviso } from '../componentes/Aviso'
 import { EditorAula } from '../componentes/EditorAula'
@@ -11,6 +12,7 @@ import { RegistrarProjeto } from '../componentes/RegistrarProjeto'
 import {
   adminCancelarReserva,
   adminConfirmarReserva,
+  adminDefinirGrupoEscola,
   adminListarAulas,
   adminListarEscolas,
   adminListarReservas,
@@ -22,13 +24,15 @@ import {
 } from '../lib/api'
 import { ANOS_ESCOLARES, dataCurta, faixaHoraria, rotuloAnos } from '../lib/formato'
 import { pedirRelatoEFotos } from '../lib/relato'
-import type { AulaAdmin, EscolaAdmin, Habilidade, Materia, ReservaAdmin } from '../lib/tipos'
+import { GRUPOS_WIT } from '../lib/tipos'
+import type { AulaAdmin, EscolaAdmin, GrupoWit, Habilidade, Materia, ReservaAdmin } from '../lib/tipos'
 
 const CHAVE = 'wit:senha-admin'
 type Aba =
   | 'registrar'
   | 'aulas'
   | 'escolas'
+  | 'equipe'
   | 'reservas'
   | 'integradores'
   | 'documento'
@@ -153,6 +157,9 @@ function Painel({ senha, aoSair }: { senha: string; aoSair: () => void }) {
         <button role="tab" aria-selected={aba === 'escolas'} onClick={() => setAba('escolas')}>
           Escolas e horários
         </button>
+        <button role="tab" aria-selected={aba === 'equipe'} onClick={() => setAba('equipe')}>
+          Equipe
+        </button>
         <button role="tab" aria-selected={aba === 'reservas'} onClick={() => setAba('reservas')}>
           Reservas
         </button>
@@ -177,6 +184,7 @@ function Painel({ senha, aoSair }: { senha: string; aoSair: () => void }) {
       {aba === 'registrar' && <RegistrarProjeto senha={senha} aoErro={setErro} />}
       {aba === 'aulas' && <AbaAulas senha={senha} materias={materias} aoErro={setErro} />}
       {aba === 'escolas' && <AbaEscolas senha={senha} aoErro={setErro} />}
+      {aba === 'equipe' && <AbaEquipe senha={senha} aoErro={setErro} />}
       {aba === 'reservas' && <AbaReservas senha={senha} aoErro={setErro} />}
       {aba === 'integradores' && <IntegradoresRealizados senha={senha} aoErro={setErro} />}
       {aba === 'documento' && <CriarDocumento senha={senha} aoErro={setErro} />}
@@ -332,8 +340,37 @@ function AbaEscolas({ senha, aoErro }: { senha: string; aoErro: (e: string | nul
     void carregar()
   }, [carregar])
 
+  // Troca o grupo direto na lista, sem abrir formulário: são 18 escolas
+  // e a alocação é a primeira coisa a fazer depois desta atualização.
+  // A linha muda na hora e só volta atrás se o banco recusar.
+  async function trocarGrupo(escola: EscolaAdmin, grupo: GrupoWit | null) {
+    const antes = escolas
+    setEscolas((lista) => lista.map((e) => (e.id === escola.id ? { ...e, grupo } : e)))
+    aoErro(null)
+    try {
+      await adminDefinirGrupoEscola(senha, escola.id, grupo)
+    } catch (falha) {
+      setEscolas(antes)
+      aoErro(falha instanceof Error ? falha.message : 'Não foi possível mudar o grupo.')
+    }
+  }
+
+  const semGrupo = escolas.filter((e) => !e.grupo).length
+
   return (
     <>
+      <p style={{ color: 'var(--texto-suave)', marginBottom: 18 }}>
+        O grupo de cada escola decide quais professores do Núcleo recebem o aviso quando alguém
+        agenda pelo site. Quem está em cada grupo fica na aba <strong>Equipe</strong>.
+      </p>
+
+      {semGrupo > 0 && !carregando && (
+        <Aviso tipo="info">
+          {semGrupo} escola(s) ainda sem grupo. O aviso de reserva delas vai para a equipe inteira
+          até alguém alocar — ninguém fica sem saber, mas chega em mais gente do que precisa.
+        </Aviso>
+      )}
+
       {carregando ? (
         <p className="carregando">Carregando…</p>
       ) : escolas.length === 0 ? (
@@ -361,7 +398,28 @@ function AbaEscolas({ senha, aoErro }: { senha: string; aoErro: (e: string | nul
                     {escola.reservas_futuras} reserva(s) futura(s)
                   </p>
                 </div>
-                <div className="acoes-linha">
+                <div className="acoes-linha" style={{ alignItems: 'center' }}>
+                  <label
+                    htmlFor={`grupo-${escola.id}`}
+                    style={{ fontSize: 14, color: 'var(--texto-suave)', margin: 0 }}
+                  >
+                    Grupo
+                  </label>
+                  <select
+                    id={`grupo-${escola.id}`}
+                    value={escola.grupo ?? ''}
+                    onChange={(e) =>
+                      void trocarGrupo(escola, (e.target.value || null) as GrupoWit | null)
+                    }
+                    style={{ width: 'auto', minWidth: 120 }}
+                  >
+                    <option value="">Sem grupo</option>
+                    {GRUPOS_WIT.map((g) => (
+                      <option key={g} value={g}>
+                        Grupo {g}
+                      </option>
+                    ))}
+                  </select>
                   <button
                     type="button"
                     className="secundario pequeno"

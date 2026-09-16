@@ -7,10 +7,13 @@ import type {
   ContextoPublico,
   DataIso,
   EscolaAdmin,
+  GrupoWit,
   Habilidade,
   HorarioAdmin,
   Comprovante,
   ImportacaoCanva,
+  MembroEquipe,
+  NotificacaoAdmin,
   Ocorrencia,
   OrigemReserva,
   Realizada,
@@ -150,6 +153,17 @@ export async function agendar(dados: {
       .invoke('enviar-confirmacao', { body: { protocolo: comprovante.protocolo } })
       .catch((erro) => console.warn('Falha ao enviar e-mail de confirmação', erro))
   }
+
+  // Cutuca a fila de avisos da equipe WIT para o e-mail sair em segundos
+  // em vez de esperar o cron do próximo minuto. É só pressa: o aviso já
+  // está enfileirado no banco pelo trigger, e o cron manda de qualquer
+  // jeito se esta chamada não completar. Por isso não tem `await`, não
+  // tem tratamento de erro além do aviso no console, e não passa pelo
+  // `emailHabilitado` — aquela chave liga a confirmação para o professor
+  // da escola, que é outro assunto.
+  void supabase.functions
+    .invoke('notificar-equipe', { body: {} })
+    .catch((erro) => console.warn('Falha ao acordar o aviso da equipe', erro))
 
   return { ...comprovante, data_aula: soData(comprovante.data_aula) }
 }
@@ -526,4 +540,62 @@ export function adminImportarHabilidades(senha: string, pares: { codigo: string;
       p_descricoes: pares.map((p) => p.descricao),
     },
   )
+}
+
+
+// ------------------------------------------------- equipe WIT e avisos
+
+/**
+ * Aloca (ou desaloca) uma escola na rotação. `null` tira a escola do
+ * grupo — e, enquanto ela estiver assim, o aviso de reserva nova dela
+ * vai para a equipe inteira, para não sumir do radar de ninguém.
+ */
+export function adminDefinirGrupoEscola(senha: string, escolaId: string, grupo: GrupoWit | null) {
+  return chamar<unknown>('admin_definir_grupo_escola', {
+    p_admin_token: senha,
+    p_escola_id: escolaId,
+    p_grupo: grupo,
+  })
+}
+
+export function adminListarEquipe(senha: string) {
+  return chamar<MembroEquipe[]>('admin_listar_equipe', { p_admin_token: senha })
+}
+
+export function adminSalvarMembroEquipe(
+  senha: string,
+  dados: {
+    id: string | null
+    nome: string
+    email: string
+    whatsapp: string | null
+    grupos: GrupoWit[]
+    ativo: boolean
+  },
+) {
+  return chamar<{ id: string }>('admin_salvar_membro_equipe', {
+    p_admin_token: senha,
+    p_id: dados.id,
+    p_nome: dados.nome,
+    p_email: dados.email,
+    p_whatsapp: dados.whatsapp,
+    p_grupos: dados.grupos,
+    p_ativo: dados.ativo,
+  })
+}
+
+export function adminRemoverMembroEquipe(senha: string, id: string) {
+  return chamar<unknown>('admin_remover_membro_equipe', { p_admin_token: senha, p_id: id })
+}
+
+export function adminListarNotificacoes(senha: string, limite = 30) {
+  return chamar<NotificacaoAdmin[]>('admin_listar_notificacoes', {
+    p_admin_token: senha,
+    p_limite: limite,
+  })
+}
+
+/** Devolve para a fila um aviso que falhou, depois de arrumar a causa. */
+export function adminReenfileirarNotificacao(senha: string, id: string) {
+  return chamar<unknown>('admin_reenfileirar_notificacao', { p_admin_token: senha, p_id: id })
 }
