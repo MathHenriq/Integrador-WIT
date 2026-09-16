@@ -1,13 +1,21 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
+  adminEquipeSemCobertura,
   adminListarEquipe,
+  adminListarEscolas,
   adminListarNotificacoes,
   adminReenfileirarNotificacao,
   adminRemoverMembroEquipe,
   adminSalvarMembroEquipe,
 } from '../lib/api'
 import { dataCurta, dataHora, emailValido } from '../lib/formato'
-import { GRUPOS_WIT, type GrupoWit, type MembroEquipe, type NotificacaoAdmin } from '../lib/tipos'
+import {
+  GRUPOS_WIT,
+  type EscolaAdmin,
+  type GrupoWit,
+  type MembroEquipe,
+  type NotificacaoAdmin,
+} from '../lib/tipos'
 import { Aviso } from './Aviso'
 
 type Props = {
@@ -22,10 +30,12 @@ type Rascunho = {
   nome: string
   email: string
   grupos: GrupoWit[]
+  /** Escolas avulsas, para quem cobre uma escola em vez da rotação. */
+  escolas: string[]
   ativo: boolean
 }
 
-const VAZIO: Rascunho = { id: null, nome: '', email: '', grupos: [], ativo: true }
+const VAZIO: Rascunho = { id: null, nome: '', email: '', grupos: [], escolas: [], ativo: true }
 
 const ROTULO_STATUS: Record<NotificacaoAdmin['status'], string> = {
   pendente: 'Na fila',
@@ -48,6 +58,8 @@ const CLASSE_STATUS: Record<NotificacaoAdmin['status'], string> = {
 
 export function AbaEquipe({ senha, aoErro }: Props) {
   const [equipe, setEquipe] = useState<MembroEquipe[]>([])
+  const [escolas, setEscolas] = useState<EscolaAdmin[]>([])
+  const [semCobertura, setSemCobertura] = useState(0)
   const [avisos, setAvisos] = useState<NotificacaoAdmin[]>([])
   const [carregando, setCarregando] = useState(true)
   const [rascunho, setRascunho] = useState<Rascunho>(VAZIO)
@@ -57,12 +69,16 @@ export function AbaEquipe({ senha, aoErro }: Props) {
   const carregar = useCallback(async () => {
     aoErro(null)
     try {
-      const [lista, fila] = await Promise.all([
+      const [lista, fila, todasEscolas, semCob] = await Promise.all([
         adminListarEquipe(senha),
         adminListarNotificacoes(senha, 20),
+        adminListarEscolas(senha),
+        adminEquipeSemCobertura(senha),
       ])
       setEquipe(lista)
       setAvisos(fila)
+      setEscolas(todasEscolas)
+      setSemCobertura(Number(semCob) || 0)
     } catch (falha) {
       aoErro(falha instanceof Error ? falha.message : 'Não foi possível carregar a equipe.')
     } finally {
@@ -73,6 +89,15 @@ export function AbaEquipe({ senha, aoErro }: Props) {
   useEffect(() => {
     void carregar()
   }, [carregar])
+
+  function adicionarEscola(id: string) {
+    if (!id) return
+    setRascunho((r) => (r.escolas.includes(id) ? r : { ...r, escolas: [...r.escolas, id] }))
+  }
+
+  function tirarEscola(id: string) {
+    setRascunho((r) => ({ ...r, escolas: r.escolas.filter((e) => e !== id) }))
+  }
 
   function alternarGrupo(grupo: GrupoWit) {
     setRascunho((r) => ({
@@ -102,6 +127,7 @@ export function AbaEquipe({ senha, aoErro }: Props) {
         nome: rascunho.nome.trim(),
         email: rascunho.email.trim(),
         grupos: rascunho.grupos,
+        escolas: rascunho.escolas,
         ativo: rascunho.ativo,
       })
       setRascunho(VAZIO)
@@ -164,6 +190,14 @@ export function AbaEquipe({ senha, aoErro }: Props) {
         </Aviso>
       )}
 
+      {semCobertura > 0 && (
+        <Aviso tipo="erro">
+          {semCobertura} cadastro(s) sem grupo e sem escola. Como as 18 escolas estão alocadas na
+          rotação, quem está assim <strong>nunca recebe nada</strong> — e sem dar erro em lugar
+          nenhum. Abra em "Editar" e marque um grupo ou uma escola.
+        </Aviso>
+      )}
+
       {recado && <Aviso tipo="sucesso">{recado}</Aviso>}
 
       <form className="cartao" style={{ marginBottom: 20 }} onSubmit={salvar}>
@@ -196,7 +230,7 @@ export function AbaEquipe({ senha, aoErro }: Props) {
           </div>
         </div>
 
-        <div>
+        <div className="linha-campos">
           <div className="campo">
             <label>Grupos da rotação</label>
             <div className="chips">
@@ -228,9 +262,67 @@ export function AbaEquipe({ senha, aoErro }: Props) {
               ))}
             </div>
             <p className="ajuda">
-              Dá para marcar mais de um. Sem nenhum marcado, o professor só recebe aviso de escola
-              que ainda não foi alocada.
+              Dá para marcar mais de um. Quem cobre a rotação inteira de um grupo marca só aqui.
             </p>
+          </div>
+
+          <div className="campo">
+            <label htmlFor="eq-escola">
+              Escolas avulsas <span className="opcional">(opcional)</span>
+            </label>
+            <select
+              id="eq-escola"
+              value=""
+              onChange={(e) => {
+                adicionarEscola(e.target.value)
+                e.target.value = ''
+              }}
+            >
+              <option value="">Adicionar uma escola…</option>
+              {escolas
+                .filter((e) => !rascunho.escolas.includes(e.id))
+                .map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.nome}
+                    {e.grupo ? ` · Grupo ${e.grupo}` : ''}
+                  </option>
+                ))}
+            </select>
+            <p className="ajuda">
+              Para quem atende <strong>uma escola específica</strong> em vez da rotação inteira. A
+              cobertura soma: quem tem grupo e escola recebe dos dois.
+            </p>
+
+            {rascunho.escolas.length > 0 && (
+              <div className="chips" style={{ marginTop: 10 }}>
+                {rascunho.escolas.map((id) => (
+                  <span
+                    key={id}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '6px 10px',
+                      border: '1px solid var(--borda-solida)',
+                      borderRadius: 'var(--raio-p)',
+                      background: 'var(--superficie-alta)',
+                      fontSize: 14,
+                    }}
+                  >
+                    {escolas.find((e) => e.id === id)?.nome ?? 'Escola'}
+                    <button
+                      type="button"
+                      className="secundario pequeno"
+                      onClick={() => tirarEscola(id)}
+                      aria-label="Tirar esta escola"
+                      style={{ padding: '1px 7px', lineHeight: 1.4 }}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -292,9 +384,14 @@ export function AbaEquipe({ senha, aoErro }: Props) {
                     {membro.email}
                   </p>
                   <p style={{ color: 'var(--texto-fraco)', fontSize: 14, marginTop: 4 }}>
-                    {membro.grupos.length > 0
-                      ? `Grupo ${membro.grupos.join(', ')}`
-                      : 'Sem grupo — só recebe de escola não alocada'}
+                    {[
+                      membro.grupos.length > 0 ? `Grupo ${membro.grupos.join(', ')}` : null,
+                      membro.escolas_nomes?.length > 0
+                        ? `Só ${membro.escolas_nomes.join(', ')}`
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ') || 'Sem cobertura — não recebe nada'}
                     {' · '}
                     {membro.avisos_30dias} aviso(s) em 30 dias
                   </p>
@@ -309,6 +406,7 @@ export function AbaEquipe({ senha, aoErro }: Props) {
                         nome: membro.nome,
                         email: membro.email,
                         grupos: membro.grupos,
+                        escolas: membro.escolas ?? [],
                         ativo: membro.ativo,
                       })
                     }

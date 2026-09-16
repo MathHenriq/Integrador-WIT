@@ -158,6 +158,11 @@ export type MembroEquipe = {
   nome: string
   email: string
   grupos: GrupoWit[]
+  /** Escolas que este professor cobre ALÉM (ou no lugar) dos grupos —
+   *  para quem atende uma escola específica, não a rotação inteira. */
+  escolas: string[]
+  /** Os nomes das mesmas escolas, para a tela não cruzar as listas. */
+  escolas_nomes: string[]
   ativo: boolean
   criado_em: string
   /** Quantos avisos chegaram nesse e-mail nos últimos 30 dias — a

@@ -569,6 +569,7 @@ export function adminSalvarMembroEquipe(
     nome: string
     email: string
     grupos: GrupoWit[]
+    escolas: string[]
     ativo: boolean
   },
 ) {
@@ -578,8 +579,19 @@ export function adminSalvarMembroEquipe(
     p_nome: dados.nome,
     p_email: dados.email,
     p_grupos: dados.grupos,
+    p_escolas: dados.escolas,
     p_ativo: dados.ativo,
   })
+}
+
+/**
+ * Quantos professores ativos não recebem de lugar nenhum — sem grupo e
+ * sem escola. Não é erro do banco (cadastrar primeiro e decidir a
+ * cobertura depois é legítimo), é aviso de tela: enquanto as 18 escolas
+ * estiverem alocadas, esse cadastro nunca recebe nada e não dá erro.
+ */
+export function adminEquipeSemCobertura(senha: string) {
+  return chamar<number>('admin_equipe_sem_cobertura', { p_admin_token: senha })
 }
 
 export function adminRemoverMembroEquipe(senha: string, id: string) {

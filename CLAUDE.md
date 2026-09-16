@@ -127,8 +127,19 @@ acima, e os dois casos são diferentes:
 A coluna `escolas.grupo` guarda **só a rotação**; a grade continua vindo de `horarios`, escola por
 escola. Uma nunca deve ser derivada da outra.
 
-Os professores do Núcleo ficam na aba "Equipe", cada um com e-mail e os grupos que cobre (pode ser
-mais de um); desmarcar "Recebendo avisos" pausa sem apagar.
+Os professores do Núcleo ficam na aba "Equipe"; desmarcar "Recebendo avisos" pausa sem apagar.
+
+A cobertura de cada um tem **duas partes que se somam**, e as duas podem ser vazias:
+
+- **grupos** — a rotação (pode marcar mais de um; a gestão marca os três).
+- **escolas avulsas** — para quem atende **uma escola específica** em vez da rotação inteira. Foi
+  o caso do profissional que cobre só a EMEF Professor Egídio Costa: pelo grupo ele receberia as
+  sete do W, e sem grupo não receberia nada — as duas erradas pelo mesmo motivo (e-mail que não é
+  seu ensina a ignorar; não receber é o problema que tudo isto resolve).
+
+**Cadastro sem grupo e sem escola não recebe nada** e não dá erro nenhum: como as 18 escolas estão
+alocadas, o fallback de "escola sem grupo" nunca dispara para ele. Por isso a aba conta esses
+cadastros e avisa em vermelho — é armadilha silenciosa, não erro de banco.
 
 O envio sai por um provedor de e-mail configurado em secret da função — **Brevo** enquanto o
 Núcleo não tiver domínio próprio (ela verifica um endereço só, um Gmail serve), **Resend** quando
