@@ -53,23 +53,31 @@ Estes quatro, de segunda a sexta, na maioria das escolas:
 | 07:20 – 08:50 | 09:20 – 10:50 |
 | 13:20 – 14:50 | 15:20 – 16:50 |
 
-### Escolas integrais (Grupo W da grade — não é o mesmo W da rotação)
+### Escolas integrais
 
 Período integral tem outra grade nos tempos 2 e 3 (1º e 4º tempos continuam iguais aos da tabela
-acima). Este "Grupo W" é o de **horário**, e tem cinco escolas; o Grupo W da **rotação de avisos**
-tem sete e é outra coisa (ver "Aviso de reserva nova", abaixo):
+acima):
 
 | | |
 | --- | --- |
 | 2ª aula | 10:00 – 12:00 |
 | 3ª aula | 13:00 – 14:40 |
 
-Grupo W: **Complexo Educacional Professor Carlos Osmarinho de Lima**, **EMEF Professor Ézio
+São **seis**: **Complexo Educacional Professor Carlos Osmarinho de Lima**, **EMEF Professor Ézio
 Berzaghi**, **EMEF Renato Rosa**, **EMEIEF Professor Eneias Raimundo da Silva**, **EMEF Professor
-Alfredo do Carmo**.
+Alfredo do Carmo** e **EMEF Prefeito Nestor de Camargo**.
 
-Caso à parte: **EMEF Professor Egídio Costa** só muda a 3ª aula (13:00 – 14:40); a 2ª continua no
-horário padrão (09:20 – 10:50).
+Dois casos que **não** devem ser "normalizados" para ficarem iguais aos outros:
+
+- **EMEF Prefeito Nestor de Camargo** é integral, mas com horário próprio: a segunda-feira dela
+  corre em 10:20, 15:00 e 16:10, diferente dos outros dias e das outras escolas. Confirmado com a
+  equipe — é assim mesmo.
+- **EMEF Professor Egídio Costa** não é integral: só a 3ª aula muda (13:00 – 14:40); a 2ª continua
+  no horário padrão (09:20 – 10:50).
+
+A grade de verdade de cada escola é a que está em `horarios`, no banco. Esta tabela é resumo, não
+fonte: quando as duas divergirem, quem manda é o banco, e a divergência se resolve perguntando à
+equipe — não igualando uma escola às vizinhas.
 
 ## Reservas
 
@@ -124,24 +132,12 @@ atual, gravada no banco, é esta:
 | **I** (5) | Francisco Zacarioto · João Tibúrcio · Dalva Fogaça · Rita de Jesus · Anna Irene Mazaro |
 | **T** (6) | Armando Cavazza · Júlio Gomes Camisão · Maria Medunekas · Benedito Adherbal · José Emidio · Elisabet Titto |
 
-⚠️ **"Grupo W" quer dizer duas coisas diferentes neste projeto, e confundir as duas quebra os
-horários de duas escolas:**
+⚠️ **O grupo W da rotação não é a lista de escolas integrais**, e confundir os dois estraga o
+horário de uma escola. São as seis integrais **mais a EMEF Professor Egídio Costa**, que não é
+integral (só a 3ª aula dela muda). Igualar a grade da Egídio às das integrais "porque todas são do
+grupo W" seria erro.
 
-- **Grupo W da grade** (seção "Escolas integrais", acima) — as **cinco** de período integral, que
-  têm 2ª aula 10:00–12:00 e 3ª aula 13:00–14:40. É sobre *horário*.
-- **Grupo W da rotação** — as **sete** acima, que é quem a equipe atende junto. É sobre *quem
-  recebe o e-mail de reserva nova*.
-
-Nestor de Camargo e Egídio Costa estão na rotação W sem constarem da lista de cinco integrais
-acima, e os dois casos são diferentes:
-
-- **Egídio Costa** é o caso à parte já documentado: 3ª aula 13:00–14:40, 2ª no horário padrão
-  (09:20). Igualar a grade dela às das integrais "porque as duas são do grupo W" seria erro.
-- **Nestor de Camargo** tem, no banco, a grade integral (10:00 e 13:00) — ou seja, a lista de
-  cinco integrais desta memória provavelmente está incompleta, e não o contrário. Confirmar com a
-  equipe antes de mexer em qualquer um dos dois lados.
-
-A coluna `escolas.grupo` guarda **só a rotação**; a grade continua vindo de `horarios`, escola por
+A coluna `escolas.grupo` guarda **só a rotação de avisos**; a grade vem de `horarios`, escola por
 escola. Uma nunca deve ser derivada da outra.
 
 Os professores do Núcleo ficam na aba "Equipe"; desmarcar "Recebendo avisos" pausa sem apagar.
