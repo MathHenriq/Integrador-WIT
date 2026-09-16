@@ -53,10 +53,11 @@ Estes quatro, de segunda a sexta, na maioria das escolas:
 | 07:20 – 08:50 | 09:20 – 10:50 |
 | 13:20 – 14:50 | 15:20 – 16:50 |
 
-### Escolas integrais (Grupo W)
+### Escolas integrais (Grupo W da grade — não é o mesmo W da rotação)
 
 Período integral tem outra grade nos tempos 2 e 3 (1º e 4º tempos continuam iguais aos da tabela
-acima):
+acima). Este "Grupo W" é o de **horário**, e tem cinco escolas; o Grupo W da **rotação de avisos**
+tem sete e é outra coisa (ver "Aviso de reserva nova", abaixo):
 
 | | |
 | --- | --- |
@@ -97,9 +98,36 @@ apagar o projeto integrador do dia X sobre 'tema'?").
 A equipe não vai atrás da reserva: a reserva vai atrás da equipe. Pedido feito pelo site vira
 e-mail na hora para os professores WIT responsáveis por aquela escola.
 
-A rotação tem três grupos, e **cada escola pertence a um**: `W` (as integrais, já semeado), `I` e
-`T`. A divisão de I e T é da equipe — ela aloca pelo select de cada linha na aba "Escolas". Os
-professores do Núcleo ficam na aba "Equipe", cada um com e-mail e os grupos que cobre (pode ser
+A rotação tem três grupos, e **cada escola pertence a um**. A divisão é da equipe; a alocação
+atual, gravada no banco, é esta:
+
+| Grupo | Escolas |
+| --- | --- |
+| **W** (7) | Carlos Osmarinho · Nestor de Camargo · Alfredo do Carmo · Egídio Costa · Ézio Berzaghi · Renato Rosa · Eneias Raimundo |
+| **I** (5) | Francisco Zacarioto · João Tibúrcio · Dalva Fogaça · Rita de Jesus · Anna Irene Mazaro |
+| **T** (6) | Armando Cavazza · Júlio Gomes Camisão · Maria Medunekas · Benedito Adherbal · José Emidio · Elisabet Titto |
+
+⚠️ **"Grupo W" quer dizer duas coisas diferentes neste projeto, e confundir as duas quebra os
+horários de duas escolas:**
+
+- **Grupo W da grade** (seção "Escolas integrais", acima) — as **cinco** de período integral, que
+  têm 2ª aula 10:00–12:00 e 3ª aula 13:00–14:40. É sobre *horário*.
+- **Grupo W da rotação** — as **sete** acima, que é quem a equipe atende junto. É sobre *quem
+  recebe o e-mail de reserva nova*.
+
+Nestor de Camargo e Egídio Costa estão na rotação W sem constarem da lista de cinco integrais
+acima, e os dois casos são diferentes:
+
+- **Egídio Costa** é o caso à parte já documentado: 3ª aula 13:00–14:40, 2ª no horário padrão
+  (09:20). Igualar a grade dela às das integrais "porque as duas são do grupo W" seria erro.
+- **Nestor de Camargo** tem, no banco, a grade integral (10:00 e 13:00) — ou seja, a lista de
+  cinco integrais desta memória provavelmente está incompleta, e não o contrário. Confirmar com a
+  equipe antes de mexer em qualquer um dos dois lados.
+
+A coluna `escolas.grupo` guarda **só a rotação**; a grade continua vindo de `horarios`, escola por
+escola. Uma nunca deve ser derivada da outra.
+
+Os professores do Núcleo ficam na aba "Equipe", cada um com e-mail e os grupos que cobre (pode ser
 mais de um); desmarcar "Recebendo avisos" pausa sem apagar.
 
 O envio sai por um provedor de e-mail configurado em secret da função — **Brevo** enquanto o
