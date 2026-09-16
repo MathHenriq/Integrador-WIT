@@ -174,8 +174,13 @@ export type StatusNotificacao = 'pendente' | 'enviando' | 'enviado' | 'falhou' |
 
 /** Uma linha da fila de avisos. Existe no painel para que "não chegou
  *  e-mail" deixe de ser adivinhação entre reserva, fila e provedor. */
+/** Os três avisos que a fila sabe mandar. Os dois últimos vão para o
+ *  professor da escola; o primeiro, para a equipe. */
+export type TipoNotificacao = 'reserva_nova' | 'reserva_recebida' | 'reserva_confirmada'
+
 export type NotificacaoAdmin = {
   id: string
+  tipo: TipoNotificacao
   status: StatusNotificacao
   tentativas: number
   destinatarios: string[]

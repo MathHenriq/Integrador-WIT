@@ -93,10 +93,27 @@ mantém o histórico com status `cancelado`, aparece no filtro "Canceladas"; rem
 (`admin_remover_reserva`) apaga a linha de vez, com confirmação antes ("Você tem certeza que quer
 apagar o projeto integrador do dia X sobre 'tema'?").
 
-### Aviso de reserva nova (rotação W / I / T)
+### Avisos por e-mail (rotação W / I / T e comprovante de quem agenda)
 
-A equipe não vai atrás da reserva: a reserva vai atrás da equipe. Pedido feito pelo site vira
-e-mail na hora para os professores WIT responsáveis por aquela escola.
+A equipe não vai atrás da reserva: a reserva vai atrás da equipe. E quem agenda não fica sem
+resposta. Uma reserva pelo site gera **até três e-mails**, todos na mesma fila:
+
+| `tipo` | Vai para | Quando |
+| --- | --- | --- |
+| `reserva_nova` | equipe WIT do grupo daquela escola | ao agendar |
+| `reserva_recebida` | professor **da escola** | ao agendar |
+| `reserva_confirmada` | professor **da escola** | quando a equipe confirma no painel |
+
+Os dois últimos só existem quando quem agendou informou e-mail — o agendamento aceita WhatsApp no
+lugar. Sem e-mail, a linha sai da fila como `dispensado`, não fica sendo tentada para sempre.
+
+`reserva_confirmada` é disparada por um trigger que olha a **transição** `aguardando_confirmacao →
+confirmado`, não o estado. Olhar o estado faria qualquer edição numa reserva já confirmada
+(corrigir a turma, anexar relato) mandar o e-mail de novo.
+
+Uma função de envio só (`notificar-equipe` — o nome ficou de quando ela só servia à equipe). Não
+criar uma segunda: a fila, o cron, as tentativas, o provedor e a tela de acompanhamento já existem,
+e duplicar isso é dobrar os lugares onde o envio pode falhar em silêncio.
 
 A rotação tem três grupos, e **cada escola pertence a um**. A divisão é da equipe; a alocação
 atual, gravada no banco, é esta:

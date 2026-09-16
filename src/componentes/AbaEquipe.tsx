@@ -15,6 +15,7 @@ import {
   type GrupoWit,
   type MembroEquipe,
   type NotificacaoAdmin,
+  type TipoNotificacao,
 } from '../lib/tipos'
 import { Aviso } from './Aviso'
 
@@ -36,6 +37,14 @@ type Rascunho = {
 }
 
 const VAZIO: Rascunho = { id: null, nome: '', email: '', grupos: [], escolas: [], ativo: true }
+
+/** Sem isto, "Enviado" em três linhas seguidas não diz se o que saiu foi
+ *  o aviso da equipe ou o comprovante de quem agendou. */
+const ROTULO_TIPO: Record<TipoNotificacao, string> = {
+  reserva_nova: 'Aviso da equipe',
+  reserva_recebida: 'Comprovante p/ quem agendou',
+  reserva_confirmada: 'Confirmação p/ quem agendou',
+}
 
 const ROTULO_STATUS: Record<NotificacaoAdmin['status'], string> = {
   pendente: 'Na fila',
@@ -431,8 +440,10 @@ export function AbaEquipe({ senha, aoErro }: Props) {
           e-mail" vira adivinhação entre reserva, fila e provedor. */}
       <h3 style={{ fontSize: 17, margin: '28px 0 6px' }}>Últimos avisos</h3>
       <p style={{ color: 'var(--texto-suave)', fontSize: 14, marginBottom: 14 }}>
-        Cada reserva feita pelo site entra nesta fila. "Na fila" some sozinho em até um minuto;
-        "Falhou" é problema de configuração do envio e fica aqui até alguém resolver.
+        Cada reserva feita pelo site gera até três avisos: um para a equipe do grupo e dois para
+        quem agendou (comprovante do pedido e, depois, a confirmação). "Na fila" some sozinho em
+        até um minuto; "Falhou" é problema de configuração do envio e fica aqui até alguém
+        resolver.
       </p>
 
       {avisos.length === 0 ? (
@@ -457,6 +468,9 @@ export function AbaEquipe({ senha, aoErro }: Props) {
                   <h3 style={{ fontSize: 16 }}>
                     <span className={`etiqueta ${CLASSE_STATUS[aviso.status]}`}>
                       {ROTULO_STATUS[aviso.status]}
+                    </span>{' '}
+                    <span className="etiqueta materia">
+                      {ROTULO_TIPO[aviso.tipo] ?? aviso.tipo}
                     </span>{' '}
                     {aviso.escola}
                   </h3>

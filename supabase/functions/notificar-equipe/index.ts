@@ -1,10 +1,21 @@
 // =====================================================================
 // Edge Function: notificar-equipe
 // =====================================================================
-// Manda para os professores do Núcleo WIT o aviso de que uma escola
-// pediu a sala. Ela não decide nada: só drena a fila que a migration
-// 0027 montou (`public.notificacoes`) e transforma cada linha em
-// e-mail.
+// Drena a fila de avisos (`public.notificacoes`) e transforma cada
+// linha em e-mail. Ela não decide nada: quem enfileira e quem recebe é
+// o banco.
+//
+// O nome ficou da 0027, quando só existia o aviso para a equipe. Desde
+// a 0029 ela manda para os dois lados, e o `tipo` da linha diz qual:
+//
+//   reserva_nova       -> equipe WIT: "tem pedido esperando confirmação"
+//   reserva_recebida   -> professor da escola: "seu pedido chegou"
+//   reserva_confirmada -> professor da escola: "está confirmado"
+//
+// Uma função só, de propósito: a fila, o cron, as tentativas, o
+// provedor e a tela de acompanhamento já existiam — duplicar tudo isso
+// para mandar um segundo e-mail seria o dobro de coisa para configurar
+// e o dobro de lugar onde falhar em silêncio.
 //
 // Quem chama:
 //   - o cron do banco, de minuto em minuto (pg_cron + pg_net) — é o
@@ -63,9 +74,11 @@ const CORS = {
  *  minuto seguinte, sem perder nada. */
 const LOTE = 20
 
+type Tipo = 'reserva_nova' | 'reserva_recebida' | 'reserva_confirmada'
+
 type Aviso = {
   id: string
-  tipo: string
+  tipo: Tipo
   tentativas: number
   destinatarios: string[]
   protocolo: string
@@ -123,11 +136,33 @@ function linha(rotulo: string, valor: string) {
   </tr>`
 }
 
-function montarEmail(aviso: Aviso, siteUrl: string | undefined) {
-  const quando = `${DIAS[aviso.dia_semana]}, ${dataExtensa(aviso.data_aula)}, das ${horaCurta(
-    aviso.hora_inicio,
-  )} às ${horaCurta(aviso.hora_fim)}`
+/** O cabeçalho verde e a moldura, iguais nos três tipos de aviso. */
+function moldura(etiqueta: string, titulo: string, subtitulo: string, corpo: string) {
+  return `
+    <div style="font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#1c1917;line-height:1.6;max-width:560px">
+      <p style="margin:0 0 4px;color:#00A651;font-size:13px;letter-spacing:.06em;text-transform:uppercase">
+        ${etiqueta}
+      </p>
+      <h2 style="margin:0 0 4px;font-size:21px">${titulo}</h2>
+      <p style="margin:0 0 20px;color:#57534e">${subtitulo}</p>
+      ${corpo}
+    </div>`
+}
 
+function botaoPainel(siteUrl: string | undefined) {
+  if (!siteUrl) return ''
+  return `<p style="margin:22px 0 0">
+    <a href="${escapar(siteUrl.replace(/\/+$/, ''))}/admin"
+       style="display:inline-block;background:#00A651;color:#fff;text-decoration:none;
+              padding:10px 18px;border-radius:6px;font-weight:600;font-size:15px">
+      Abrir o painel
+    </a>
+  </p>`
+}
+
+/** O aviso para a EQUIPE: o que ela precisa para ligar para o professor
+ *  e combinar a aula antes de confirmar. */
+function emailParaEquipe(aviso: Aviso, quando: string, siteUrl: string | undefined) {
   // O contato é o motivo do e-mail existir: é com ele que o professor do
   // dia liga/escreve para combinar a aula antes de confirmar.
   const contatos = [
@@ -148,16 +183,7 @@ function montarEmail(aviso: Aviso, siteUrl: string | undefined) {
     aviso.materiais ? linha('Materiais', escapar(aviso.materiais).replace(/\n/g, '<br>')) : '',
   ].join('')
 
-  const html = `
-    <div style="font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#1c1917;line-height:1.6;max-width:560px">
-      <p style="margin:0 0 4px;color:#00A651;font-size:13px;letter-spacing:.06em;text-transform:uppercase">
-        Projeto Integrador &middot; Núcleo WIT${aviso.grupo ? ` &middot; Grupo ${escapar(aviso.grupo)}` : ''}
-      </p>
-      <h2 style="margin:0 0 4px;font-size:21px">Reserva nova esperando confirmação</h2>
-      <p style="margin:0 0 20px;color:#57534e">
-        ${escapar(aviso.escola)}
-      </p>
-
+  const corpo = `
       <table cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:15px">
         ${linha('Quando', escapar(quando))}
         ${linha('Professor(a)', escapar(aviso.nome_professor))}
@@ -176,22 +202,79 @@ function montarEmail(aviso: Aviso, siteUrl: string | undefined) {
         Vale lembrar na conversa: o conteúdo é o que ele já vai dar. A gente
         entra com a tecnologia e monta a aula junto com ele.
       </p>
-      ${
-        siteUrl
-          ? `<p style="margin:22px 0 0">
-              <a href="${escapar(siteUrl.replace(/\/+$/, ''))}/admin"
-                 style="display:inline-block;background:#00A651;color:#fff;text-decoration:none;
-                        padding:10px 18px;border-radius:6px;font-weight:600;font-size:15px">
-                Abrir o painel
-              </a>
-            </p>`
-          : ''
-      }
-    </div>`
+      ${botaoPainel(siteUrl)}`
 
-  const assunto = `Reserva nova · ${aviso.escola} · ${dataExtensa(aviso.data_aula)}, ${horaCurta(aviso.hora_inicio)}`
+  return {
+    assunto: `Reserva nova · ${aviso.escola} · ${dataExtensa(aviso.data_aula)}, ${horaCurta(aviso.hora_inicio)}`,
+    html: moldura(
+      `Projeto Integrador &middot; Núcleo WIT${aviso.grupo ? ` &middot; Grupo ${escapar(aviso.grupo)}` : ''}`,
+      'Reserva nova esperando confirmação',
+      escapar(aviso.escola),
+      corpo,
+    ),
+  }
+}
 
-  return { html, assunto }
+/** Os avisos para o PROFESSOR DA ESCOLA. Dois momentos, e a diferença
+ *  entre eles é o que mais importa dizer: pedido registrado ainda não é
+ *  aula marcada; a equipe entra em contato antes de confirmar.
+ *
+ *  Nenhum dos dois pode sugerir que ele não precisa preparar nada — o
+ *  conteúdo é dele, e a aula é montada junto. */
+function emailParaProfessor(aviso: Aviso, quando: string, confirmada: boolean) {
+  const dados = `
+      <table cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:15px">
+        ${linha('Escola', escapar(aviso.escola))}
+        ${linha('Quando', escapar(quando))}
+        ${aviso.turma ? linha('Turma', escapar(aviso.turma)) : ''}
+        ${linha('Tema', escapar(aviso.atividade))}
+        ${linha('Protocolo', `<strong>${escapar(aviso.protocolo)}</strong>`)}
+      </table>`
+
+  const corpo = confirmada
+    ? `${dados}
+      <p style="margin:22px 0 0;font-size:15px">
+        Está tudo certo para a data acima. Até lá!
+      </p>
+      <p style="margin:10px 0 0;color:#57534e;font-size:14px">
+        Precisa remarcar ou cancelar? Use o protocolo na página
+        <strong>"Minha reserva"</strong> do site, ou responda este e-mail.
+      </p>`
+    : `${dados}
+      <p style="margin:22px 0 0;font-size:15px">
+        O horário está guardado para você. Antes de confirmar, alguém da equipe
+        WIT vai entrar em contato pelo e-mail ou WhatsApp que você informou,
+        para combinar como vai ser a aula.
+      </p>
+      <p style="margin:10px 0 0;color:#57534e;font-size:14px">
+        O conteúdo é o que você já vai dar com a turma — a gente entra com a
+        tecnologia e monta a proposta junto com você. Se precisar cancelar, use
+        o protocolo na página <strong>"Minha reserva"</strong> do site.
+      </p>`
+
+  return {
+    assunto: confirmada
+      ? `Reserva confirmada ${aviso.protocolo} — ${dataExtensa(aviso.data_aula)}`
+      : `Pedido recebido ${aviso.protocolo} — ${dataExtensa(aviso.data_aula)}`,
+    html: moldura(
+      'Projeto Integrador &middot; Núcleo WIT',
+      confirmada ? 'Sua aula está confirmada' : 'Recebemos seu pedido',
+      confirmada
+        ? 'A equipe WIT confirmou o projeto integrador da sua turma.'
+        : 'Ainda não é uma aula marcada — falta a equipe confirmar.',
+      corpo,
+    ),
+  }
+}
+
+function montarEmail(aviso: Aviso, siteUrl: string | undefined) {
+  const quando = `${DIAS[aviso.dia_semana]}, ${dataExtensa(aviso.data_aula)}, das ${horaCurta(
+    aviso.hora_inicio,
+  )} às ${horaCurta(aviso.hora_fim)}`
+
+  if (aviso.tipo === 'reserva_recebida') return emailParaProfessor(aviso, quando, false)
+  if (aviso.tipo === 'reserva_confirmada') return emailParaProfessor(aviso, quando, true)
+  return emailParaEquipe(aviso, quando, siteUrl)
 }
 
 /** "Núcleo WIT <avisos@exemplo.com>" -> as duas partes separadas. A
@@ -327,9 +410,10 @@ Deno.serve(async (req) => {
         destinatarios: aviso.destinatarios,
         assunto,
         html,
-        // Responder o e-mail cai direto no professor da escola, que é
-        // o que o professor do dia precisa fazer a seguir.
-        responderPara: aviso.email_contato,
+        // Só no aviso da equipe: responder cai direto no professor da
+        // escola, que é o passo seguinte de quem recebe. No aviso PARA
+        // esse professor, o reply-to seria ele mesmo.
+        responderPara: aviso.tipo === 'reserva_nova' ? aviso.email_contato : null,
       })
 
       if (!resposta.ok) {
