@@ -64,11 +64,15 @@ export function CriarDocumento({
   /** O relato da vitrine, montado como o importador do Canva monta. */
   const relato = useMemo(() => {
     const partes: string[] = []
+    // O curso entra no relato como no registro rápido: é o único lugar
+    // onde ele fica gravado, e é de lá que sai o campo "Curso" quando o
+    // documento precisa ser refeito depois (ver `documento/refazer.ts`).
+    if (curso.trim()) partes.push(`Curso: ${curso.trim()}`)
     if (descricao.trim()) partes.push(descricao.trim())
     if (objetivos.trim()) partes.push(`Objetivos de aprendizagem\n${objetivos.trim()}`)
     if (materiais.trim()) partes.push(`Materiais e recursos\n${materiais.trim()}`)
     return partes.join('\n\n')
-  }, [descricao, objetivos, materiais])
+  }, [curso, descricao, objetivos, materiais])
 
   async function receberFotos(lista: FileList | null) {
     if (!lista || lista.length === 0) return

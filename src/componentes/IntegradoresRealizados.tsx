@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { EditorReserva } from './EditorReserva'
 import { EtiquetaOrigem, EtiquetaSituacao } from './Etiqueta'
 import { adminListarEscolas, adminListarReservas, adminRemoverReserva } from '../lib/api'
+import { baixar, refazerDocumento } from '../lib/documento/refazer'
 import { dataCurta, faixaHoraria, situacaoDoIntegrador } from '../lib/formato'
 import { pedirRelatoEFotos } from '../lib/relato'
 import type { EscolaAdmin, ReservaAdmin, SituacaoIntegrador } from '../lib/tipos'
@@ -40,6 +41,7 @@ export function IntegradoresRealizados({
   const [de, setDe] = useState('')
   const [ate, setAte] = useState('')
   const [editando, setEditando] = useState<ReservaAdmin | null>(null)
+  const [baixando, setBaixando] = useState<string | null>(null)
 
   const carregar = useCallback(async () => {
     aoErro(null)
@@ -106,6 +108,31 @@ export function IntegradoresRealizados({
       if (await pedirRelatoEFotos(senha, reserva)) await carregar()
     } catch (f) {
       aoErro(f instanceof Error ? f.message : 'Não foi possível salvar o relato.')
+    }
+  }
+
+  /**
+   * O documento em PDF de um projeto que já está registrado. Ele não fica
+   * guardado em lugar nenhum — é remontado aqui, na hora, com os campos e
+   * as fotos da própria reserva. Vale para os projetos importados do
+   * Canva, para os gerados pelo site e para os que entraram pela aba
+   * "Registrar projeto", que nunca tiveram documento.
+   */
+  async function baixarDocumento(reserva: ReservaAdmin) {
+    aoErro(null)
+    setBaixando(reserva.id)
+    try {
+      const { bytes, nome, perdidas } = await refazerDocumento(reserva)
+      baixar(bytes, nome)
+      if (perdidas > 0) {
+        aoErro(
+          `O documento saiu, mas ${perdidas} foto(s) desta aula não abriram e ficaram de fora dele.`,
+        )
+      }
+    } catch (f) {
+      aoErro(f instanceof Error ? f.message : 'Não foi possível montar o documento.')
+    } finally {
+      setBaixando(null)
     }
   }
 
@@ -276,6 +303,19 @@ export function IntegradoresRealizados({
                             : '+ Relato e fotos'}
                         </button>
                       )}
+                      {situacao !== 'cancelada' &&
+                        (situacao === 'realizada' ||
+                          !!reserva.relato ||
+                          reserva.fotos.length > 0) && (
+                          <button
+                            type="button"
+                            className="fantasma pequeno"
+                            onClick={() => void baixarDocumento(reserva)}
+                            disabled={baixando === reserva.id}
+                          >
+                            {baixando === reserva.id ? 'Montando…' : 'Baixar documento'}
+                          </button>
+                        )}
                       <button
                         type="button"
                         className="fantasma pequeno"

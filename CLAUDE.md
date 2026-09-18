@@ -270,6 +270,15 @@ e devolve o PDF pronto, no mesmo desenho, com as fotos dentro — e publica a au
 PDF é montado no navegador (`src/lib/documento/`) e sobe pelo mesmo caminho de um arquivo do Canva.
 Quando o template mudar no Canva, rode `ferramentas/extrair-modelo.mts` com um documento exportado.
 
+**O PDF nunca fica guardado, e é assim de propósito.** Ele é montado no navegador e existe só
+naquela tela. Quem precisar dele de novo — ou quem registrou pela aba "Registrar projeto", que não
+gera documento nenhum — usa o botão **"Baixar documento"** de cada linha em "Integradores
+realizados": o PDF é remontado na hora com os campos e as fotos da própria reserva
+(`src/lib/documento/refazer.ts`). Não criar balde nem coluna para guardar o arquivo: seria mais um
+lugar onde ele pode sumir, e não serviria para os projetos que já estão registrados. O **curso**
+depende disso: como não tem coluna, ele fica no relato, na linha `Curso: X`, nas duas telas que
+publicam aula.
+
 **O documento importado vale duas vezes.** Além de registrar o que a turma fez, ele **abre a
 atividade no catálogo** (tema, descrição, objetivos, materiais e o ano da turma), para outro
 professor poder escolher a mesma proposta ao agendar. Importar o mesmo tema de novo reaproveita a

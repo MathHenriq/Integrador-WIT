@@ -242,6 +242,7 @@ abrir a atividade no catálogo.
 | `src/lib/documento/montar.ts` | o layout do documento, medida por medida |
 | `src/lib/documento/modelo.ts` | o logo e a marca d'água, gerados pela ferramenta |
 | `src/componentes/CriarDocumento.tsx` | o formulário e as fotos |
+| `src/lib/documento/refazer.ts` | remonta o documento de um projeto já registrado |
 | `ferramentas/extrair-modelo.mts` | tira o logo e a marca de um PDF do Canva |
 | `ferramentas/conferir-gerador.mts` | gera um documento e o passa pelo importador |
 
@@ -265,6 +266,22 @@ metade do alfabeto, então não dava para reaproveitar.)
 **A prova é o round-trip.** `ferramentas/conferir-gerador.mts` gera um documento e o entrega ao
 extrator do importador: os nove campos voltam idênticos ao que entrou. Se o leitor do Canva lê o
 que o gerador escreve, os dois lados falam do mesmo documento.
+
+**O PDF não fica guardado — ele é refeito.** Nada no sistema armazena o arquivo: o balde
+`fotos-aulas` guarda fotos, e `importacoes_canva` guarda os campos lidos, não o documento. Enquanto
+o PDF só existia como `blob:` na tela "Documento pronto", quem trocasse de aba, atualizasse a
+página ou tivesse o download automático bloqueado ficava sem ele e sem nenhum jeito de pedir de
+novo — e quem registrou pela aba "Registrar projeto" nunca teve documento nenhum. Por isso cada
+linha da aba "Integradores realizados" tem **"Baixar documento"**: `refazer.ts` remonta o PDF na
+hora, com os campos e as fotos da própria reserva, pelo mesmo `montarDocumento`. Guardar o arquivo
+no Storage resolveria só os próximos; refazer resolve também os que já estão lá atrás — e não cria
+mais um lugar onde o arquivo pode sumir.
+
+Para isso o **curso** precisa estar gravado, e ele não tem coluna: mora dentro do relato, na linha
+`Curso: X`, do mesmo jeito nas duas telas que publicam aula (o registro rápido já fazia assim; o
+gerador passou a fazer). `partesDoRelato` lê o relato de volta nos quatro campos do documento —
+curso, descrição, objetivos e materiais. Relato escrito à mão, sem título nenhum, vira descrição
+inteira, que é o que ele é.
 
 **Uma liberdade em relação ao original:** o texto sempre cabe. O bloco diminui a letra até entrar
 na caixa, em vez de transbordar como acontece no Canva quando alguém escreve demais.
