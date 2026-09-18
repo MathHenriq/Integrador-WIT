@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Aviso } from './Aviso'
 import { SeletorDeFotos } from './SeletorDeFotos'
 import { adminImportarAulaRealizada, adminListarEscolas, adminListarHorarios } from '../lib/api'
+import { baixar, refazerDocumento } from '../lib/documento/refazer'
 import { dataExtensa, faixaHoraria, faixaHorariaNaGrade, paraData } from '../lib/formato'
 import type { AulaImportada, EscolaAdmin, HorarioAdmin, OrigemReserva } from '../lib/tipos'
 
@@ -140,6 +141,10 @@ export function RegistrarProjeto({
     return (
       <Registrado
         aula={registrado}
+        turma={turma.trim() || null}
+        professor={professor.trim()}
+        relato={relato || null}
+        aoErro={aoErro}
         aoRecomecar={() => {
           setRegistrado(null)
           setEscolaId('')
@@ -161,9 +166,10 @@ export function RegistrarProjeto({
   return (
     <>
       <p style={{ color: 'var(--texto-suave)', marginBottom: 18 }}>
-        Para quando o projeto integrador aconteceu sem passar pelo agendamento do site — a Equipe
-        WIT fechou direto com o professor. Preencha o essencial e a aula já entra na vitrine de
-        realizadas, sem precisar montar documento nenhum.
+        Onde entra o projeto integrador que já aconteceu — o que a escola agendou pelo site e o que
+        a Equipe WIT fechou direto com o professor. Preencha os campos, e no fim você tem as duas
+        coisas: a aula na vitrine de realizadas e o <strong>documento em PDF</strong> pronto para
+        baixar, no mesmo desenho do Canva.
       </p>
 
       <div className="cartao" style={{ marginBottom: 20 }}>
@@ -370,11 +376,51 @@ export function RegistrarProjeto({
 
 function Registrado({
   aula,
+  turma,
+  professor,
+  relato,
+  aoErro,
   aoRecomecar,
 }: {
   aula: AulaImportada
+  turma: string | null
+  professor: string
+  relato: string | null
+  aoErro: (e: string | null) => void
   aoRecomecar: () => void
 }) {
+  const [baixando, setBaixando] = useState(false)
+
+  /**
+   * O documento desta aula, montado agora a partir do que acabou de ser
+   * gravado. Não é um arquivo guardado em algum lugar: é o mesmo PDF que
+   * a linha desta aula devolve depois, na aba "Integradores realizados" —
+   * aqui ele fica à mão para quem veio justamente buscá-lo.
+   */
+  async function baixarDocumento() {
+    aoErro(null)
+    setBaixando(true)
+    try {
+      const { bytes, nome, perdidas } = await refazerDocumento({
+        escola_nome: aula.escola_nome,
+        data_aula: aula.data_aula,
+        turma,
+        nome_professor: professor,
+        aula_titulo: aula.titulo,
+        relato,
+        fotos: aula.fotos,
+      })
+      baixar(bytes, nome)
+      if (perdidas > 0) {
+        aoErro(`O documento saiu, mas ${perdidas} foto(s) não abriram e ficaram de fora dele.`)
+      }
+    } catch (falha) {
+      aoErro(falha instanceof Error ? falha.message : 'Não foi possível montar o documento.')
+    } finally {
+      setBaixando(false)
+    }
+  }
+
   return (
     <div className="cartao">
       <h2 style={{ fontSize: 20, marginBottom: 8 }}>Projeto registrado</h2>
@@ -383,11 +429,22 @@ function Registrado({
         {faixaHoraria(aula.hora_inicio, aula.hora_fim)}.
       </p>
 
+      <div className="acoes-linha" style={{ marginBottom: 18 }}>
+        <button type="button" onClick={() => void baixarDocumento()} disabled={baixando}>
+          {baixando ? 'Montando o documento…' : 'Baixar o documento'}
+        </button>
+        <Link className="botao secundario" to="/realizadas">
+          Ver na vitrine
+        </Link>
+      </div>
+
       <Aviso tipo="sucesso">
         {aula.anexada
           ? `Entrou na reserva ${aula.protocolo}, que já existia para esta turma nesta data.`
           : `Registrado como ${aula.protocolo}, com ${aula.fotos.length} foto(s).`}
       </Aviso>
+
+      {aula.aviso && <Aviso tipo="info">{aula.aviso}</Aviso>}
 
       {aula.aula_id && (
         <Aviso tipo="info">
@@ -398,14 +455,14 @@ function Registrado({
         </Aviso>
       )}
 
-      <div className="acoes-linha" style={{ marginTop: 14 }}>
-        <Link className="botao secundario" to="/realizadas">
-          Ver na vitrine
-        </Link>
-      </div>
+      <p className="ajuda" style={{ marginTop: 14 }}>
+        O documento não fica guardado em lugar nenhum: ele é montado na hora, sempre que alguém
+        pede. Precisando dele de novo, é na aba "Integradores realizados", no botão "Baixar
+        documento" desta aula.
+      </p>
 
       <div className="acoes-formulario" style={{ marginTop: 6 }}>
-        <button type="button" onClick={aoRecomecar}>
+        <button type="button" className="secundario" onClick={aoRecomecar}>
           Registrar outro projeto
         </button>
       </div>

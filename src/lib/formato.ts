@@ -189,10 +189,17 @@ export const ROTULO_ORIGEM: Record<OrigemReserva, string> = {
 export function situacaoDoIntegrador(reserva: {
   status: StatusReserva
   ja_aconteceu: boolean
+  relato?: string | null
+  fotos?: string[]
 }): SituacaoIntegrador {
   if (reserva.status === 'cancelado') return 'cancelada'
   if (reserva.status === 'aguardando_confirmacao') return 'aguardando'
-  return reserva.ja_aconteceu ? 'realizada' : 'agendada'
+  // Relatada é realizada, mesmo que o tempo dela ainda não tenha
+  // terminado: é o registro retroativo do próprio dia. Chamar de
+  // "agendada" a aula que acabou de ser registrada, com foto e tudo,
+  // é a mesma confusão que a vitrine tinha (migration 0030).
+  if (reserva.ja_aconteceu) return 'realizada'
+  return reserva.relato || (reserva.fotos?.length ?? 0) > 0 ? 'realizada' : 'agendada'
 }
 
 export function emailValido(valor: string) {

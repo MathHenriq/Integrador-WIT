@@ -73,7 +73,7 @@ export function IntegradoresRealizados({
    */
   const agora = useMemo(() => {
     const nomes = reservas
-      .filter((r) => r.status === 'confirmado' && !r.ja_aconteceu)
+      .filter((r) => situacaoDoIntegrador(r) === 'agendada')
       .map((r) => r.escola_nome)
     return [...new Set(nomes)].sort((a, b) => a.localeCompare(b, 'pt-BR'))
   }, [reservas])

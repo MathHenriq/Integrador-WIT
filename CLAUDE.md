@@ -179,6 +179,19 @@ Detalhe que não deve ser "simplificado": a reivindicação da fila usa `for upd
 porque os dois disparos podem cair na mesma linha. E-mail repetido é o caminho mais curto para a
 equipe aprender a ignorar o aviso.
 
+### Aula relatada entra na vitrine na hora
+
+A vitrine mostrava a aula só depois que o horário dela terminava. A regra protege o caso certo (uma
+reserva de sexta não pode aparecer como realizada na quarta), mas pegava junto o registro
+retroativo do próprio dia: a aula era às 13:20, o registro às 14:10, e a tela mandava "ver na
+vitrine" — onde ela só apareceria às 14:50. Sumia sem ter sumido.
+
+O que separa os dois casos não é o relógio, é **ter relato ou foto**: ninguém relata aula que ainda
+não aconteceu, e a `admin_importar_aula_realizada` recusa data no futuro. Desde a migration `0030`,
+entra na vitrine a aula cujo tempo já passou **ou** a que já foi relatada, com data não futura.
+Reserva agendada continua de fora. O painel usa a mesma régua em `situacaoDoIntegrador`, senão o
+projeto recém-registrado apareceria como "Agendada" na lista e como realizada na vitrine.
+
 ### Horário fechado fecha agendamento, não fecha registro
 
 Desativar um horário na aba "Horários" (fica "Fora da grade") tira o tempo do calendário público.
@@ -265,19 +278,22 @@ informar, porque o "primeiro tempo livre" é uma escolha arbitrária entre os ho
 dia, sem nenhuma relação com o horário real da aula. Foi exatamente isso que causou um projeto da
 EMEF Rita de Jesus ser gravado às 07:20 quando a aula tinha sido às 09:20.
 
-**O site também gera o documento.** A aba "Novo documento" do painel tem os mesmos campos do Canva
-e devolve o PDF pronto, no mesmo desenho, com as fotos dentro — e publica a aula na mesma hora. O
-PDF é montado no navegador (`src/lib/documento/`) e sobe pelo mesmo caminho de um arquivo do Canva.
-Quando o template mudar no Canva, rode `ferramentas/extrair-modelo.mts` com um documento exportado.
+**O site também gera o documento, e a porta é uma só: "Registrar projeto".** Existia uma aba
+separada, "Novo documento", com os mesmos campos — foi removida. Ela fazia menos do que a de
+registro (não perguntava o horário da aula, que é o campo que já gravou um projeto no tempo errado)
+e mantinha duas telas para a mesma coisa. Hoje: preenche em "Registrar projeto", a aula entra na
+vitrine e a tela de sucesso tem **"Baixar o documento"**. O PDF é montado no navegador
+(`src/lib/documento/`). Quando o template mudar no Canva, rode `ferramentas/extrair-modelo.mts` com
+um documento exportado.
 
-**O PDF nunca fica guardado, e é assim de propósito.** Ele é montado no navegador e existe só
-naquela tela. Quem precisar dele de novo — ou quem registrou pela aba "Registrar projeto", que não
-gera documento nenhum — usa o botão **"Baixar documento"** de cada linha em "Integradores
-realizados": o PDF é remontado na hora com os campos e as fotos da própria reserva
+**O PDF nunca fica guardado, e é assim de propósito.** Ele é montado na hora, toda vez que
+alguém pede — na tela de sucesso do registro e no botão **"Baixar documento"** de cada linha em
+"Integradores realizados", que remonta o arquivo com os campos e as fotos da própria reserva
 (`src/lib/documento/refazer.ts`). Não criar balde nem coluna para guardar o arquivo: seria mais um
 lugar onde ele pode sumir, e não serviria para os projetos que já estão registrados. O **curso**
-depende disso: como não tem coluna, ele fica no relato, na linha `Curso: X`, nas duas telas que
-publicam aula.
+depende disso: como não tem coluna, ele fica no relato, na linha `Curso: X`. Editar o relato à mão
+apagando os títulos "Objetivos de aprendizagem" e "Materiais e recursos" é o jeito de estragar um
+documento sem perceber — é de lá que esses campos voltam.
 
 **O lote é o caso do coordenador**, que manda ao gestor da prefeitura os projetos de um período:
 o botão "Baixar documentos em lote" pergunta o período e a escola e devolve um ZIP com um PDF por

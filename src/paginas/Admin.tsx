@@ -4,7 +4,6 @@ import { AdminHorarios } from '../componentes/AdminHorarios'
 import { Aviso } from '../componentes/Aviso'
 import { EditorAula } from '../componentes/EditorAula'
 import { EtiquetaOrigem, EtiquetaReserva } from '../componentes/Etiqueta'
-import { CriarDocumento } from '../componentes/CriarDocumento'
 import { ImportarCanva } from '../componentes/ImportarCanva'
 import { IntegradoresRealizados } from '../componentes/IntegradoresRealizados'
 import { LogoWit } from '../componentes/LogoWit'
@@ -22,7 +21,7 @@ import {
   carregarContexto,
   listarHabilidades,
 } from '../lib/api'
-import { ANOS_ESCOLARES, dataCurta, faixaHoraria, rotuloAnos } from '../lib/formato'
+import { ANOS_ESCOLARES, dataCurta, faixaHoraria, rotuloAnos, situacaoDoIntegrador } from '../lib/formato'
 import { pedirRelatoEFotos } from '../lib/relato'
 import { GRUPOS_WIT } from '../lib/tipos'
 import type { AulaAdmin, EscolaAdmin, GrupoWit, Habilidade, Materia, ReservaAdmin } from '../lib/tipos'
@@ -35,7 +34,6 @@ type Aba =
   | 'equipe'
   | 'reservas'
   | 'integradores'
-  | 'documento'
   | 'canva'
   | 'bncc'
 
@@ -170,9 +168,6 @@ function Painel({ senha, aoSair }: { senha: string; aoSair: () => void }) {
         >
           Integradores realizados
         </button>
-        <button role="tab" aria-selected={aba === 'documento'} onClick={() => setAba('documento')}>
-          Novo documento
-        </button>
         <button role="tab" aria-selected={aba === 'canva'} onClick={() => setAba('canva')}>
           Importar do Canva
         </button>
@@ -187,7 +182,6 @@ function Painel({ senha, aoSair }: { senha: string; aoSair: () => void }) {
       {aba === 'equipe' && <AbaEquipe senha={senha} aoErro={setErro} />}
       {aba === 'reservas' && <AbaReservas senha={senha} aoErro={setErro} />}
       {aba === 'integradores' && <IntegradoresRealizados senha={senha} aoErro={setErro} />}
-      {aba === 'documento' && <CriarDocumento senha={senha} aoErro={setErro} />}
       {aba === 'canva' && <ImportarCanva senha={senha} aoErro={setErro} />}
       {aba === 'bncc' && <AbaBncc senha={senha} materias={materias} aoErro={setErro} />}
     </main>
@@ -467,7 +461,7 @@ function AbaReservas({ senha, aoErro }: { senha: string; aoErro: (e: string | nu
   const reservadas = useMemo(() => {
     const porEscola = new Map<string, { nome: string; quantas: number; proxima: string }>()
     for (const r of reservas) {
-      if (r.status !== 'confirmado' || r.ja_aconteceu) continue
+      if (situacaoDoIntegrador(r) !== 'agendada') continue
       const atual = porEscola.get(r.escola_id)
       if (atual) {
         atual.quantas += 1

@@ -122,13 +122,33 @@ async function fotoEmJpeg(
 }
 
 /**
- * Remonta o documento de uma reserva já registrada.
+ * O que o documento precisa saber sobre a aula.
+ *
+ * Uma `ReservaAdmin` serve como está — tem todos estes campos. O tipo
+ * existe mais estreito porque a tela que acabou de registrar o projeto
+ * ainda não tem uma reserva na mão: tem o que ela mesma preencheu, e
+ * isso basta.
+ */
+export type AulaParaDocumento = {
+  escola_nome: string
+  data_aula: string
+  turma: string | null
+  nome_professor: string
+  aula_titulo: string | null
+  aula_objetivos?: string | null
+  aula_materiais?: string | null
+  relato: string | null
+  fotos: string[]
+}
+
+/**
+ * Remonta o documento de uma aula já registrada.
  *
  * Devolve também quantas fotos ficaram de fora: foto que não abre não
  * pode derrubar o documento inteiro — o resto da aula continua valendo —
  * mas quem baixou precisa saber que o arquivo saiu incompleto.
  */
-export async function refazerDocumento(reserva: ReservaAdmin) {
+export async function refazerDocumento(reserva: AulaParaDocumento) {
   // O montador carrega junto o modelo do Canva, que é grande. Só entra
   // no navegador de quem realmente pediu um documento.
   const [{ montarDocumento }, { medidasDoJpeg }] = await Promise.all([

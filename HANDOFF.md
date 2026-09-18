@@ -232,21 +232,35 @@ nada garante que a RPC o cumpra — quando mexer numa das pontas, confira a outr
 
 ### 2.4 Gerador do documento — **pronto**
 
-O caminho contrário do importador: a aba "Novo documento" do painel tem os mesmos campos do Canva,
-recebe as fotos e **devolve o PDF pronto**, no mesmo desenho — além de publicar a aula realizada e
-abrir a atividade no catálogo.
+O caminho contrário do importador: os mesmos campos do Canva, as fotos, e **o PDF pronto** no mesmo
+desenho — além de publicar a aula realizada e abrir a atividade no catálogo.
+
+**A porta é uma só: a aba "Registrar projeto".** Havia uma segunda aba, "Novo documento", com os
+mesmos campos; foi removida. Ela fazia *menos* do que a de registro — não perguntava o horário da
+aula, justamente o campo cuja falta já gravou um projeto da Rita de Jesus às 07:20 quando a aula
+foi às 09:20 — e mantinha duas telas para a mesma tarefa. Hoje o documento sai na tela de sucesso
+do registro ("Baixar o documento") e, depois, no botão de cada linha em "Integradores realizados".
 
 | onde | o quê |
 | --- | --- |
 | `src/lib/documento/escritor.ts` | escritor de PDF: caixas, texto, JPEG e páginas |
 | `src/lib/documento/montar.ts` | o layout do documento, medida por medida |
 | `src/lib/documento/modelo.ts` | o logo e a marca d'água, gerados pela ferramenta |
-| `src/componentes/CriarDocumento.tsx` | o formulário e as fotos |
+| `src/componentes/RegistrarProjeto.tsx` | o formulário, as fotos e o botão de baixar |
 | `src/lib/documento/refazer.ts` | remonta o documento de um projeto já registrado |
 | `src/lib/documento/pacote.ts` | escreve o ZIP e monta o lote de documentos |
 | `src/componentes/PacoteDeDocumentos.tsx` | o diálogo do lote (período e escola) |
 | `ferramentas/extrair-modelo.mts` | tira o logo e a marca de um PDF do Canva |
 | `ferramentas/conferir-gerador.mts` | gera um documento e o passa pelo importador |
+
+**A vitrine não espera o horário terminar** (migration `0030`). A regra antiga —
+`data_aula + hora_fim < agora` — mandava embora o registro retroativo do mesmo dia: aula às 13:20,
+registro às 14:10, "ver na vitrine" e nada lá até as 14:50. O que separa uma aula dada de uma
+reserva futura não é o relógio, é ter relato ou foto (ninguém relata aula que não aconteceu, e a
+RPC recusa data futura). `situacaoDoIntegrador` no front usa a mesma régua, senão a mesma aula
+apareceria "Agendada" no painel e realizada na vitrine. Conferido antes de aplicar, com uma tabela
+dos seis casos: só o registro retroativo do próprio dia muda de resposta; nenhuma linha existente
+entrou ou saiu.
 
 **Roda no navegador, não no servidor.** O PDF é montado na máquina de quem preencheu e sobe pelo
 **mesmo caminho de um PDF do Canva**: a Edge Function `importar-canva` hospeda as fotos e registra
@@ -414,9 +428,10 @@ Palavra é comparada pelas seis primeiras letras justamente por causa disso.
 A `0017` limpa o catálogo de aulas e o histórico de reservas (tudo era teste — o acervo próprio
 da equipe entra por cima, limpo) e acrescenta a `reservas.origem` (`equipe_wit` | `escola`):
 quem conseguiu aquele projeto integrador foi a Equipe WIT direto com o professor, ou foi a escola
-que reservou pelo site. O `agendar()` público sempre grava `escola`; as três telas do painel que
+que reservou pelo site. O `agendar()` público sempre grava `escola`; as telas do painel que
 publicam aula realizada perguntam a origem, com **Equipe WIT** pré-marcado, porque é o caso comum
-delas: `RegistrarProjeto.tsx`, `CriarDocumento.tsx` e a conferência do `ImportarCanva.tsx`. A
+delas: `RegistrarProjeto.tsx` e a conferência do `ImportarCanva.tsx` (eram três, com o
+`CriarDocumento.tsx` da aba "Novo documento", que saiu). A
 origem só é gravada quando a reserva **nasce** ali — se o relato entra numa reserva que já
 existia (o professor tinha agendado pelo site), a origem de quem agendou não muda. Aparece como
 etiqueta na aba Reservas e na aba Integradores realizados.
