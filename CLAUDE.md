@@ -279,6 +279,12 @@ lugar onde ele pode sumir, e não serviria para os projetos que já estão regis
 depende disso: como não tem coluna, ele fica no relato, na linha `Curso: X`, nas duas telas que
 publicam aula.
 
+**O lote é o caso do coordenador**, que manda ao gestor da prefeitura os projetos de um período:
+o botão "Baixar documentos em lote" pergunta o período e a escola e devolve um ZIP com um PDF por
+projeto. Um ZIP, não vários downloads — o navegador bloqueia download em série, e é um anexo só que
+vai no e-mail. Nome de cada arquivo: `Projeto Integrador - Escola - AAAA-MM-DD.pdf`, com a data em
+ISO para a pasta ordenar sozinha.
+
 **O documento importado vale duas vezes.** Além de registrar o que a turma fez, ele **abre a
 atividade no catálogo** (tema, descrição, objetivos, materiais e o ano da turma), para outro
 professor poder escolher a mesma proposta ao agendar. Importar o mesmo tema de novo reaproveita a

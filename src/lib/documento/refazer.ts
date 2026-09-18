@@ -14,9 +14,28 @@
 // os próximos; refazer resolve também os que já estão lá atrás.
 // =====================================================================
 
+import { situacaoDoIntegrador } from '../formato'
 import { paraJpeg } from '../imagem'
 import type { FotoParaDocumento } from './montar.ts'
 import type { ReservaAdmin } from '../tipos'
+
+/**
+ * Se vale a pena refazer o documento desta reserva.
+ *
+ * Documento é de aula que aconteceu. Cancelada não tem documento; e uma
+ * aula ainda por vir só entra quando já tem relato ou foto — que é o
+ * caso da aula registrada hoje, cujo tempo ainda não terminou e que por
+ * isso o sistema ainda chama de "agendada".
+ *
+ * Mora aqui porque o botão de cada linha e o pacote em lote precisam
+ * responder a mesma coisa: duas regras parecidas viravam duas respostas
+ * diferentes para o mesmo projeto.
+ */
+export function valeDocumento(reserva: ReservaAdmin) {
+  const situacao = situacaoDoIntegrador(reserva)
+  if (situacao === 'cancelada') return false
+  return situacao === 'realizada' || !!reserva.relato || reserva.fotos.length > 0
+}
 
 /** Os títulos que as três telas escrevem dentro do relato. */
 const SECAO_OBJETIVOS = /^objetivos de aprendizagem$/i
@@ -160,8 +179,12 @@ export async function refazerDocumento(reserva: ReservaAdmin) {
  * Chrome, mas não em todo navegador, e um download que falha calado é
  * exatamente o problema que este botão veio resolver.
  */
-export function baixar(bytes: Uint8Array, nome: string) {
-  const endereco = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'application/pdf' }))
+export function baixar(conteudo: Uint8Array | Blob, nome: string) {
+  const arquivo =
+    conteudo instanceof Blob
+      ? conteudo
+      : new Blob([conteudo as BlobPart], { type: 'application/pdf' })
+  const endereco = URL.createObjectURL(arquivo)
   const gatilho = document.createElement('a')
   gatilho.href = endereco
   gatilho.download = nome

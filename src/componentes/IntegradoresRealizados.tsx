@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { EditorReserva } from './EditorReserva'
 import { EtiquetaOrigem, EtiquetaSituacao } from './Etiqueta'
 import { adminListarEscolas, adminListarReservas, adminRemoverReserva } from '../lib/api'
-import { baixar, refazerDocumento } from '../lib/documento/refazer'
+import { PacoteDeDocumentos } from './PacoteDeDocumentos'
+import { baixar, refazerDocumento, valeDocumento } from '../lib/documento/refazer'
 import { dataCurta, faixaHoraria, situacaoDoIntegrador } from '../lib/formato'
 import { pedirRelatoEFotos } from '../lib/relato'
 import type { EscolaAdmin, ReservaAdmin, SituacaoIntegrador } from '../lib/tipos'
@@ -42,6 +43,7 @@ export function IntegradoresRealizados({
   const [ate, setAte] = useState('')
   const [editando, setEditando] = useState<ReservaAdmin | null>(null)
   const [baixando, setBaixando] = useState<string | null>(null)
+  const [empacotando, setEmpacotando] = useState(false)
 
   const carregar = useCallback(async () => {
     aoErro(null)
@@ -229,6 +231,9 @@ export function IntegradoresRealizados({
               Limpar filtros
             </button>
           )}
+          <button type="button" className="secundario pequeno" onClick={() => setEmpacotando(true)}>
+            Baixar documentos em lote
+          </button>
         </div>
       </div>
 
@@ -303,19 +308,16 @@ export function IntegradoresRealizados({
                             : '+ Relato e fotos'}
                         </button>
                       )}
-                      {situacao !== 'cancelada' &&
-                        (situacao === 'realizada' ||
-                          !!reserva.relato ||
-                          reserva.fotos.length > 0) && (
-                          <button
-                            type="button"
-                            className="fantasma pequeno"
-                            onClick={() => void baixarDocumento(reserva)}
-                            disabled={baixando === reserva.id}
-                          >
-                            {baixando === reserva.id ? 'Montando…' : 'Baixar documento'}
-                          </button>
-                        )}
+                      {valeDocumento(reserva) && (
+                        <button
+                          type="button"
+                          className="fantasma pequeno"
+                          onClick={() => void baixarDocumento(reserva)}
+                          disabled={baixando === reserva.id}
+                        >
+                          {baixando === reserva.id ? 'Montando…' : 'Baixar documento'}
+                        </button>
+                      )}
                       <button
                         type="button"
                         className="fantasma pequeno"
@@ -337,6 +339,17 @@ export function IntegradoresRealizados({
             </tbody>
           </table>
         </div>
+      )}
+
+      {empacotando && (
+        <PacoteDeDocumentos
+          reservas={reservas}
+          escolas={escolas}
+          de={de}
+          ate={ate}
+          escolaId={escolaId}
+          aoFechar={() => setEmpacotando(false)}
+        />
       )}
 
       {editando && (

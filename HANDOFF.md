@@ -243,6 +243,8 @@ abrir a atividade no catálogo.
 | `src/lib/documento/modelo.ts` | o logo e a marca d'água, gerados pela ferramenta |
 | `src/componentes/CriarDocumento.tsx` | o formulário e as fotos |
 | `src/lib/documento/refazer.ts` | remonta o documento de um projeto já registrado |
+| `src/lib/documento/pacote.ts` | escreve o ZIP e monta o lote de documentos |
+| `src/componentes/PacoteDeDocumentos.tsx` | o diálogo do lote (período e escola) |
 | `ferramentas/extrair-modelo.mts` | tira o logo e a marca de um PDF do Canva |
 | `ferramentas/conferir-gerador.mts` | gera um documento e o passa pelo importador |
 
@@ -282,6 +284,23 @@ Para isso o **curso** precisa estar gravado, e ele não tem coluna: mora dentro 
 gerador passou a fazer). `partesDoRelato` lê o relato de volta nos quatro campos do documento —
 curso, descrição, objetivos e materiais. Relato escrito à mão, sem título nenhum, vira descrição
 inteira, que é o que ele é.
+
+**O lote é para o coordenador.** Ele manda ao gestor da prefeitura tudo o que o Núcleo fez no
+período, e baixar projeto por projeto não escala: o botão "Baixar documentos em lote", na aba
+"Integradores realizados", pergunta o período e a escola (ou todas) e devolve **um ZIP** com um PDF
+por projeto. ZIP, e não uma sequência de downloads, porque o navegador bloqueia download automático
+em série — e porque um anexo só é o que vai no e-mail de qualquer jeito.
+
+O ZIP é escrito à mão em `pacote.ts`, sem biblioteca, com os arquivos **guardados** (sem
+compressão): PDF já é comprimido por dentro. O bit 11 das flags marca o nome em UTF-8, senão
+"Egídio" e "Camisão" chegam quebrados no Windows. Os nomes seguem o padrão do documento avulso —
+`Projeto Integrador - Escola - AAAA-MM-DD.pdf` —, com a data em ISO de propósito: a pasta ordena
+sozinha na ordem das aulas. Duas aulas da mesma escola no mesmo dia (acontece: Ézio Berzaghi,
+11/09, 07h20 e 15h20) ganham o horário no fim das duas, não um "(2)" que não diz qual é qual.
+
+Projeto que falha não derruba o pacote — volta na lista de falhas e os outros seguem. E o diálogo
+conta quantos projetos do período **estão sem relato e sem fotos**, porque o documento deles sai só
+com o cabeçalho e ninguém quer descobrir isso depois de mandar para a prefeitura.
 
 **Uma liberdade em relação ao original:** o texto sempre cabe. O bloco diminui a letra até entrar
 na caixa, em vez de transbordar como acontece no Canva quando alguém escreve demais.
