@@ -192,6 +192,21 @@ entra na vitrine a aula cujo tempo já passou **ou** a que já foi relatada, com
 Reserva agendada continua de fora. O painel usa a mesma régua em `situacaoDoIntegrador`, senão o
 projeto recém-registrado apareceria como "Agendada" na lista e como realizada na vitrine.
 
+### Foto entra por anexo, nunca por link
+
+Não existe campo de link de foto em tela nenhuma, e **não deve voltar**. Já existiu, e chegou a ser
+melhorado (a Edge Function baixava a imagem e hospedava no balde, em vez de guardar o endereço) —
+mas mesmo assim dependia de o arquivo estar como "qualquer pessoa com o link", e a equipe nunca
+usou: quem acabou de dar a aula tem a foto no aparelho. O que o campo fazia de fato era manter viva
+a porta por onde **oito fotos da vitrine quebraram** (link de compartilhamento do Drive, restrito à
+conta, que devolve a tela de login do Google). Essas oito não têm mais como ser recuperadas do
+servidor.
+
+O botão "Relato e fotos", nas abas Reservas e Integradores realizados, era um `window.prompt`
+pedindo endereços colados — virou um diálogo com o mesmo seletor de arquivos do registro
+(`EditorRelato.tsx`). É por ele que se conserta foto quebrada: a que não abre aparece como imagem
+vazia, sai no "×" e entra o arquivo de verdade.
+
 ### Horário fechado fecha agendamento, não fecha registro
 
 Desativar um horário na aba "Horários" (fica "Fora da grade") tira o tempo do calendário público.

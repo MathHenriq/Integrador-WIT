@@ -3,6 +3,7 @@ import { AbaEquipe } from '../componentes/AbaEquipe'
 import { AdminHorarios } from '../componentes/AdminHorarios'
 import { Aviso } from '../componentes/Aviso'
 import { EditorAula } from '../componentes/EditorAula'
+import { EditorRelato } from '../componentes/EditorRelato'
 import { EtiquetaOrigem, EtiquetaReserva } from '../componentes/Etiqueta'
 import { ImportarCanva } from '../componentes/ImportarCanva'
 import { IntegradoresRealizados } from '../componentes/IntegradoresRealizados'
@@ -22,7 +23,6 @@ import {
   listarHabilidades,
 } from '../lib/api'
 import { ANOS_ESCOLARES, dataCurta, faixaHoraria, rotuloAnos, situacaoDoIntegrador } from '../lib/formato'
-import { pedirRelatoEFotos } from '../lib/relato'
 import { GRUPOS_WIT } from '../lib/tipos'
 import type { AulaAdmin, EscolaAdmin, GrupoWit, Habilidade, Materia, ReservaAdmin } from '../lib/tipos'
 
@@ -438,6 +438,7 @@ function AbaEscolas({ senha, aoErro }: { senha: string; aoErro: (e: string | nul
 function AbaReservas({ senha, aoErro }: { senha: string; aoErro: (e: string | null) => void }) {
   const [reservas, setReservas] = useState<ReservaAdmin[]>([])
   const [carregando, setCarregando] = useState(true)
+  const [relatando, setRelatando] = useState<ReservaAdmin | null>(null)
 
   const carregar = useCallback(async () => {
     aoErro(null)
@@ -501,14 +502,6 @@ function AbaReservas({ senha, aoErro }: { senha: string; aoErro: (e: string | nu
       await carregar()
     } catch (f) {
       aoErro(f instanceof Error ? f.message : 'Não foi possível cancelar.')
-    }
-  }
-
-  async function relatar(reserva: ReservaAdmin) {
-    try {
-      if (await pedirRelatoEFotos(senha, reserva)) await carregar()
-    } catch (f) {
-      aoErro(f instanceof Error ? f.message : 'Não foi possível salvar o relato.')
     }
   }
 
@@ -644,7 +637,7 @@ function AbaReservas({ senha, aoErro }: { senha: string; aoErro: (e: string | nu
                       </button>
                     )}
                     {r.status === 'confirmado' && r.ja_aconteceu && (
-                      <button type="button" className="fantasma pequeno" onClick={() => void relatar(r)}>
+                      <button type="button" className="fantasma pequeno" onClick={() => setRelatando(r)}>
                         {r.relato || r.fotos.length > 0 ? 'Relato e fotos' : '+ Relato e fotos'}
                       </button>
                     )}
@@ -661,6 +654,18 @@ function AbaReservas({ senha, aoErro }: { senha: string; aoErro: (e: string | nu
           </tbody>
         </table>
       </div>
+
+      {relatando && (
+        <EditorRelato
+          senha={senha}
+          reserva={relatando}
+          aoFechar={() => setRelatando(null)}
+          aoSalvar={() => {
+            setRelatando(null)
+            void carregar()
+          }}
+        />
+      )}
     </>
   )
 }

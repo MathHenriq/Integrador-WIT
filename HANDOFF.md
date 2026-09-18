@@ -351,13 +351,12 @@ nenhum: não tem filete, e a posição dela é medida fixa.
 ### 3.1 Quem escreve no Storage é a Edge Function, nunca o navegador
 O painel não tem login de verdade, e dar escrita ao papel `anon` deixaria qualquer um subir
 arquivo. Quem grava é sempre uma Edge Function que confere a senha e usa a service role: a
-`importar-canva` (fotos de dentro do PDF) e a `subir-fotos` (fotos anexadas do aparelho **ou
-trazidas de um link**, na aba "+ Registrar projeto"). O relato rápido do `window.prompt`
-(`src/lib/relato.ts`, abas Reservas e Integradores realizados) é o único lugar que ainda guarda
-**URL de imagem hospedada em outro serviço** — caixa de `prompt` não anexa arquivo; quando ela
-virar tela de verdade, usa a `subir-fotos`.
+`importar-canva` (fotos de dentro do PDF) e a `subir-fotos` (fotos anexadas do aparelho). **Não
+existe mais nenhuma tela que guarde URL de imagem de outro serviço.** O relato rápido era um
+`window.prompt` pedindo "endereços das fotos, um por linha" e gravava o que fosse colado, cru —
+virou o diálogo `EditorRelato.tsx`, com o mesmo `SeletorDeFotos` do registro.
 
-### 3.1.1 Link de foto não é guardado como link
+### 3.1.1 Link de foto: por que o campo deixou de existir
 Antes, a foto colada como endereço ficava gravada daquele jeito, e a vitrine apontava para fora.
 Isso não funcionou uma única vez: as oito fotos por link que existiam em produção eram o link de
 **compartilhamento** do Drive (`drive.google.com/file/d/<id>/view`), que é uma página HTML, não uma
@@ -370,6 +369,13 @@ com `lh3.googleusercontent.com` de reserva), exige `content-type` de imagem e te
 recusa endereço que não seja da internet pública (localhost, IP de rede interna, metadados da
 nuvem). Quando o arquivo do Drive está restrito, a mensagem diz exatamente isso — a foto quebrada
 na vitrine era o pior resultado possível, porque ninguém descobria que tinha dado errado.
+
+**O campo de link saiu de vez.** Hospedar a imagem do link resolvia a parte técnica, mas ainda
+dependia de o arquivo estar como "qualquer pessoa com o link" — e a equipe nunca usou: quem acabou
+de dar a aula tem a foto no aparelho, não um endereço. O que o campo mantinha vivo era a porta por
+onde as oito fotos quebraram, e seria por ela que alguém tentaria consertá-las. Hoje só há anexo,
+em todas as telas. A `subir-fotos` continua aceitando `link` do lado do servidor (nada foi
+redeployado), mas nenhum código do site manda um.
 
 O importador do Canva é a exceção construída para isso — o balde `fotos-aulas` é **público na
 leitura** (a vitrine precisa abrir a foto) e **não tem policy nenhuma de escrita**, então só a
@@ -625,8 +631,11 @@ equipe.
   que faltava.
 - **Oito fotos de três aulas continuam quebradas na vitrine** (reservas de 25/08, 01/09 e 11/09):
   são links do Drive restritos à conta, gravados antes da `subir-fotos`. Não dá para recuperá-las
-  do servidor — o Drive pede login. O conserto é reabrir a aula no painel e anexar as fotos, ou
-  soltar os arquivos no Drive como "qualquer pessoa com o link" e colar o link de novo.
+  do servidor — o Drive pede login, e a conta conectada às ferramentas nem enxerga os arquivos
+  ("Requested entity was not found"), então não há de onde buscar. O conserto é com quem tem as
+  fotos: abrir a aula no painel, botão "Relato e fotos", tirar no "×" a que aparece quebrada e
+  anexar o arquivo. As quebradas aparecem ali como imagem sem carregar, então dá para ver qual é
+  qual.
 - **Sobraram 4 fotos de teste no balde `fotos-aulas`**, na pasta `add0e69c70723d50/`, de um teste
   feito contra a produção, mais o pixel `enviadas/cb0501d6c1250017af030077.jpg`, da conferência da
   `subir-fotos`. Não estão ligadas a aula nenhuma. O Storage não deixa apagar por SQL; dá para

@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { EditorRelato } from './EditorRelato'
 import { EditorReserva } from './EditorReserva'
 import { EtiquetaOrigem, EtiquetaSituacao } from './Etiqueta'
 import { adminListarEscolas, adminListarReservas, adminRemoverReserva } from '../lib/api'
 import { PacoteDeDocumentos } from './PacoteDeDocumentos'
 import { baixar, refazerDocumento, valeDocumento } from '../lib/documento/refazer'
 import { dataCurta, faixaHoraria, situacaoDoIntegrador } from '../lib/formato'
-import { pedirRelatoEFotos } from '../lib/relato'
 import type { EscolaAdmin, ReservaAdmin, SituacaoIntegrador } from '../lib/tipos'
 
 /** Os recortes da lista, na ordem em que aparecem como filtro. */
@@ -42,6 +42,7 @@ export function IntegradoresRealizados({
   const [de, setDe] = useState('')
   const [ate, setAte] = useState('')
   const [editando, setEditando] = useState<ReservaAdmin | null>(null)
+  const [relatando, setRelatando] = useState<ReservaAdmin | null>(null)
   const [baixando, setBaixando] = useState<string | null>(null)
   const [empacotando, setEmpacotando] = useState(false)
 
@@ -105,20 +106,11 @@ export function IntegradoresRealizados({
     setAte('')
   }
 
-  async function relatar(reserva: ReservaAdmin) {
-    try {
-      if (await pedirRelatoEFotos(senha, reserva)) await carregar()
-    } catch (f) {
-      aoErro(f instanceof Error ? f.message : 'Não foi possível salvar o relato.')
-    }
-  }
-
   /**
    * O documento em PDF de um projeto que já está registrado. Ele não fica
    * guardado em lugar nenhum — é remontado aqui, na hora, com os campos e
    * as fotos da própria reserva. Vale para os projetos importados do
-   * Canva, para os gerados pelo site e para os que entraram pela aba
-   * "Registrar projeto", que nunca tiveram documento.
+   * Canva e para os registrados pela equipe.
    */
   async function baixarDocumento(reserva: ReservaAdmin) {
     aoErro(null)
@@ -301,7 +293,7 @@ export function IntegradoresRealizados({
                         <button
                           type="button"
                           className="fantasma pequeno"
-                          onClick={() => void relatar(reserva)}
+                          onClick={() => setRelatando(reserva)}
                         >
                           {reserva.relato || reserva.fotos.length > 0
                             ? 'Relato e fotos'
@@ -339,6 +331,18 @@ export function IntegradoresRealizados({
             </tbody>
           </table>
         </div>
+      )}
+
+      {relatando && (
+        <EditorRelato
+          senha={senha}
+          reserva={relatando}
+          aoFechar={() => setRelatando(null)}
+          aoSalvar={() => {
+            setRelatando(null)
+            void carregar()
+          }}
+        />
       )}
 
       {empacotando && (
