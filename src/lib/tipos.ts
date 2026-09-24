@@ -14,7 +14,9 @@ export type SituacaoIntegrador = 'realizada' | 'agendada' | 'aguardando' | 'canc
 /** Data no formato ISO curto, "2026-08-19". Nunca um Date serializado. */
 export type DataIso = string
 
-export type EscolaResumo = { id: string; nome: string }
+/** `limite_alunos`: quantos alunos cabem na sala do Núcleo naquela escola.
+ *  Nulo = sem limite. */
+export type EscolaResumo = { id: string; nome: string; limite_alunos: number | null }
 export type Materia = { id: string; nome: string; cor: string }
 
 export type ContextoPublico = {
