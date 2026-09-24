@@ -8,6 +8,8 @@ import { Modal } from './Modal'
 type Props = {
   escolaId: string
   escolaNome: string
+  /** Quantos alunos cabem na sala do Núcleo nesta escola; nulo = sem limite. */
+  limiteAlunos: number | null
   ocorrencia: Ocorrencia
   aoFechar: () => void
   aoConfirmar: (comprovante: Comprovante) => void
@@ -49,6 +51,7 @@ function alternarLinha(texto: string, item: string) {
 export function DialogoAgendamento({
   escolaId,
   escolaNome,
+  limiteAlunos,
   ocorrencia,
   aoFechar,
   aoConfirmar,
@@ -113,6 +116,10 @@ export function DialogoAgendamento({
     const alunos = Number(quantidadeAlunos)
     if (!quantidadeAlunos.trim() || !Number.isInteger(alunos) || alunos < 1) {
       setErro('Informe quantos alunos a turma tem.')
+      return
+    }
+    if (limiteAlunos != null && alunos > limiteAlunos) {
+      setErro(`A sala do Núcleo WIT nesta escola comporta até ${limiteAlunos} alunos.`)
       return
     }
     if (origem === 'catalogo' && !aulaId) {
@@ -186,13 +193,16 @@ export function DialogoAgendamento({
             />
           </div>
           <div className="campo">
-            <label htmlFor="quantidade-alunos">Quantidade de alunos</label>
+            <label htmlFor="quantidade-alunos">
+              Quantidade de alunos
+              {limiteAlunos != null && <span className="opcional"> (até {limiteAlunos})</span>}
+            </label>
             <input
               id="quantidade-alunos"
               type="number"
               inputMode="numeric"
               min={1}
-              max={999}
+              max={limiteAlunos ?? 999}
               value={quantidadeAlunos}
               onChange={(e) => setQuantidadeAlunos(e.target.value)}
               placeholder="Ex.: 28"
