@@ -931,6 +931,18 @@ a.atividade:hover {
   margin-bottom: 3px;
 }
 
+/* O mesmo projeto dado para várias turmas: uma linha por turma, no
+   lugar de um cartão repetido para cada uma. */
+.atividade .turmas-do-projeto {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  color: var(--texto-suave);
+  font-size: 14px;
+}
+
+.atividade .turmas-do-projeto li + li { margin-top: 2px; }
+
 .atividade .relato {
   display: block;
   margin-top: 8px;

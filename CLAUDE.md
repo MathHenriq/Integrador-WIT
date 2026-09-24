@@ -192,6 +192,16 @@ entra na vitrine a aula cujo tempo já passou **ou** a que já foi relatada, com
 Reserva agendada continua de fora. O painel usa a mesma régua em `situacaoDoIntegrador`, senão o
 projeto recém-registrado apareceria como "Agendada" na lista e como realizada na vitrine.
 
+### Vitrine: um cartão por projeto, não por turma
+
+O mesmo tema dado para várias turmas (5B, 5C e 5F na mesma semana) aparecia como três cartões
+iguais em sequência, e parecia registro duplicado. Não era: cada linha é uma aula de verdade, com
+horário, turma, fotos e documento próprios — o coordenador manda cada uma ao gestor. Por isso a
+junção é **só na tela** (`Realizadas.tsx`): mesmo tema (sem acento, caixa e pontuação, a mesma
+régua da `_texto_chave`) vira um cartão, com uma linha por turma, o relato mais recente e as fotos
+de todas, sem repetir a mesma foto. **Não apagar nem fundir as reservas no banco** para "resolver
+duplicata" — isso some com a aula de uma turma.
+
 ### Foto entra por anexo, nunca por link
 
 Não existe campo de link de foto em tela nenhuma, e **não deve voltar**. Já existiu, e chegou a ser
