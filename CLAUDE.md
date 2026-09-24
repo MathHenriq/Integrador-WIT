@@ -92,7 +92,7 @@ O agendamento público exige:
 - **E-mail ou WhatsApp** — pelo menos um dos dois, nunca os dois em branco.
 
 **Limite de alunos da sala** (`escolas.limite_alunos`, migration `0031`): a sala da **EMEF
-Professor Egídio Costa** só comporta **16 alunos**, então o agendamento pelo site recusa turma maior
+Professor Egídio Costa** só comporta **20 alunos** (era 16 na `0031`; a `0032` subiu para 20), então o agendamento pelo site recusa turma maior
 (trigger no insert com `origem = 'escola'` + aviso no formulário). Nulo = sem limite, que é o caso
 das outras escolas. Não confundir com `horarios.capacidade`, que conta os alunos do próprio Núcleo
 e nunca barrou turma parceira. O limite não vale para registro da equipe nem para edição no painel.
