@@ -68,6 +68,8 @@ begin
       ('Projetos Videos for Change | Gravações', 'Projetos Videos for Change | Gravações')
     ) as t(repetida, fica)
   loop
+    -- Sem isto, um par cuja atividade não existe herdaria a do par anterior.
+    v_fica := null;
     select * into v_fica
       from public.aulas
      where public._texto_chave(titulo) = public._texto_chave(v_par.fica)
