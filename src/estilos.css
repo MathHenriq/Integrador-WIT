@@ -1717,3 +1717,22 @@ td button.pequeno { white-space: nowrap; }
 
 .reserva-simples .hora { color: var(--texto-suave); font-size: 15px; }
 .reserva-simples.passado { opacity: 0.72; }
+
+/* ------------------------------------------------------------------ */
+/* Tema do registro comparado com o catálogo, e a confirmação          */
+/* ------------------------------------------------------------------ */
+
+.sugestoes-de-tema { margin-top: 10px; }
+.sugestoes-de-tema .ajuda { margin-bottom: 8px; }
+.sugestoes-de-tema .chip { text-align: left; }
+.tema-do-catalogo { color: var(--texto-suave); font-weight: 600; }
+
+.resumo-registro {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 14px;
+  margin: 0 0 18px;
+  font-size: 15px;
+}
+.resumo-registro dt { color: var(--texto-fraco); }
+.resumo-registro dd { margin: 0; overflow-wrap: anywhere; }

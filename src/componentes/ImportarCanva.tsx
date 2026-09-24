@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Aviso } from './Aviso'
+import { ConfirmarRegistro, SugestoesDeTema } from './ConfirmarRegistro'
 import {
   adminImportarAulaRealizada,
+  adminListarAulas,
   adminListarEscolas,
   adminListarHorarios,
   importarDocumentoCanva,
 } from '../lib/api'
 import { acharEscola } from '../lib/escolas.ts'
 import { dataCurta, dataExtensa, faixaHoraria, faixaHorariaNaGrade, paraData } from '../lib/formato'
-import type { AulaImportada, EscolaAdmin, HorarioAdmin, ImportacaoCanva, OrigemReserva } from '../lib/tipos'
+import type { AulaAdmin, AulaImportada, EscolaAdmin, HorarioAdmin, ImportacaoCanva, OrigemReserva } from '../lib/tipos'
 
 /**
  * Sobe o PDF que a equipe exporta do Canva e transforma em aula
@@ -183,8 +185,18 @@ function Conferencia({
   const [relato, setRelato] = useState(lida.relato)
   const [fotos, setFotos] = useState(lida.fotos)
   const [origem, setOrigem] = useState<OrigemReserva>('equipe_wit')
-  const [virarAtividade, setVirarAtividade] = useState(true)
+  const [catalogo, setCatalogo] = useState<AulaAdmin[]>([])
+  const [confirmando, setConfirmando] = useState(false)
   const [publicando, setPublicando] = useState(false)
+
+  // O catálogo, para o tema do documento ser comparado com o que já existe.
+  useEffect(() => {
+    adminListarAulas(senha)
+      .then((aulas) => setCatalogo(aulas.filter((a) => a.publicada)))
+      .catch(() => setCatalogo([]))
+  }, [senha])
+
+  const fecharConfirmacao = useCallback(() => setConfirmando(false), [])
 
   // A lista de escolas chega depois do documento, então o casamento
   // acontece quando as duas coisas existem.
@@ -233,7 +245,24 @@ function Conferencia({
   const faltaEscola = !escolaId
   const podePublicar = !!escolaId && !!data && professor.trim().length >= 3 && titulo.trim().length >= 3
 
-  async function publicar() {
+  /** O que a confirmação mostra: o bastante para perceber um engano. */
+  const resumo = useMemo(() => {
+    const linhas: { rotulo: string; valor: string }[] = []
+    const escola = escolas.find((e) => e.id === escolaId)
+    if (escola) linhas.push({ rotulo: 'Escola', valor: escola.nome })
+    if (/^\d{4}-\d{2}-\d{2}$/.test(data)) linhas.push({ rotulo: 'Data', valor: dataExtensa(data) })
+    const horario = horarios.find((h) => h.id === horarioId)
+    linhas.push({
+      rotulo: 'Horário',
+      valor: horario ? faixaHorariaNaGrade(horario) : 'primeiro tempo livre do dia',
+    })
+    if (turma.trim()) linhas.push({ rotulo: 'Turma', valor: turma.trim() })
+    linhas.push({ rotulo: 'Professor', valor: professor.trim() })
+    linhas.push({ rotulo: 'Fotos', valor: fotos.length === 0 ? 'nenhuma' : String(fotos.length) })
+    return linhas
+  }, [escolas, escolaId, data, horarios, horarioId, turma, professor, fotos])
+
+  async function publicar(virarAtividade: boolean) {
     aoErro(null)
     setPublicando(true)
     try {
@@ -255,7 +284,9 @@ function Conferencia({
           horarioId: horarioId || null,
         }),
       )
+      setConfirmando(false)
     } catch (falha) {
+      setConfirmando(false)
       aoErro(falha instanceof Error ? falha.message : 'Não foi possível publicar a aula.')
     } finally {
       setPublicando(false)
@@ -378,6 +409,7 @@ function Conferencia({
             É o título que aparece na vitrine de aulas realizadas.
             {c.curso ? ` No documento, o curso é “${c.curso}”.` : ''}
           </p>
+          <SugestoesDeTema tema={titulo} catalogo={catalogo} aoEscolher={setTitulo} />
         </div>
 
         <div className="campo" style={{ marginBottom: 0 }}>
@@ -422,25 +454,6 @@ function Conferencia({
       </div>
 
       <div className="cartao" style={{ marginBottom: 20 }}>
-        <h3 style={{ fontSize: 17, marginBottom: 6 }}>Também no catálogo de atividades</h3>
-        <p className="ajuda" style={{ marginBottom: 14 }}>
-          O mesmo documento serve duas vezes: conta o que esta turma fez e vira uma atividade que
-          outro professor pode escolher na hora de agendar. O tema, a descrição, os objetivos e os
-          materiais vão para lá — e as fotos desta aula aparecem na página da atividade.
-        </p>
-        <div className="caixas">
-          <label className="caixa">
-            <input
-              type="checkbox"
-              checked={virarAtividade}
-              onChange={(e) => setVirarAtividade(e.target.checked)}
-            />
-            Abrir esta aula no catálogo
-          </label>
-        </div>
-      </div>
-
-      <div className="cartao" style={{ marginBottom: 20 }}>
         <h3 style={{ fontSize: 17, marginBottom: 6 }}>Fotos da aula</h3>
         <p className="ajuda" style={{ marginBottom: fotos.length > 0 ? 14 : 0 }}>
           {fotos.length === 0
@@ -471,10 +484,22 @@ function Conferencia({
         <button type="button" className="secundario" onClick={aoCancelar}>
           Cancelar
         </button>
-        <button type="button" onClick={() => void publicar()} disabled={publicando || !podePublicar}>
-          {publicando ? 'Publicando…' : 'Publicar aula realizada'}
+        <button type="button" onClick={() => setConfirmando(true)} disabled={publicando || !podePublicar}>
+          Publicar aula realizada
         </button>
       </div>
+
+      {confirmando && (
+        <ConfirmarRegistro
+          tema={titulo.trim()}
+          resumo={resumo}
+          catalogo={catalogo}
+          ocupado={publicando}
+          aoTrocarTema={setTitulo}
+          aoConfirmar={(virar) => void publicar(virar)}
+          aoVoltar={fecharConfirmacao}
+        />
+      )}
     </>
   )
 }

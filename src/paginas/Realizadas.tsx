@@ -4,27 +4,13 @@ import { Aviso } from '../componentes/Aviso'
 import { MotivoMateria, degradeMateria, textoDaMateria } from '../componentes/MotivoMateria'
 import { carregarContexto, listarRealizadas } from '../lib/api'
 import { MESES, diaEMes, paraData } from '../lib/formato'
+import { chaveDoTema } from '../lib/temas'
 import type { Materia, Realizada } from '../lib/tipos'
 
 /** "14 de maio de 2026", sem passar a string ISO por `new Date`. */
 function porExtenso(iso: string) {
   const data = paraData(iso)
   return `${data.getDate()} de ${MESES[data.getMonth()]} de ${data.getFullYear()}`
-}
-
-/**
- * O tema sem acento, sem pontuação e sem caixa: "ARTES COM IA" e
- * "Artes com IA." são o mesmo projeto. Mesma régua da `_texto_chave` do
- * banco, que é a que decide quando um registro reaproveita a atividade
- * do catálogo.
- */
-function chaveDoTema(titulo: string) {
-  return titulo
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim()
 }
 
 /**

@@ -202,6 +202,19 @@ régua da `_texto_chave`) vira um cartão, com uma linha por turma, o relato mai
 de todas, sem repetir a mesma foto. **Não apagar nem fundir as reservas no banco** para "resolver
 duplicata" — isso some com a aula de uma turma.
 
+A outra metade da repetição era no catálogo: o mesmo projeto escrito com outras palavras
+("Desenhando em Pixel Art", "Criação de Pixel Arts") abria atividade nova, porque o registro só
+reconhece tema escrito igual e a caixa "abrir no catálogo" **vinha marcada**. Hoje, em "Registrar
+projeto" e na conferência do Canva:
+
+- embaixo do tema aparecem os temas parecidos do catálogo (`src/lib/temas.ts`), e um clique usa o
+  tema que já existe;
+- o botão não grava: abre **"Deseja registrar este projeto?"** (`ConfirmarRegistro.tsx`), com o
+  resumo e, de novo, os parecidos. Se o tema já existe, a turma entra nele. Se é novo, a pessoa
+  **escolhe** se abre no catálogo — nada vem pré-marcado, e o botão fica travado até escolher.
+
+Não voltar a deixar essa escolha pré-marcada: foi exatamente o que encheu o catálogo.
+
 ### Foto entra por anexo, nunca por link
 
 Não existe campo de link de foto em tela nenhuma, e **não deve voltar**. Já existiu, e chegou a ser

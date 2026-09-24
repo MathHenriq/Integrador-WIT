@@ -1,11 +1,17 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Aviso } from './Aviso'
+import { ConfirmarRegistro, SugestoesDeTema } from './ConfirmarRegistro'
 import { SeletorDeFotos } from './SeletorDeFotos'
-import { adminImportarAulaRealizada, adminListarEscolas, adminListarHorarios } from '../lib/api'
+import {
+  adminImportarAulaRealizada,
+  adminListarAulas,
+  adminListarEscolas,
+  adminListarHorarios,
+} from '../lib/api'
 import { baixar, refazerDocumento } from '../lib/documento/refazer'
 import { dataExtensa, faixaHoraria, faixaHorariaNaGrade, paraData } from '../lib/formato'
-import type { AulaImportada, EscolaAdmin, HorarioAdmin, OrigemReserva } from '../lib/tipos'
+import type { AulaAdmin, AulaImportada, EscolaAdmin, HorarioAdmin, OrigemReserva } from '../lib/tipos'
 
 /** Os cinco cursos do Núcleo. O campo aceita outro, se for o caso. */
 const CURSOS = [
@@ -48,7 +54,8 @@ export function RegistrarProjeto({
   const [materiais, setMateriais] = useState('')
   const [fotos, setFotos] = useState<string[]>([])
   const [enviandoFotos, setEnviandoFotos] = useState(false)
-  const [virarAtividade, setVirarAtividade] = useState(true)
+  const [catalogo, setCatalogo] = useState<AulaAdmin[]>([])
+  const [confirmando, setConfirmando] = useState(false)
   const [registrando, setRegistrando] = useState(false)
   const [registrado, setRegistrado] = useState<AulaImportada | null>(null)
 
@@ -56,6 +63,10 @@ export function RegistrarProjeto({
     adminListarEscolas(senha)
       .then(setEscolas)
       .catch(() => setEscolas([]))
+    // O catálogo, para o tema digitado ser comparado com o que já existe.
+    adminListarAulas(senha)
+      .then((aulas) => setCatalogo(aulas.filter((a) => a.publicada)))
+      .catch(() => setCatalogo([]))
   }, [senha])
 
   useEffect(() => {
@@ -109,7 +120,26 @@ export function RegistrarProjeto({
     !enviandoFotos &&
     !registrando
 
-  async function registrar() {
+  const fecharConfirmacao = useCallback(() => setConfirmando(false), [])
+
+  /** O que a confirmação mostra: o bastante para perceber um engano. */
+  const resumo = useMemo(() => {
+    const linhas: { rotulo: string; valor: string }[] = []
+    const escola = escolas.find((e) => e.id === escolaId)
+    if (escola) linhas.push({ rotulo: 'Escola', valor: escola.nome })
+    if (/^\d{4}-\d{2}-\d{2}$/.test(data)) linhas.push({ rotulo: 'Data', valor: dataExtensa(data) })
+    const horario = horarios.find((h) => h.id === horarioId)
+    linhas.push({
+      rotulo: 'Horário',
+      valor: horario ? faixaHorariaNaGrade(horario) : 'primeiro tempo livre do dia',
+    })
+    if (turma.trim()) linhas.push({ rotulo: 'Turma', valor: turma.trim() })
+    linhas.push({ rotulo: 'Professor', valor: professor.trim() })
+    linhas.push({ rotulo: 'Fotos', valor: fotos.length === 0 ? 'nenhuma' : String(fotos.length) })
+    return linhas
+  }, [escolas, escolaId, data, horarios, horarioId, turma, professor, fotos])
+
+  async function registrar(virarAtividade: boolean) {
     aoErro(null)
     setRegistrando(true)
     try {
@@ -129,8 +159,10 @@ export function RegistrarProjeto({
         origem,
         horarioId: horarioId || null,
       })
+      setConfirmando(false)
       setRegistrado(aula)
     } catch (falha) {
+      setConfirmando(false)
       aoErro(falha instanceof Error ? falha.message : 'Não foi possível registrar o projeto.')
     } finally {
       setRegistrando(false)
@@ -270,6 +302,7 @@ export function RegistrarProjeto({
             maxLength={160}
           />
           <p className="ajuda">É o título que aparece na vitrine de aulas realizadas.</p>
+          <SugestoesDeTema tema={tema} catalogo={catalogo} aoEscolher={setTema} />
         </div>
 
         <div className="campo" style={{ marginBottom: 0 }}>
@@ -348,26 +381,23 @@ export function RegistrarProjeto({
         />
       </div>
 
-      <div className="cartao" style={{ marginBottom: 20 }}>
-        <label className="caixa">
-          <input
-            type="checkbox"
-            checked={virarAtividade}
-            onChange={(e) => setVirarAtividade(e.target.checked)}
-          />
-          Abrir esta aula no catálogo de atividades
-        </label>
-        <p className="ajuda" style={{ marginTop: 6 }}>
-          Além de registrar o que esta turma fez, vira uma atividade que outro professor pode
-          escolher na hora de agendar.
-        </p>
-      </div>
-
       <div className="acoes-formulario" style={{ marginTop: 0 }}>
-        <button type="button" onClick={() => void registrar()} disabled={!podeRegistrar}>
-          {registrando ? 'Registrando…' : 'Registrar projeto realizado'}
+        <button type="button" onClick={() => setConfirmando(true)} disabled={!podeRegistrar}>
+          Registrar projeto realizado
         </button>
       </div>
+
+      {confirmando && (
+        <ConfirmarRegistro
+          tema={tema.trim()}
+          resumo={resumo}
+          catalogo={catalogo}
+          ocupado={registrando}
+          aoTrocarTema={setTema}
+          aoConfirmar={(virar) => void registrar(virar)}
+          aoVoltar={fecharConfirmacao}
+        />
+      )}
     </>
   )
 }
