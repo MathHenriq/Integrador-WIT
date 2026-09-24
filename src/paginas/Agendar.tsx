@@ -321,6 +321,7 @@ export function Agendar() {
         <DialogoAgendamento
           escolaId={escola.id}
           escolaNome={escola.nome}
+          limiteAlunos={escola.limite_alunos}
           ocorrencia={agendando}
           aoFechar={() => setAgendando(null)}
           aoConfirmar={async (novo) => {
