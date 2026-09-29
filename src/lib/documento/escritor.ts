@@ -12,6 +12,18 @@
 // O texto cai onde caía, sem embutir arquivo de fonte nenhum.
 // =====================================================================
 
+import { AUTOR, SISTEMA } from '../autoria.ts'
+
+/**
+ * Texto de metadado em UTF-16BE com BOM, escrito em hexadecimal: é a forma
+ * que o PDF aceita para qualquer letra, acento incluído, sem escapar nada.
+ */
+function textoPdf(texto: string) {
+  let hex = 'FEFF'
+  for (let i = 0; i < texto.length; i++) hex += texto.charCodeAt(i).toString(16).padStart(4, '0')
+  return `<${hex.toUpperCase()}>`
+}
+
 /** Larguras da Helvetica-Bold, em milésimos, do espaço ao "~". */
 const LARGURAS_ASCII = [
   278, 333, 474, 556, 556, 889, 722, 238, 333, 333, 389, 584, 278, 333, 278, 278,
@@ -250,10 +262,17 @@ export class Documento {
     this.objetos[numPaginas - 1].dicionario =
       `<< /Type /Pages /Count ${numsDePagina.length} /Kids [${numsDePagina.map((p) => `${p} 0 R`).join(' ')}] >>`
 
-    return this.serializar(this.novo(`<< /Type /Catalog /Pages ${numPaginas} 0 R >>`))
+    const numCatalogo = this.novo(`<< /Type /Catalog /Pages ${numPaginas} 0 R >>`)
+    // As propriedades do arquivo (Autor, Aplicativo) — o que o leitor de
+    // PDF mostra em "Propriedades do documento".
+    const numInfo = this.novo(
+      `<< /Author ${textoPdf(AUTOR)} /Creator ${textoPdf(`${SISTEMA} — desenvolvido por ${AUTOR}`)} ` +
+        `/Producer ${textoPdf(SISTEMA)} >>`,
+    )
+    return this.serializar(numCatalogo, numInfo)
   }
 
-  private serializar(numCatalogo: number) {
+  private serializar(numCatalogo: number, numInfo: number) {
     const partes: Uint8Array[] = []
     const codificar = (s: string) => new TextEncoder().encode(s)
     let posicao = 0
@@ -281,7 +300,7 @@ export class Documento {
     const inicioXref = posicao
     let xref = `xref\n0 ${this.objetos.length + 1}\n0000000000 65535 f \n`
     for (const endereco of enderecos) xref += `${String(endereco).padStart(10, '0')} 00000 n \n`
-    xref += `trailer\n<< /Size ${this.objetos.length + 1} /Root ${numCatalogo} 0 R >>\n`
+    xref += `trailer\n<< /Size ${this.objetos.length + 1} /Root ${numCatalogo} 0 R /Info ${numInfo} 0 R >>\n`
     xref += `startxref\n${inicioXref}\n%%EOF\n`
     empurrar(codificar(xref))
 

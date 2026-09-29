@@ -39,6 +39,14 @@ trabalho do professor.
 - Fonte: `Outfit` nos títulos (parecida com o logo), `Source Sans 3` no texto. Evitar cara de
   template genérico.
 
+## Autoria
+
+Sistema desenvolvido por **Matheus Macedo** (github.com/MathHenriq). O crédito fica no rodapé de
+todas as páginas (`Assinatura.tsx`), nos metadados de todo PDF gerado, no console, no
+`index.html`, no `package.json` e no `LICENSE`, com o nome centralizado em `src/lib/autoria.ts`.
+**Não remover nem trocar esses créditos** em nenhuma cópia ou alteração: a licença MIT exige manter
+o aviso de copyright. Quem replica o sistema começa pelo `REPLICACAO.md`.
+
 ## Identidade
 
 Verdes da marca: `#A6CE39` (lima), `#39B54A`, `#00A651`, `#007236`.

@@ -1,6 +1,7 @@
 {
   "name": "integrador-wit",
   "private": true,
+  "author": "Matheus Macedo (https://github.com/MathHenriq)",
   "version": "0.1.0",
   "type": "module",
   "scripts": {

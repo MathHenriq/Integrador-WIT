@@ -1,5 +1,9 @@
 # Projeto Integrador · Núcleo WIT
 
+> Desenvolvido por **Matheus Macedo** ([github.com/MathHenriq](https://github.com/MathHenriq)).
+> Vai montar uma cópia? Comece pelo [`REPLICACAO.md`](REPLICACAO.md) — este README descreve a
+> primeira versão e está desatualizado em alguns pontos.
+
 Quando uma sala de tecnologia do Núcleo WIT fica ociosa, a escola e o Núcleo são cobrados
 igual pela Secretaria. A saída informal já existia — o professor da escola "empresta" a
 turma dele para uma aula dada pelo Núcleo WIT — mas dependia do instrutor caçar coordenador
@@ -214,3 +218,8 @@ build, não em runtime: mudou variável, precisa fazer redeploy para valer.
 - `npm audit` acusa um aviso `moderate` no esbuild que vem com o Vite 5. Afeta só o servidor
   de desenvolvimento (`npm run dev`), não o bundle publicado; some ao subir para Vite 6+, o
   que foge do stack combinado.
+
+## Autoria
+
+Desenvolvido por **Matheus Macedo** — [github.com/MathHenriq](https://github.com/MathHenriq).
+Licença MIT: cópias devem manter o aviso de copyright do `LICENSE` e os créditos de autoria.
