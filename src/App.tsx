@@ -1,5 +1,6 @@
 import { Suspense, lazy } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { Assinatura } from './componentes/Assinatura'
 import { Layout } from './componentes/Layout'
 import { LogoWit } from './componentes/LogoWit'
 import { Agendar } from './paginas/Agendar'
@@ -61,6 +62,9 @@ function ConfiguracaoPendente() {
             <span className="mono">.env.example</span> para <span className="mono">.env</span>.
           </p>
         </div>
+        <p style={{ textAlign: 'center', marginTop: 18, color: 'var(--texto-fraco)' }}>
+          <Assinatura />
+        </p>
       </main>
     </div>
   )

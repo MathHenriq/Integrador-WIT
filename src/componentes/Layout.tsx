@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
+import { Assinatura } from './Assinatura'
 import { LogoWit } from './LogoWit'
 
 const CHAVE_TEMA = 'wit:tema'
@@ -93,6 +94,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <footer className="rodape">
           <div className="rodape-interno">
             <span>Projeto Integrador · Núcleo WIT · Secretaria de Educação de Barueri</span>
+            <Assinatura />
           </div>
         </footer>
       </div>

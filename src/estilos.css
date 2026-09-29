@@ -446,6 +446,14 @@ a:hover { text-decoration: underline; }
   align-items: center;
 }
 
+.assinatura a {
+  color: var(--texto-suave);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.assinatura a:hover { text-decoration: underline; }
+
 /* ------------------------------------------------------------------ */
 /* Tipografia de página                                                */
 /* ------------------------------------------------------------------ */
