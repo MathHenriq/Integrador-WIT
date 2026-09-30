@@ -109,11 +109,26 @@ Reserva registrada pela própria equipe (aba "Registrar projeto" ou importação
 não passa por essa fila: já entra `confirmado`, porque é sempre de aula que **já aconteceu**.
 
 Na aba "Integradores", cada linha tem **Editar** e **Remover**. Editar corrige data, horário,
-professor, turma, contato e (só quando o tema não vem do catálogo) o tema/objetivos/materiais —
-usa a RPC `admin_atualizar_reserva`. Remover é diferente de cancelar: cancelar (`admin_cancelar_reserva`)
-mantém o histórico com status `cancelado`, aparece no filtro "Canceladas"; remover
-(`admin_remover_reserva`) apaga a linha de vez, com confirmação antes ("Você tem certeza que quer
-apagar o projeto integrador do dia X sobre 'tema'?").
+professor, turma, contato e tema/objetivos/materiais — usa a RPC `admin_atualizar_reserva`.
+Remover é diferente de cancelar: cancelar (`admin_cancelar_reserva`) mantém o histórico com status
+`cancelado`, aparece no filtro "Canceladas"; remover (`admin_remover_reserva`) apaga a linha de
+vez, com confirmação antes ("Você tem certeza que quer apagar o projeto integrador do dia X sobre
+'tema'?").
+
+### O tema é da aula que aconteceu, não do agendamento
+
+O professor da escola agenda escolhendo uma atividade do catálogo, combina outra coisa com a equipe,
+e é a outra que acontece. Desde a migration `0033`:
+
+- **Registrar** numa reserva que já existe grava o tema digitado. Tema que já existe no catálogo
+  liga a reserva a essa atividade; tema novo sem "abrir no catálogo" solta a reserva da atividade
+  do agendamento e fica como texto livre. A tela de sucesso avisa: "O agendamento era X".
+- **Editar** troca o tema de qualquer reserva, inclusive a do catálogo. Trocar solta **só aquela
+  reserva** da atividade (ou liga à atividade que já tem o tema novo). **Nunca editar a atividade
+  do catálogo para corrigir uma aula**: ela é compartilhada com as outras turmas que a usaram.
+
+Não voltar a travar o tema de reserva do catálogo no Editar: era o que impedia de corrigir um
+registro errado depois.
 
 ### Avisos por e-mail (rotação W / I / T e comprovante de quem agenda)
 
