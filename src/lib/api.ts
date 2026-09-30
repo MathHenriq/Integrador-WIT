@@ -336,9 +336,10 @@ export function adminConfirmarReserva(senha: string, reservaId: string) {
 
 /**
  * Corrige um projeto integrador já registrado: data, horário, professor,
- * turma, contato e — só quando a aula não é do catálogo — tema, objetivos
- * e materiais. Diferente de cancelar: aqui a reserva continua a mesma,
- * só com os dados certos.
+ * turma, contato, tema, objetivos e materiais. Trocar o tema de uma aula
+ * do catálogo solta só esta reserva da atividade — a atividade não muda.
+ * Diferente de cancelar: aqui a reserva continua a mesma, só com os dados
+ * certos.
  */
 export function adminAtualizarReserva(
   senha: string,

@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { adminAtualizarReserva, adminListarHorarios } from '../lib/api'
+import { adminAtualizarReserva, adminListarAulas, adminListarHorarios } from '../lib/api'
 import { faixaHorariaNaGrade, paraData } from '../lib/formato'
-import type { HorarioAdmin, ReservaAdmin } from '../lib/tipos'
+import { chaveDoTema } from '../lib/temas'
+import type { AulaAdmin, HorarioAdmin, ReservaAdmin } from '../lib/tipos'
 import { Aviso } from './Aviso'
+import { SugestoesDeTema } from './ConfirmarRegistro'
 import { Modal } from './Modal'
 
 type Props = {
@@ -15,10 +17,13 @@ type Props = {
 /**
  * Corrige um projeto integrador já registrado. Escola não muda por aqui —
  * trocar de escola trocaria também toda a grade de horários envolvida, o
- * que é mais chance de bagunçar do que de corrigir. Tema, objetivos e
- * materiais só ficam editáveis quando a aula não veio do catálogo — vindo
- * de lá, são da atividade, compartilhados com quem mais já deu a mesma
- * aula, e mudam-se na aba Aulas.
+ * que é mais chance de bagunçar do que de corrigir.
+ *
+ * O tema é desta aula, e pode ser trocado sempre — inclusive quando o
+ * agendamento veio do catálogo e, na sala, a turma fez outra coisa. Trocar
+ * aqui solta a aula da atividade antiga (ou a liga à atividade que já tem
+ * o tema novo); a atividade em si não muda, porque é compartilhada com as
+ * outras turmas que a usaram — essa se edita na aba Aulas.
  */
 export function EditorReserva({ senha, reserva, aoFechar, aoSalvar }: Props) {
   const [horarios, setHorarios] = useState<HorarioAdmin[]>([])
@@ -40,7 +45,18 @@ export function EditorReserva({ senha, reserva, aoFechar, aoSalvar }: Props) {
   const [erro, setErro] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
 
+  const [catalogo, setCatalogo] = useState<AulaAdmin[]>([])
+
   const temaVemDoCatalogo = reserva.aula_id !== null
+  const temaOriginal = reserva.aula_titulo ?? ''
+  const trocouTema = chaveDoTema(tema) !== chaveDoTema(temaOriginal)
+
+  useEffect(() => {
+    // O catálogo, para sugerir o tema que já existe em vez de outro escrito diferente.
+    adminListarAulas(senha)
+      .then((aulas) => setCatalogo(aulas.filter((a) => a.publicada)))
+      .catch(() => setCatalogo([]))
+  }, [senha])
 
   useEffect(() => {
     adminListarHorarios(senha, reserva.escola_id)
@@ -79,7 +95,7 @@ export function EditorReserva({ senha, reserva, aoFechar, aoSalvar }: Props) {
       setErro('Escolha um horário — a data mudou e o horário anterior não é mais deste dia.')
       return
     }
-    if (!temaVemDoCatalogo && tema.trim().length < 3) {
+    if (tema.trim().length < 3) {
       setErro('Dê um tema para a aula.')
       return
     }
@@ -100,9 +116,9 @@ export function EditorReserva({ senha, reserva, aoFechar, aoSalvar }: Props) {
         emailContato: email.trim() || null,
         whatsappContato: whatsapp.trim() || null,
         quantidadeAlunos: alunos,
-        aulaLivre: temaVemDoCatalogo ? null : tema.trim(),
-        aulaObjetivos: temaVemDoCatalogo ? null : objetivos.trim() || null,
-        aulaMateriais: temaVemDoCatalogo ? null : materiais.trim() || null,
+        aulaLivre: tema.trim(),
+        aulaObjetivos: objetivos.trim() || null,
+        aulaMateriais: materiais.trim() || null,
       })
       aoSalvar()
     } catch (falha) {
@@ -215,39 +231,40 @@ export function EditorReserva({ senha, reserva, aoFechar, aoSalvar }: Props) {
             value={tema}
             onChange={(e) => setTema(e.target.value)}
             maxLength={160}
-            disabled={temaVemDoCatalogo}
-            required={!temaVemDoCatalogo}
+            required
           />
-          {temaVemDoCatalogo && (
+          {temaVemDoCatalogo && !trocouTema && (
             <p className="ajuda">
-              Vem da atividade do catálogo — para mudar o tema, os objetivos ou os materiais, edite
-              a atividade na aba <strong>Aulas</strong>.
+              Vem da atividade do catálogo. Se a turma fez outra coisa, é só trocar: muda só esta
+              aula, e a atividade continua igual para as outras turmas.
             </p>
           )}
+          {temaVemDoCatalogo && trocouTema && (
+            <p className="ajuda">
+              Esta aula deixa de ser da atividade “{temaOriginal}”. A atividade do catálogo não muda.
+            </p>
+          )}
+          <SugestoesDeTema tema={tema} catalogo={catalogo} aoEscolher={setTema} />
         </div>
 
-        {!temaVemDoCatalogo && (
-          <>
-            <div className="campo">
-              <label htmlFor="ed-objetivos">Objetivos de aprendizagem</label>
-              <textarea
-                id="ed-objetivos"
-                value={objetivos}
-                onChange={(e) => setObjetivos(e.target.value)}
-                rows={3}
-              />
-            </div>
-            <div className="campo" style={{ marginBottom: 0 }}>
-              <label htmlFor="ed-materiais">Materiais e recursos</label>
-              <textarea
-                id="ed-materiais"
-                value={materiais}
-                onChange={(e) => setMateriais(e.target.value)}
-                rows={2}
-              />
-            </div>
-          </>
-        )}
+        <div className="campo">
+          <label htmlFor="ed-objetivos">Objetivos de aprendizagem</label>
+          <textarea
+            id="ed-objetivos"
+            value={objetivos}
+            onChange={(e) => setObjetivos(e.target.value)}
+            rows={3}
+          />
+        </div>
+        <div className="campo" style={{ marginBottom: 0 }}>
+          <label htmlFor="ed-materiais">Materiais e recursos</label>
+          <textarea
+            id="ed-materiais"
+            value={materiais}
+            onChange={(e) => setMateriais(e.target.value)}
+            rows={2}
+          />
+        </div>
 
         <div className="acoes-formulario">
           <button type="button" className="secundario" onClick={aoFechar} disabled={salvando}>

@@ -522,6 +522,13 @@ function Publicada({ aula, aoRecomecar }: { aula: AulaImportada; aoRecomecar: ()
           : `Registrada como ${aula.protocolo}.`}
       </Aviso>
 
+      {aula.tema_agendado && (
+        <Aviso tipo="info">
+          O agendamento era “{aula.tema_agendado}”. O tema ficou “{aula.titulo}”, que é o da aula
+          que aconteceu.
+        </Aviso>
+      )}
+
       {aula.aviso && <Aviso tipo="info">{aula.aviso}</Aviso>}
 
       {aula.aula_id && (

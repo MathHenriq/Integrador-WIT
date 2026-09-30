@@ -257,6 +257,11 @@ export type AulaImportada = {
   protocolo: string
   /** Entrou numa reserva que já existia, em vez de criar uma nova. */
   anexada: boolean
+  /**
+   * O tema que estava no agendamento, quando era outro: o registro troca
+   * pelo tema digitado, e a tela avisa para não parecer que foi ignorado.
+   */
+  tema_agendado?: string | null
   /** A atividade que a aula virou no catálogo, quando virou. */
   aula_id: string | null
   /** A atividade foi aberta agora, e não reaproveitada de outro tema. */
